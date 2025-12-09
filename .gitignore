@@ -1,0 +1,9 @@
+# Python / Django
+backend/venv/
+__pycache__/
+*.pyc
+.env
+*.sqlite3
+
+# Node / React
+frontend/webapp/node_modules/
