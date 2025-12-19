@@ -15,6 +15,7 @@ Root Directory
 
 - backend
 
+  - core
   - db.sqlite3
   - manage.py
   - requirements.txt
