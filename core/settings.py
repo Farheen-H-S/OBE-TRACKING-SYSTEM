@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'users',
     'academics',
+    'stress',
+    'reports',
 ]
 
 MIDDLEWARE = [

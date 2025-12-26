@@ -32,7 +32,7 @@ class Student(models.Model):
     )
 
     batch = models.ForeignKey(
-        'academics.AcademicBatch',
+        'academics.Batch',
         on_delete=models.PROTECT
     )
 
