@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'academics',
     'stress',
     'reports',
+    'assessments',
+    'indirect_attainment',
 ]
 
 MIDDLEWARE = [
