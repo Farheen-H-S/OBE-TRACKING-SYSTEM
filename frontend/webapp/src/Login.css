@@ -1,0 +1,86 @@
+/* Whole page background */
+.login-wrapper {
+  height: 100vh;
+  background-color: #dbeff4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* White card */
+.login-card {
+  width: 380px;
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 5px;
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Logo */
+.login-logo {
+  width: 200px;
+  margin-bottom: 10px;
+}
+
+/* Title */
+.login-title {
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Inputs */
+.input-box {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: #eef8ff;
+  border: 1px solid #cfe2f3;
+  border-radius: 4px;
+}
+
+/* Remember me */
+.remember-box {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* Login button */
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background: #e53935;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.login-btn:hover {
+  width: 100%;
+  padding: 10px;
+  background: #e53935;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  
+}
+
+/* Forgot password link */
+.forgot {
+  margin-top: 20px;
+  color: #e53935;
+  cursor: pointer;
+  font-size: 14px;
+}

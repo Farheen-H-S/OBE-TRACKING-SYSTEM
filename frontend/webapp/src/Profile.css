@@ -1,0 +1,341 @@
+/* ROOT */
+.dashboard-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+
+  /* Image shows white/light background for dashboard, header is blue */
+}
+
+/* HEADER */
+/* HEADER styles removed - see Header.css */
+/* .header { ... } handled in component css */
+
+
+.header-left,
+.header-center,
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  gap: 15px;
+}
+
+.logo {
+  height: 100px;
+}
+
+.header-org-name {
+  font-size: 1.7rem;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.header-dashboard-title {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: lighter;
+}
+
+.header-dashboard-title span {
+  font-size: 2.0rem;
+  display: block;
+}
+
+.header-right {
+  gap: 20px;
+}
+
+.search-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-bar-container {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 4px;
+  padding: 5px 10px;
+  width: 250px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  margin-left: 10px;
+  width: 100%;
+}
+
+.filter select {
+  background: transparent;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  /* Custom white arrow for visibility on blue background */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right -5px center;
+  background-size: 24px;
+  padding-right: 20px;
+}
+
+.filter select option {
+  color: black;
+}
+
+.notification-icon {
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* BODY */
+.main-body {
+  /* Was .body-container */
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: #f8fafc;
+  /* Light grey background for content */
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 320px;
+  /* Increased width from 280px */
+  background: linear-gradient(to bottom, #60a5fa, #3b82f6);
+  /* Blue Sidebar */
+  color: white;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  /* Enable scrolling for vertical menu expansion */
+  flex-shrink: 0;
+}
+
+/* USER BANNER */
+.user-banner {
+  padding: 20px;
+  text-align: center;
+  background: url("./back-pic.png") no-repeat center center/cover;
+}
+
+.user-banner-img img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid white;
+  object-fit: cover;
+}
+
+.user-banner-info h3 {
+  margin: 10px 0 5px;
+  font-size: 1.2rem;
+  font-size: 1.5rem;
+  color: #0e2344;
+}
+
+.user-banner-info p {
+  margin: 10px 0 5px;
+  font-size: 1.2rem;
+  font-weight: 550;
+  color: #0e2344;
+}
+
+
+/* ROLE BAR */
+.user-role-bar {
+  padding: 15px 20px;
+  font-weight: bold;
+  color: rgb(4, 38, 80);
+  background: rgba(248, 249, 252, 0.1);
+  font-size: 1.5rem;
+}
+
+/* MENU */
+/* MENU */
+.sidebar-menu {
+  list-style: none;
+  padding: 10px 0;
+  color: rgb(15, 49, 90);
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+/* MENU */
+.sidebar-menu {
+  list-style: none;
+  padding: 10px 0;
+  color: rgb(15, 49, 90);
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+/* Base Menu Item */
+.menu-item {
+  display: flex;
+  /* Aligns standard items (Icon + Text) */
+  flex-wrap: wrap;
+  /* Allows submenu to wrap */
+  align-items: center;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: rgb(15, 49, 90);
+  /* Per user request: font color same as existing menus? Actually user said 'color: rgb(15, 49, 90)' in previous file content for .sidebar-menu. But typically menu items are white in this design. I will check .sidebar color. Sidebar is white text? .sidebar-menu has color 15,49,90 in file? Let's fix that too, inconsistent. Ah, sidebar text is white. I'll stick to inherited or white. */
+  /* Sidebar has color: white. .sidebar-menu says color: rgb(15, 49, 90). That seems wrong if background is blue. 
+     Wait, user added color: rgb(15, 49, 90) in the manual edit (Step 178). 
+     But .sidebar has background blue. Dark text on blue? Hard to read.
+     I will assume white text is desired as per original image. User might have copy-pasted wrong color.
+     I'll set color: white explicitly to be safe.
+  */
+  color: rgb(255, 255, 255);
+  min-height: 48px;
+  padding: 12px 25px;
+  /* Default padding for standard items */
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-dot {
+  font-size: 0.6rem;
+  margin-right: 15px;
+  /* Space between bullet and text */
+}
+
+/* Remove specific margin fixes that might conflict */
+.menu-item>svg.menu-dot {
+  margin-left: 0;
+  margin-right: 15px;
+}
+
+/* Submenu Parent Items */
+/* Remove padding from the LI so the title div controls it and submenu expands full width */
+.menu-item.has-submenu {
+  padding: 0;
+}
+
+/* The Title Row for Submenu Items */
+.menu-title {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 25px;
+  /* Same padding as standard item to align text/icon exactly */
+}
+
+.menu-title .menu-dot {
+  margin-right: 15px;
+}
+
+.menu-title svg:last-child {
+  margin-left: auto;
+  /* Push +/- to right */
+}
+
+/* Submenu Dropdown Container */
+.submenu {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.submenu div {
+  padding: 10px 15px 10px 55px;
+  /* Indentation: 25px + extra */
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: white;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.submenu div:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* CONTENT AREA & PROFILE */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  /* Center Vertically if needed, image shows top/center */
+  align-items: center;
+  /* Center Horizontally */
+  padding: 40px;
+
+  background: white;
+  /* Or transparent over main-body */
+}
+
+.content-area h2 {
+  font-size: 2.2rem;
+}
+
+
+/* PROFILE CARD */
+.profile-card {
+  background: #dbeafe;
+  /* Light blue box bg */
+  border: 1px solid #93c5fd;
+  width: 700px;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  /* Stacked: Image Top, Details Bottom */
+  align-items: center;
+  /* Center the image and the text block horizontally */
+  gap: 30px;
+}
+
+/* Image shows Layout: Profile Pic Circle centered. Then Details List centered relative to card. */
+
+.profile-photo-large img {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.profile-details {
+  width: fit-content;
+  /* Allow the block to shrink to text width, so it can be centered */
+  text-align: left;
+  /* Align text lines to the left */
+  color: black;
+  font-size: 1.5rem;
+  line-height: 1.8;
+}
+
+.profile-details div {
+  margin-bottom: 5px;
+}
+
+.label {
+  font-weight: bold;
+  margin-right: 5px;
+  color: #000;
+}
