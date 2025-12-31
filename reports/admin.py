@@ -3,6 +3,6 @@ from .models import Report
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
-    list_display = ('course', 'year', 'status', 'created_by', 'approved_by', 'created_at')
-    list_filter = ('status', 'year', 'course')
-    search_fields = ('course__course_code', 'course__course_name', 'year')
+    list_display = ('course_id', 'year', 'status', 'user_id_created', 'user_id_approved', 'created_at')
+    list_filter = ('status', 'year', 'course_id')
+    search_fields = ('course_id__course_code', 'course_id__course_name', 'year')

@@ -13,35 +13,35 @@ class SchemeAdmin(admin.ModelAdmin):
 
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
-    list_display = ('program', 'batch_year', 'scheme')
-    list_filter = ('program', 'scheme')
+    list_display = ('batch_id', 'program_id', 'batch_year', 'scheme_id')
+    list_filter = ('program_id', 'scheme_id')
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ('course_code', 'course_name', 'program', 'semester')
-    list_filter = ('program', 'semester')
+    list_display = ('course_id', 'course_code', 'course_name', 'program_id', 'semester')
+    list_filter = ('program_id', 'semester')
     search_fields = ('course_code', 'course_name')
 
 @admin.register(CO)
 class COAdmin(admin.ModelAdmin):
-    list_display = ('co_number', 'course', 'target')
-    list_filter = ('course',)
+    list_display = ('co_id', 'co_number', 'course_id', 'target')
+    list_filter = ('course_id',)
 
 @admin.register(PO)
 class POAdmin(admin.ModelAdmin):
-    list_display = ('po_number', 'attainment')
+    list_display = ('po_id', 'po_number', 'attainment')
 
 @admin.register(PSO)
 class PSOAdmin(admin.ModelAdmin):
-    list_display = ('pso_number', 'program')
-    list_filter = ('program',)
+    list_display = ('pso_id', 'pso_number', 'program_id')
+    list_filter = ('program_id',)
 
 @admin.register(COPOMapping)
 class COPOMappingAdmin(admin.ModelAdmin):
-    list_display = ('co', 'po', 'weightage')
-    list_filter = ('co__course', 'po')
+    list_display = ('mapping_id', 'co_id', 'po_id', 'weightage')
+    list_filter = ('co_id__course_id', 'po_id')
 
 @admin.register(COPSOMapping)
 class COPSOMappingAdmin(admin.ModelAdmin):
-    list_display = ('co', 'pso', 'weightage')
-    list_filter = ('co__course', 'pso')
+    list_display = ('mapping_id', 'co_id', 'pso_id', 'weightage')
+    list_filter = ('co_id__course_id', 'pso_id')

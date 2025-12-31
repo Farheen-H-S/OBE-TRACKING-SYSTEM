@@ -15,7 +15,7 @@ class User(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
-    role_id = models.ForeignKey(UserRole, on_delete=models.PROTECT)
+    role_id = models.ForeignKey(UserRole, on_delete=models.PROTECT, db_column='role_id')
     contact_no = models.CharField(max_length=15, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -32,11 +32,13 @@ class Student(models.Model):
     enrollment_no = models.CharField(max_length=30, unique=True)
     program_id = models.ForeignKey(
         'academics.Program',
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        db_column='p_id'
     )
     batch_id = models.ForeignKey(
         'academics.Batch',
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        db_column='b_id'
     )
     class_year = models.CharField(max_length=20)
     division = models.CharField(max_length=10)
@@ -54,10 +56,11 @@ class Student(models.Model):
 
 class FacultyCourseAssignment(models.Model):
     assignment_id = models.AutoField(primary_key=True)
-    faculty_id = models.ForeignKey(User, on_delete=models.PROTECT)
+    faculty_id = models.ForeignKey(User, on_delete=models.PROTECT, db_column='faculty_id')
     course_id = models.ForeignKey(
         'academics.Course',
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        db_column='course_id'
     )
     academic_year = models.CharField(max_length=9)
     semester = models.IntegerField()

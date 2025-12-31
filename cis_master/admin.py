@@ -9,12 +9,12 @@ class CISNatureAdmin(admin.ModelAdmin):
 
 @admin.register(CISType)
 class CISTypeAdmin(admin.ModelAdmin):
-    list_display = ('type_id', 'type_name', 'nature', 'is_active')
-    list_filter = ('nature', 'is_active')
-    search_fields = ('type_name', 'nature__name')
+    list_display = ('type_id', 'type_name', 'nature_id', 'is_active')
+    list_filter = ('nature_id', 'is_active')
+    search_fields = ('type_name', 'nature_id__name')
 
 @admin.register(CISTerm)
 class CISTermAdmin(admin.ModelAdmin):
-    list_display = ('term_id', 'term_code', 'term_name', 'type', 'is_active')
-    list_filter = ('type', 'is_active')
-    search_fields = ('term_code', 'term_name', 'type__type_name')
+    list_display = ('term_id', 'term_code', 'term_name', 'type_id', 'is_active')
+    list_filter = ('type_id', 'is_active')
+    search_fields = ('term_code', 'term_name', 'type_id__type_name')

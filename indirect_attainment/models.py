@@ -4,9 +4,9 @@ from users.models import Student
 
 class IndirectAttainment(models.Model):
     record_id = models.AutoField(primary_key=True)
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
-    co_id = models.ForeignKey(CO, on_delete=models.CASCADE)
-    student_id = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
+    course_id = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id')
+    co_id = models.ForeignKey(CO, on_delete=models.CASCADE, db_column='co_id')
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True, db_column='student_id')
     ACTIVITY_TYPES = [
         ('Co-curricular', 'Co-curricular'),
         ('Industrial Visit', 'Industrial Visit'),

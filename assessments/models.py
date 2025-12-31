@@ -4,7 +4,7 @@ from users.models import User, Student
 
 class Assessment(models.Model):
     assessment_id = models.AutoField(primary_key=True)
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course_id = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id')
     assessment_name = models.CharField(max_length=100)
     ASSESSMENT_TYPES = [
         ('CIS', 'CIS'),
@@ -16,7 +16,7 @@ class Assessment(models.Model):
     weightage = models.FloatField()
     academic_year = models.CharField(max_length=9)
     semester = models.IntegerField()
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    user_id = models.ForeignKey(User, on_delete=models.PROTECT, db_column='user_id')
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
@@ -25,8 +25,8 @@ class Assessment(models.Model):
 
 class AssessmentCOMapping(models.Model):
     mapping_id = models.AutoField(primary_key=True)
-    assessment_id = models.ForeignKey(Assessment, on_delete=models.CASCADE)
-    co_id = models.ForeignKey(CO, on_delete=models.CASCADE)
+    assessment_id = models.ForeignKey(Assessment, on_delete=models.CASCADE, db_column='assessment_id')
+    co_id = models.ForeignKey(CO, on_delete=models.CASCADE, db_column='co_id')
     co_weightage = models.FloatField()
 
     def __str__(self):
@@ -34,10 +34,10 @@ class AssessmentCOMapping(models.Model):
 
 class MarksEntry(models.Model):
     entry_id = models.AutoField(primary_key=True)
-    assessment_id = models.ForeignKey(Assessment, on_delete=models.CASCADE)
-    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
+    assessment_id = models.ForeignKey(Assessment, on_delete=models.CASCADE, db_column='assessment_id')
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE, db_column='student_id')
     marks_obtained = models.FloatField()
-    entered_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    user_id = models.ForeignKey(User, on_delete=models.PROTECT, db_column='user_id')
     entered_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

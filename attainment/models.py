@@ -2,8 +2,8 @@ from django.db import models
 
 class COAttainment(models.Model):
     attainment_id = models.AutoField(primary_key=True)
-    co = models.ForeignKey('academics.CO', on_delete=models.CASCADE, related_name='attainments')
-    course = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='co_attainments')
+    co_id = models.ForeignKey('academics.CO', on_delete=models.CASCADE, related_name='attainments', db_column='co_id')
+    course_id = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='co_attainments', db_column='course_id')
     direct_attainment = models.FloatField()
     indirect_attainment = models.FloatField(null=True, blank=True)
     overall_attainment = models.FloatField(help_text="Weighted CO attainment (0.8L + 0.2M)")
@@ -19,12 +19,12 @@ class COAttainment(models.Model):
         verbose_name_plural = "CO Attainments"
 
     def __str__(self):
-        return f"CO: {self.co} - {self.academic_year}"
+        return f"CO: {self.co_id} - {self.academic_year}"
 
 class POAttainment(models.Model):
     attainment_id = models.AutoField(primary_key=True)
-    po = models.ForeignKey('academics.PO', on_delete=models.CASCADE, related_name='attainments')
-    course = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='po_attainments')
+    po_id = models.ForeignKey('academics.PO', on_delete=models.CASCADE, related_name='attainments', db_column='po_id')
+    course_id = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='po_attainments', db_column='course_id')
     po_value = models.FloatField(help_text="Raw PO value")
     normalized_value = models.FloatField()
     academic_year = models.CharField(max_length=9)
@@ -37,13 +37,13 @@ class POAttainment(models.Model):
         verbose_name_plural = "PO Attainments"
 
     def __str__(self):
-        return f"PO: {self.po} - {self.academic_year}"
+        return f"PO: {self.po_id} - {self.academic_year}"
 
 class Backtracking(models.Model):
-    id = models.AutoField(primary_key=True)
-    course = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='backtracking_entries')
-    co = models.ForeignKey('academics.CO', on_delete=models.CASCADE, related_name='backtracking_entries')
-    po = models.ForeignKey('academics.PO', on_delete=models.CASCADE, related_name='backtracking_entries')
+    backtracking_id = models.AutoField(primary_key=True)
+    course_id = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='backtracking_entries', db_column='course_id')
+    co_id = models.ForeignKey('academics.CO', on_delete=models.CASCADE, related_name='backtracking_entries', db_column='co_id')
+    po_id = models.ForeignKey('academics.PO', on_delete=models.CASCADE, related_name='backtracking_entries', db_column='po_id')
     direct_attainment = models.FloatField()
     indirect_attainment = models.FloatField()
     co_po_weightage = models.FloatField(help_text="CO -> PO mapping weight (1/2/3)")
@@ -59,7 +59,7 @@ class Backtracking(models.Model):
         verbose_name_plural = "Backtracking Entries"
 
     def __str__(self):
-        return f"Backtracking: {self.co} -> {self.po} ({self.academic_year})"
+        return f"Backtracking: {self.co_id} -> {self.po_id} ({self.academic_year})"
 
 class AttainmentSnapshot(models.Model):
     CALCULATION_TYPE_CHOICES = [
@@ -75,10 +75,10 @@ class AttainmentSnapshot(models.Model):
     snapshot_id = models.AutoField(primary_key=True)
     month = models.PositiveSmallIntegerField(help_text="Month (1-12)")
     year = models.PositiveSmallIntegerField(help_text="Academic year")
-    course = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='attainment_snapshots')
-    co = models.ForeignKey('academics.CO', on_delete=models.CASCADE, related_name='attainment_snapshots')
-    po = models.ForeignKey('academics.PO', on_delete=models.CASCADE, null=True, blank=True, related_name='attainment_snapshots')
-    pso = models.ForeignKey('academics.PSO', on_delete=models.CASCADE, null=True, blank=True, related_name='attainment_snapshots')
+    course_id = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='attainment_snapshots', db_column='course_id')
+    co_id = models.ForeignKey('academics.CO', on_delete=models.CASCADE, related_name='attainment_snapshots', db_column='co_id')
+    po_id = models.ForeignKey('academics.PO', on_delete=models.CASCADE, null=True, blank=True, related_name='attainment_snapshots', db_column='po_id')
+    pso_id = models.ForeignKey('academics.PSO', on_delete=models.CASCADE, null=True, blank=True, related_name='attainment_snapshots', db_column='pso_id')
     attainment_value = models.FloatField()
     calculation_type = models.CharField(max_length=15, choices=CALCULATION_TYPE_CHOICES)
     source = models.CharField(max_length=15, choices=SOURCE_CHOICES)
@@ -91,4 +91,4 @@ class AttainmentSnapshot(models.Model):
         verbose_name_plural = "Attainment Snapshots"
 
     def __str__(self):
-        return f"Snapshot {self.month}/{self.year} - {self.course}"
+        return f"Snapshot {self.month}/{self.year} - {self.course_id}"

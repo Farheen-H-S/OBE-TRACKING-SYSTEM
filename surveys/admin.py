@@ -9,17 +9,17 @@ class SurveyQuestionInline(admin.TabularInline):
 class SurveyMasterAdmin(admin.ModelAdmin):
     list_display = ('survey_id', 'survey_name', 'survey_category', 'academic_year', 'semester', 'is_active', 'is_anonymous')
     list_filter = ('survey_category', 'academic_year', 'semester', 'is_active')
-    search_fields = ('survey_name', 'course__course_name')
+    search_fields = ('survey_name', 'course_id__course_name')
     inlines = [SurveyQuestionInline]
 
 @admin.register(SurveyQuestion)
 class SurveyQuestionAdmin(admin.ModelAdmin):
-    list_display = ('question_id', 'survey', 'question_text', 'co', 'po', 'is_active')
-    list_filter = ('survey', 'is_active')
+    list_display = ('question_id', 'survey_id', 'question_text', 'co_id', 'po_id', 'is_active')
+    list_filter = ('survey_id', 'is_active')
     search_fields = ('question_text',)
 
 @admin.register(SurveyResponse)
 class SurveyResponseAdmin(admin.ModelAdmin):
-    list_display = ('response_id', 'survey', 'question', 'student', 'faculty', 'response_value', 'submitted_at')
-    list_filter = ('survey', 'submitted_at')
-    search_fields = ('student__roll_no', 'faculty__name')
+    list_display = ('response_id', 'survey_id', 'question_id', 'student_id', 'user_id', 'response_value', 'submitted_at')
+    list_filter = ('survey_id', 'submitted_at')
+    search_fields = ('student_id__roll_no', 'user_id__name')

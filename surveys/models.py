@@ -12,7 +12,7 @@ class SurveyMaster(models.Model):
     survey_category = models.CharField(max_length=30, choices=CATEGORY_CHOICES)
     academic_year = models.CharField(max_length=9)
     semester = models.IntegerField(null=True, blank=True)
-    course = models.ForeignKey('academics.Course', on_delete=models.SET_NULL, null=True, blank=True, db_column='course_id')
+    course_id = models.ForeignKey('academics.Course', on_delete=models.SET_NULL, null=True, blank=True, db_column='course_id')
     is_anonymous = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
 
@@ -27,10 +27,10 @@ class SurveyMaster(models.Model):
 
 class SurveyQuestion(models.Model):
     question_id = models.AutoField(primary_key=True)
-    survey = models.ForeignKey(SurveyMaster, on_delete=models.CASCADE, db_column='survey_id', related_name='questions')
+    survey_id = models.ForeignKey(SurveyMaster, on_delete=models.CASCADE, db_column='survey_id', related_name='questions')
     question_text = models.TextField()
-    co = models.ForeignKey('academics.CO', on_delete=models.SET_NULL, null=True, blank=True, db_column='co_id')
-    po = models.ForeignKey('academics.PO', on_delete=models.SET_NULL, null=True, blank=True, db_column='po_id')
+    co_id = models.ForeignKey('academics.CO', on_delete=models.SET_NULL, null=True, blank=True, db_column='co_id')
+    po_id = models.ForeignKey('academics.PO', on_delete=models.SET_NULL, null=True, blank=True, db_column='po_id')
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -44,10 +44,10 @@ class SurveyQuestion(models.Model):
 
 class SurveyResponse(models.Model):
     response_id = models.AutoField(primary_key=True)
-    survey = models.ForeignKey(SurveyMaster, on_delete=models.CASCADE, db_column='survey_id', related_name='responses')
-    question = models.ForeignKey(SurveyQuestion, on_delete=models.CASCADE, db_column='question_id', related_name='responses')
-    student = models.ForeignKey('users.Student', on_delete=models.SET_NULL, null=True, blank=True, db_column='student_id')
-    faculty = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True, db_column='faculty_id')
+    survey_id = models.ForeignKey(SurveyMaster, on_delete=models.CASCADE, db_column='survey_id', related_name='responses')
+    question_id = models.ForeignKey(SurveyQuestion, on_delete=models.CASCADE, db_column='question_id', related_name='responses')
+    student_id = models.ForeignKey('users.Student', on_delete=models.SET_NULL, null=True, blank=True, db_column='student_id')
+    user_id = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True, db_column='user_id')
     response_value = models.IntegerField()
     submitted_at = models.DateTimeField(auto_now_add=True)
 
@@ -57,4 +57,4 @@ class SurveyResponse(models.Model):
         verbose_name_plural = "Survey Responses"
 
     def __str__(self):
-        return f"Response to {self.survey.survey_name} (ID: {self.response_id})"
+        return f"Response to {self.survey_id.survey_name} (ID: {self.response_id})"

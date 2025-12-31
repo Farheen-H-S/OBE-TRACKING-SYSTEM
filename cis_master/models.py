@@ -14,12 +14,12 @@ class CISNature(models.Model):
 
 class CISType(models.Model):
     type_id = models.AutoField(primary_key=True)
-    nature = models.ForeignKey(CISNature, on_delete=models.CASCADE, related_name='types')
+    nature_id = models.ForeignKey(CISNature, on_delete=models.CASCADE, related_name='types', db_column='nature_id')
     type_name = models.CharField(max_length=255, help_text="Internal / External / Co-curricular")
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.type_name} ({self.nature.name})"
+        return f"{self.type_name} ({self.nature_id.name})"
 
     class Meta:
         verbose_name = "CIS Type"
@@ -27,7 +27,7 @@ class CISType(models.Model):
 
 class CISTerm(models.Model):
     term_id = models.AutoField(primary_key=True)
-    type = models.ForeignKey(CISType, on_delete=models.CASCADE, related_name='terms')
+    type_id = models.ForeignKey(CISType, on_delete=models.CASCADE, related_name='terms', db_column='type_id')
     term_code = models.CharField(max_length=50, help_text="FA-TH / SA-PR / CES")
     term_name = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
