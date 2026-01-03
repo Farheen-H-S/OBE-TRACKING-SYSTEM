@@ -8,9 +8,12 @@ function Login()
    const navigate=useNavigate();
    const handleLogin=() => {
    navigate('./Newfile')
+<<<<<<< HEAD
    navigate('./Profile')
    navigate('./Postatment')
    navigate('./Psostatement')
+=======
+>>>>>>> main
     console.log("Login");
    };
   return (
