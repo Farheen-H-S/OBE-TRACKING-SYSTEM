@@ -1,19 +1,16 @@
 import React from 'react';
 import { useNavigate } from "react-router-dom";
 import './Login.css';
-import logo from "./logo.png"; 
+import logo from "./assets/images/logo.png"; 
 
 function Login() 
   {
    const navigate=useNavigate();
    const handleLogin=() => {
    navigate('./Newfile')
-<<<<<<< HEAD
    navigate('./Profile')
    navigate('./Postatment')
    navigate('./Psostatement')
-=======
->>>>>>> main
     console.log("Login");
    };
   return (
