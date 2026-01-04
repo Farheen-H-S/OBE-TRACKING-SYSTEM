@@ -15,7 +15,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/Profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/create-user" element={<CreateUser />} />
           <Route path="/po-statement" element={<Postatement />} />
           <Route path="/pso-statement" element={<Psostatement />} />
