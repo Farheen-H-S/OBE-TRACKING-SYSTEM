@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Header from './components/header/Header';
+import Header from '../../components/header/Header';
 import { FaCircle, FaMinus, FaUser } from 'react-icons/fa';
 import './CreateUser.css';
 

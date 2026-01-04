@@ -1,12 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './Login';
-import Profile from './Profile';
-import Newfile from './Newfile';
-import CreateUser from './CreateUser';
-import Postatement from './Postatement';
-import Psostatement from './Psostatement';
-import Updateuser from './Updateuser';
+import Login from './pages/common/Login';
+import Profile from './pages/common/Profile';
+import CreateUser from './pages/admin/CreateUser';
+import Postatement from './pages/Faculty/Postatement';
+import Psostatement from './pages/Faculty/Psostatement';
+import Updateuser from './pages/admin/Updateuser';
 import './App.css';
 
 
@@ -17,7 +16,6 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/Profile" element={<Profile />} />
-          <Route path="/Newfile" element={<Newfile />} />
           <Route path="/create-user" element={<CreateUser />} />
           <Route path="/po-statement" element={<Postatement />} />
           <Route path="/pso-statement" element={<Psostatement />} />

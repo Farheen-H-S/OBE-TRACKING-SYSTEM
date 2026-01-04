@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import './Profile.css';
-import Header from './components/header/Header';
+import Header from '../../components/header/Header';
 
 import { FaCircle, FaMinus, FaPlus } from 'react-icons/fa';
-import Pofile from './admin/profile.jpeg';
+import profileImg from '../../assets/images/profile.jpeg';
 
 const Profile = () => {
 
@@ -25,7 +25,7 @@ const Profile = () => {
 
                     <div className="user-banner">
                         <div className="user-banner-img">
-                            <img src={Pofile} alt="profile pic" />
+                            <img src={profileImg} alt="profile pic" />
                         </div>
                         <div className="user-banner-info">
                             <h3>Welcome Mitesh!</h3>
@@ -134,7 +134,7 @@ const Profile = () => {
                     <h2 style={{ width: '100%', maxWidth: '900px', marginBottom: '20px' }}>Profile</h2>
                     <div className="profile-card">
                         <div className="profile-photo-large">
-                            <img src={Pofile} alt="profile pic" />
+                            <img src={profileImg} alt="profile pic" />
                         </div>
 
                         <div className="profile-details">
