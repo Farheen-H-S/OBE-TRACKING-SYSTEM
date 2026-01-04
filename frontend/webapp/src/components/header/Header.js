@@ -1,6 +1,6 @@
 import React from "react";
 import "./Header.css";
-import sflogo from "./sflogo.png"; // adjust path if needed
+import sflogo from "../../assets/images/sflogo.png"; // adjust path if needed
 import { FaBell, FaSearch } from "react-icons/fa";
 
 const Header = () => {

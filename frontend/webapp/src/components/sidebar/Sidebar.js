@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Sidebar.css';
 import { FaCircle, FaMinus, FaPlus } from 'react-icons/fa';
-import Pofile from '../../admin/profile.jpeg';
+import profileImg from '../../assets/images/profile.jpeg';
 
 const Sidebar = () => {
 
@@ -17,7 +17,7 @@ const Sidebar = () => {
 
             <div className="user-banner">
                 <div className="user-banner-img">
-                    <img src={Pofile} alt="profile pic" />
+                    <img src={profileImg} alt="profile pic" />
                 </div>
                 <div className="user-banner-info">
                     <h3>Welcome Mitesh!</h3>
