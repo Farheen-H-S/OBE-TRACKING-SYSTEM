@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'cis_master',
     'teaching_plan',
     'surveys',
+    'audit',
 ]
 
 MIDDLEWARE = [
