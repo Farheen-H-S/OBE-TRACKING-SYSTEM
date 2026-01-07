@@ -6,6 +6,7 @@ import CreateUser from './pages/admin/CreateUser';
 import Postatement from './pages/Faculty/Postatement';
 import Psostatement from './pages/Faculty/Psostatement';
 import Updateuser from './pages/admin/Updateuser';
+import Dashboard from './components/Dashboard';
 import './App.css';
 
 
@@ -19,8 +20,8 @@ function App() {
           <Route path="/create-user" element={<CreateUser />} />
           <Route path="/po-statement" element={<Postatement />} />
           <Route path="/pso-statement" element={<Psostatement />} />
-          <Route path="/update-user" element={<Updateuser />} />         
- 
+          <Route path="/update-user" element={<Updateuser />} />
+          <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

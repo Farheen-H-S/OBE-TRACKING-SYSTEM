@@ -1,18 +1,13 @@
-import React from 'react';
 import { useNavigate } from "react-router-dom";
 import './Login.css';
-import logo from "../../assets/images/logo.png"; 
+import logo from "../../assets/images/logo.png";
 
-function Login() 
-  {
-   const navigate=useNavigate();
-   const handleLogin=() => {
-   navigate('./Newfile')
-   navigate('./Profile')
-   navigate('./Postatment')
-   navigate('./Psostatement')
-    console.log("Login");
-   };
+function Login() {
+  const navigate = useNavigate();
+  const handleLogin = () => {
+    navigate('/dashboard');
+    console.log("Login clicked");
+  };
   return (
     <div className="login-wrapper">
       <div className="login-card">
@@ -43,7 +38,7 @@ function Login()
         </div>
 
         {/* Login Button */}
-        <button className="login-btn"onClick={handleLogin}>Login</button>
+        <button className="login-btn" onClick={handleLogin}>Login</button>
 
         {/* Forgot Password */}
         <p className="forgot">Forgot password ?</p>

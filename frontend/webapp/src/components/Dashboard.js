@@ -8,7 +8,7 @@ function Dashboard({ children }) {
       <Header />
 
       <div className="dashboard-body">
-       
+
 
         <div className="dashboard-content">
           {children}
