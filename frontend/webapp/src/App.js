@@ -1,31 +1,73 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/common/Login';
-import Profile from './pages/common/Profile';
-import CreateUser from './pages/admin/CreateUser';
-import Postatement from './pages/Faculty/Postatement';
-import Psostatement from './pages/Faculty/Psostatement';
-import Updateuser from './pages/admin/Updateuser';
-import Dashboard from './components/Dashboard';
-import './App.css';
-
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/common/Login";
+import Profile from "./pages/common/Profile";
+import CreateUser from "./pages/admin/CreateUser";
+import Updateuser from "./pages/admin/Updateuser";
+import Postatement from "./pages/Faculty/Postatement";
+import Psostatement from "./pages/Faculty/Psostatement";
+import Layout from "./components/Layout";
+import "./App.css";
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/create-user" element={<CreateUser />} />
-          <Route path="/po-statement" element={<Postatement />} />
-          <Route path="/pso-statement" element={<Psostatement />} />
-          <Route path="/update-user" element={<Updateuser />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+      <Routes>
+        {/* Login screen */}
+        <Route path="/" element={<Login />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
+        {/* Protected routes wrapped in Layout */}
+        <Route
+          path="/dashboard"
+          element={
+            <Layout>
+              <div>Welcome to Dashboard</div>
+            </Layout>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <Layout>
+              <Profile />
+            </Layout>
+          }
+        />
+        <Route
+          path="/create-user"
+          element={
+            <Layout>
+              <CreateUser />
+            </Layout>
+          }
+        />
+        <Route
+          path="/update-user"
+          element={
+            <Layout>
+              <Updateuser />
+            </Layout>
+          }
+        />
+        <Route
+          path="/po-statement"
+          element={
+            <Layout>
+              <Postatement />
+            </Layout>
+          }
+        />
+        <Route
+          path="/pso-statement"
+          element={
+            <Layout>
+              <Psostatement />
+            </Layout>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

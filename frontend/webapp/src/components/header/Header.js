@@ -23,7 +23,8 @@ const Header = () => {
       <div className="header-right">
         <div className="search-box">
           <FaSearch className="search-icon" />
-          <input type="text" placeholder="search" />
+          <input type="text" />
+            {/* can add placeholder */}
         </div>
 
         <select defaultValue="">
