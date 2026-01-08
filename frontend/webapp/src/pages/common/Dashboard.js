@@ -1,4 +1,4 @@
-import Header from "./header/Header";
+import Header from "../../components/header/Header";
 
 import "./Dashboard.css";
 
@@ -8,7 +8,7 @@ function Dashboard({ children }) {
       <Header />
 
       <div className="dashboard-body">
-       
+
 
         <div className="dashboard-content">
           {children}

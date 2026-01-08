@@ -1,15 +1,19 @@
 .dashboard-wrapper {
   width: 100%;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-body {
   display: flex;
-   padding-top: 80px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .dashboard-content {
   flex: 1;
   padding: 20px;
   background-color: #f4f6f8;
+  overflow-y: auto;
 }

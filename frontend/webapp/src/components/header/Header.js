@@ -1,4 +1,3 @@
-import React from "react";
 import "./Header.css";
 import sflogo from "../../assets/images/sflogo.png"; // adjust path if needed
 import { FaBell, FaSearch } from "react-icons/fa";
@@ -25,39 +24,36 @@ const Header = () => {
         <div className="search-box">
           <FaSearch className="search-icon" />
           <input type="text" />
+            {/* can add placeholder */}
         </div>
 
-        <select>
-          <option value="" hidden selected>Department</option>
-         <option value="Computer eng.">CO</option>
-         <option value="IT">IT</option>
-         <option value="Mechanical">ME</option>
+        <select defaultValue="">
+          <option value="" disabled hidden>Department</option>
+          <option value="CO">CO</option>
+          <option value="IT">IT</option>
+          <option value="ME">ME</option>
         </select>
 
-        <select>
-           <option value="" hidden selected>Scheme</option>
-         <option value="K sch.">K</option>
-         
-       </select>
-       <select>
-        <option value="" hidden selected>Year</option>
-         <option value="FY">FY</option>
+        <select defaultValue="">
+          <option value="" disabled hidden>Scheme</option>
+          <option value="K">K</option>
+        </select>
+
+        <select defaultValue="">
+          <option value="" disabled hidden>Year</option>
+          <option value="FY">FY</option>
           <option value="SY">SY</option>
-           <option value="TY">TY</option>
-
+          <option value="TY">TY</option>
         </select>
-          
-       
 
-        <select>
-          <option value="" hidden selected>Semester</option>
-           <option value="first">1</option>
-           <option value="second">2</option>
-           <option value="third">3</option>
-           <option value="fourth">4</option>
-           <option value="fifth">5</option>
-           <option value="sixth">6</option>
-
+        <select defaultValue="">
+          <option value="" disabled hidden>Semester</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
         </select>
 
         <FaBell className="bell-icon" />

@@ -3,14 +3,26 @@ import './Sidebar.css';
 import { FaCircle, FaMinus, FaPlus } from 'react-icons/fa';
 import profileImg from '../../assets/images/profile.jpeg';
 
-const Sidebar = () => {
+const Sidebar = ({ role = "HOD" }) => {
 
-    // STATE FOR SIDEBAR TOGGLE
     const [openMenu, setOpenMenu] = useState(null);
 
     const toggleMenu = (menu) => {
         setOpenMenu(openMenu === menu ? null : menu);
     };
+
+    // Role-based menu (hardcoded)
+    const menuItems = [
+        { name: "View Statements", submenus: ["CO Statements", "PO Statements", "PSO Statements"], roles: ["HOD", "Faculty"] },
+        { name: "Stress Analysis", submenus: ["Stress Survey", "Stress Report"], roles: ["HOD"] },
+        { name: "CO-PO mapping", roles: ["HOD"] },
+        { name: "CIS", submenus: ["CIS entry", "Direct", "Indirect", "CIS report"], roles: ["HOD"] },
+        { name: "Assign Target", roles: ["HOD"] },
+        { name: "Track Target", roles: ["HOD"] },
+        { name: "DAC Report", submenus: ["View", "Upload"], roles: ["HOD"] },
+        { name: "Mapping View", roles: ["HOD"] },
+        { name: "Backtracking", roles: ["HOD"] },
+    ];
 
     return (
         <div className="sidebar">
@@ -26,100 +38,37 @@ const Sidebar = () => {
             </div>
 
             <div className="user-role-bar">
-                User : HOD
+                User : {role}
             </div>
 
-            {/* MENU */}
             <ul className="sidebar-menu">
-                {/* View Statements */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("viewStatements")}>
-                        <FaCircle className="menu-dot" />
-                        View Statements
-                        {openMenu === "viewStatements" ? <FaMinus /> : <FaPlus />}
-                    </div>
+                {menuItems.map((item, idx) => {
+                    if (!item.roles.includes(role)) return null;
+                    const hasSubmenu = item.submenus && item.submenus.length > 0;
+                    return (
+                        <li key={idx} className={`menu-item ${hasSubmenu ? 'has-submenu' : ''}`}>
+                            <div
+                                className="menu-title"
+                                onClick={() => hasSubmenu ? toggleMenu(item.name) : console.log(item.name)}
+                            >
+                                <FaCircle className="menu-dot" />
+                                <span className="menu-text">{item.name}</span>
+                                {hasSubmenu && (openMenu === item.name ? <FaMinus /> : <FaPlus />)}
+                            </div>
 
-                    {openMenu === "viewStatements" && (
-                        <div className="submenu">
-                            <div>CO Statements</div>
-                            <div>PO Statements</div>
-                            <div>PSO Statements</div>
-                        </div>
-                    )}
-                </li>
-
-                {/* Stress Analysis */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("stressAnalysis")}>
-                        <FaCircle className="menu-dot" />
-                        Stress Analysis
-                        {openMenu === "stressAnalysis" ? <FaMinus /> : <FaPlus />}
-                    </div>
-
-                    {openMenu === "stressAnalysis" && (
-                        <div className="submenu">
-                            <div>Stress Survey</div>
-                            <div>Stress Report</div>
-                        </div>
-                    )}
-                </li>
-
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> CO-PO mapping
-                </li>
-
-                {/* CIS */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("cis")}>
-                        <FaCircle className="menu-dot" />
-                        CIS
-                        {openMenu === "cis" ? <FaMinus /> : <FaPlus />}
-                    </div>
-
-                    {openMenu === "cis" && (
-                        <div className="submenu">
-                            <div>CIS entry</div>
-                            <div>Direct</div>
-                            <div>Indirect</div>
-                            <div>CIS report</div>
-                        </div>
-                    )}
-                </li>
-
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Assign Target
-                </li>
-
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Track Target
-                </li>
-
-                {/* DAC */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("dac")}>
-                        <FaCircle className="menu-dot" />
-                        DAC Report
-                        {openMenu === "dac" ? <FaMinus /> : <FaPlus />}
-                    </div>
-
-                    {openMenu === "dac" && (
-                        <div className="submenu">
-                            <div>View</div>
-                            <div>Upload</div>
-                        </div>
-                    )}
-                </li>
-
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Mapping View
-                </li>
-
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Backtracking
-                </li>
-
+                            {hasSubmenu && openMenu === item.name && (
+                                <div className="submenu">
+                                    {item.submenus.map((sm, i) => (
+                                        <div key={i} className="submenu-item">{sm}</div>
+                                    ))}
+                                </div>
+                            )}
+                        </li>
+                    );
+                })}
             </ul>
         </div>
-    )
+    );
 }
+
 export default Sidebar;
