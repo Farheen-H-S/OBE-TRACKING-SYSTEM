@@ -7,4 +7,4 @@ __pycache__/
 .idea/
 
 # Node / React
-frontend/webapp/node_modules/
+**/node_modules/
