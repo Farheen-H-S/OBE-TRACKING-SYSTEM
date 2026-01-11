@@ -36,6 +36,7 @@ class Batch(models.Model):
 
     class Meta:
         verbose_name_plural = "Batches"
+        unique_together = ('program_id', 'batch_year')  # Enforce uniqueness
 
     def __str__(self):
         return f"{self.program_id.program_name} - {self.batch_year}"
@@ -105,6 +106,7 @@ class PSO(models.Model):
     class Meta:
         verbose_name = "Program Specific Outcome"
         verbose_name_plural = "Program Specific Outcomes"
+        unique_together = ('program_id', 'pso_number')  # Enforce uniqueness
 
     def __str__(self):
         return f"{self.program_id.program_name} - {self.pso_number}"
