@@ -17,6 +17,7 @@ class COAttainment(models.Model):
         db_table = 'attainment_coattainment'
         verbose_name = "CO Attainment"
         verbose_name_plural = "CO Attainments"
+        unique_together = ('co_id', 'academic_year')
 
     def __str__(self):
         return f"CO: {self.co_id} - {self.academic_year}"
@@ -35,6 +36,7 @@ class POAttainment(models.Model):
         db_table = 'attainment_poattainment'
         verbose_name = "PO Attainment"
         verbose_name_plural = "PO Attainments"
+        unique_together = ('co_id', 'academic_year')
 
     def __str__(self):
         return f"PO: {self.po_id} - {self.academic_year}"
@@ -57,6 +59,7 @@ class Backtracking(models.Model):
         db_table = 'backtracking'
         verbose_name = "Backtracking"
         verbose_name_plural = "Backtracking Entries"
+        unique_together = ('course_id', 'co_id', 'po_id', 'academic_year')
 
     def __str__(self):
         return f"Backtracking: {self.co_id} -> {self.po_id} ({self.academic_year})"
@@ -89,6 +92,7 @@ class AttainmentSnapshot(models.Model):
         db_table = 'attainment_snapshot'
         verbose_name = "Attainment Snapshot"
         verbose_name_plural = "Attainment Snapshots"
+        unique_together = ('month', 'year', 'course_id', 'co_id', 'po_id', 'pso_id', 'calculation_type', 'source')
 
     def __str__(self):
         return f"Snapshot {self.month}/{self.year} - {self.course_id}"
