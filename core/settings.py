@@ -44,6 +44,11 @@ INSTALLED_APPS = [
     'reports',
     'assessments',
     'indirect_attainment',
+    'attainment',
+    'audit',
+    'cis_master',
+    'surveys',
+    'teaching_plan',
 ]
 
 MIDDLEWARE = [
