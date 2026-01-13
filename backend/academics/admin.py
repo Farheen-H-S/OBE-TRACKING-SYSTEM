@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Program, Scheme, Batch, Course, CO, PO, PSO, COPOMapping, COPSOMapping
+from .models import Program, Scheme, Batch, Course, CO, PO, PSO, COPOMapping, COPSOMapping, COTarget
 
 @admin.register(Program)
 class ProgramAdmin(admin.ModelAdmin):
@@ -54,3 +54,6 @@ class COPSOMappingAdmin(admin.ModelAdmin):
     list_display = ('mapping_id', 'co_id', 'pso_id', 'weightage', 'created_at', 'updated_at')
     list_filter = ('co_id__course_id', 'pso_id')
     search_fields = ('co_id__co_number', 'pso_id__pso_number')
+@admin.register(COTarget)
+class COTargetAdmin(admin.ModelAdmin):
+    pass # add code
