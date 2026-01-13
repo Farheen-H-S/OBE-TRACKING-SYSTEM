@@ -4,7 +4,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('audit/logs/', AuditLogListView.as_view(), name='audit-logs'),
-    path('audit/verify/', VerifyRecordView.as_view(), name='verify-record'),
-    path('audit/remark/', AddRemarkView.as_view(), name='add-remark'),
+    path('logs/', AuditLogListView.as_view(), name='audit-logs'),
+    path('verify/', VerifyRecordView.as_view(), name='verify-record'),
+    path('remark/', AddRemarkView.as_view(), name='add-remark'),
 ]

@@ -1,22 +1,31 @@
-from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import AuditLog, ApprovalAction
-from .serializers import AuditLogSerializer, ApprovalActionSerializer
-from users.models import User, UserRole
+from rest_framework.pagination import PageNumberPagination
+from .models import AuditLog
+from .serializers import AuditLogSerializer
+
+class AuditLogPagination(PageNumberPagination):
+    page_size = 20              # default logs per page
+    page_size_query_param = 'page_size'  # client can override ?page_size=
+    max_page_size = 100         # max logs per page
 
 class AuditLogListView(APIView):
     def get(self, request):
         date = request.query_params.get('date')
         module = request.query_params.get('module')
-        queryset = AuditLog.objects.all()
+
+        queryset = AuditLog.objects.all().order_by('-created_at')  # latest first
         if date:
             queryset = queryset.filter(created_at__date=date)
         if module:
             queryset = queryset.filter(entity_name__iexact=module)
-        serializer = AuditLogSerializer(queryset, many=True)
-        return Response({"audit entries": serializer.data}, status=status.HTTP_200_OK)
+
+        paginator = AuditLogPagination()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = AuditLogSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
 
 class VerifyRecordView(APIView):
     def post(self, request):
