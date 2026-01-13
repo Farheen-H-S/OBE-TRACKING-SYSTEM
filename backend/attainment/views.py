@@ -2,13 +2,13 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import COAttainment, CourseAttainment, COPOMappingAttainment, AttainmentSnapshot
+# from .models import COAttainment, CourseAttainment, COPOMappingAttainment, AttainmentSnapshot
 from .serializers import (
     COAttainmentSerializer, CourseAttainmentSerializer, 
     COPOMappingAttainmentSerializer, AttainmentSnapshotSerializer
 )
-from academics.models import Course, Program
-from users.models import User
+# from academics.models import Course, Program
+# from users.models import User
 
 class CalculateAttainmentView(APIView):
     def post(self, request):

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import COAttainment, CourseAttainment, COPOMappingAttainment, AttainmentSnapshot
+from .models import COAttainment, AttainmentSnapshot # , CourseAttainment, COPOMappingAttainment
 
 class COAttainmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,12 +8,12 @@ class COAttainmentSerializer(serializers.ModelSerializer):
 
 class CourseAttainmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CourseAttainment
+        # model = CourseAttainment
         fields = '__all__'
 
 class COPOMappingAttainmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = COPOMappingAttainment
+        # model = COPOMappingAttainment
         fields = '__all__'
 
 class AttainmentSnapshotSerializer(serializers.ModelSerializer):

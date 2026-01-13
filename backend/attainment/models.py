@@ -36,7 +36,7 @@ class POAttainment(models.Model):
         db_table = 'attainment_poattainment'
         verbose_name = "PO Attainment"
         verbose_name_plural = "PO Attainments"
-        unique_together = ('co_id', 'academic_year')
+        unique_together = ('po_id', 'academic_year')
 
     def __str__(self):
         return f"PO: {self.po_id} - {self.academic_year}"

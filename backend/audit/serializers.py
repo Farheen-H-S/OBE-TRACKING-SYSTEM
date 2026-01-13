@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AuditLog, ApprovalAction
+from .models import AuditLog # , ApprovalAction
 
 class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,5 +8,5 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
 class ApprovalActionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ApprovalAction
+        # model = ApprovalAction
         fields = '__all__'

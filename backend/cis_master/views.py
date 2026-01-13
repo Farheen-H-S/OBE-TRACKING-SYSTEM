@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import CISNature, CISType, CISTerm
 from .serializers import CISNatureSerializer, CISTypeSerializer, CISTermSerializer
-from attainment.models import CourseAttainment
-from surveys.models import Survey
+# from attainment.models import CourseAttainment
+# from surveys.models import Survey
 
 class CalculateDirectCISView(APIView):
     def post(self, request) -> Response:
