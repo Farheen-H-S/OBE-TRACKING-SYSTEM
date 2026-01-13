@@ -4,9 +4,9 @@ from users.models import Student
 
 class IndirectAttainment(models.Model):
     record_id = models.AutoField(primary_key=True)
-    course_id = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id')
-    co_id = models.ForeignKey(CO, on_delete=models.CASCADE, db_column='co_id')
-    student_id = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True, db_column='student_id')
+    course_id = models.ForeignKey(Course, on_delete=models.PROTECT, db_column='course_id')
+    co_id = models.ForeignKey(CO, on_delete=models.PROTECT, db_column='co_id')
+    student_id = models.ForeignKey(Student, on_delete=models.PROTECT, null=True, blank=True, db_column='student_id')
     ACTIVITY_TYPES = [
         ('Co-curricular', 'Co-curricular'),
         ('Industrial Visit', 'Industrial Visit'),
@@ -16,6 +16,11 @@ class IndirectAttainment(models.Model):
     score = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'indirect_attainment'
+        unique_together = ('course_id', 'co_id', 'student_id', 'activity_type')
 
     def __str__(self):
         return f"{self.course_id.course_code} - {self.activity_type}"
