@@ -2,11 +2,11 @@ import React from 'react';
 
 
 
-import Updateuser from './Updateuser';
+import CreateUser from './CreateUser';
 
 function Newfile() {
   return (
-    <Updateuser />
+    <CreateUser />
   );
 }
 

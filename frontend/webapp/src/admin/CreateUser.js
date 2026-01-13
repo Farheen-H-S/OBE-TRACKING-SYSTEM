@@ -60,9 +60,11 @@ const CreateUser = () => {
 
                         <div className="user-form-container">
 
-                            <div className="form-group-vertical">
-                                <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>Enter name of user</label>
-                                <input type="text" className="input-field" />
+                            <div className="form-group">
+                                <label className="form-label">Enter name of user :</label>
+                                <div className="form-controls">
+                                    <input type="text" className="input-field" />
+                                </div>
                             </div>
 
                             <div className="form-group">
@@ -115,19 +117,19 @@ const CreateUser = () => {
                             <div className="form-group">
                                 <label className="form-label">Username :</label>
                                 <div className="form-controls">
-                                    <input type="text" className="input-field" style={{ maxWidth: '300px' }} />
+                                    <input type="text" className="input-field" />
                                 </div>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Password :</label>
                                 <div className="form-controls">
-                                    <input type="password" className="input-field" style={{ maxWidth: '300px' }} />
+                                    <input type="password" className="input-field" />
                                 </div>
                             </div>
 
-                            <div className="form-group" style={{ alignItems: 'flex-start' }}>
-                                <label className="form-label" style={{ marginTop: '5px' }}>Profile photo</label>
+                            <div className="form-group">
+                                <label className="form-label">Profile photo</label>
                                 <div className="form-controls">
                                     <button className="upload-btn">Upload</button>
                                 </div>

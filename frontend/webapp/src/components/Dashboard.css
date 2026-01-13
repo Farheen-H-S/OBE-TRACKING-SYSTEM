@@ -1,15 +1,20 @@
 .dashboard-wrapper {
-  width: 100%;
   height: 100vh;
-}
-
-.dashboard-body {
   display: flex;
-   padding-top: 80px;
+  flex-direction: column;
 }
 
+/* Below header */
+.dashboard-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Middle blank area */
 .dashboard-content {
   flex: 1;
+  background-color: #ffffff;
   padding: 20px;
-  background-color: #f4f6f8;
+  overflow-y: auto;
 }

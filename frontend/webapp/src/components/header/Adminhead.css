@@ -1,0 +1,79 @@
+/* ================= NAVBAR RESET ================= */
+.admin-navbar {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* ================= HEADER CONTAINER ================= */
+.admin-header {
+  min-height: 100px;
+  background: linear-gradient(90deg, #4a90e2, #357ae8);
+  display: flex;
+  align-items: center;
+}
+
+/* ================= LOGO ================= */
+.header-logo {
+  height: 120px;
+  width: auto;
+  object-fit: contain;
+}
+
+
+
+/* ================= TEXT ================= */
+.header-text h2 {
+  margin:0;
+  font-size: 26px;
+  font-weight: 600;
+  color: white;
+}
+
+.header-text span {
+  font-size: 200px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.header-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+  color: white;
+}
+
+/* ================= SEARCH ================= */
+.search-box {
+  max-width: 260px;
+}
+
+.search-box .input-group-text {
+  background: #eaf2fb;
+  border: none;
+  color: #0fc1d8;
+}
+
+.search-box .form-control {
+  background: #eaf2fb;
+  border: none;
+  box-shadow: none;
+  color: #333;
+  height: 5px;
+}
+
+.search-box .form-control::placeholder {
+  color: #555;
+}
+
+/* ================= ICON ================= */
+.bell-icon {
+  font-size: 50px;
+  cursor: pointer;
+  color: white;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 767px) {
+  .header-title {
+    font-size: 30px;
+  }
+}

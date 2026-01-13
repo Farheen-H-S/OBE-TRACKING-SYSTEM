@@ -1,0 +1,88 @@
+/* SIDEBAR */
+.sidebar {
+  width: 320px;
+  background: linear-gradient(to bottom, #60a5fa, #3b82f6);
+  /* Blue Sidebar */
+  overflow-y: auto;
+}
+
+/* USER BANNER */
+.user-banner {
+  background: url("./back-pic.png") no-repeat center center/cover;
+}
+
+/* MENU HOVER */
+.menu-item:hover,
+.submenu div:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Increase header height so logo has space */
+nav.admin-header {
+  min-height: 120px;
+  padding: 10px 20px;
+}
+
+/* Increase logo size safely */
+.admin-header .header-logo {
+  height: 100px;
+  /* 👈 increase as needed */
+  width: auto;
+  object-fit: contain;
+}
+
+
+/* ================= LEFT TEXT ================= */
+.admin-header .header-text h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.admin-header .header-text span {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* ================= CENTER TITLE ================= */
+.admin-header .header-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+/* ================= SEARCH ================= */
+.admin-header .search-box {
+  max-width: 260px;
+}
+
+.admin-header .input-group-text {
+  background: #eaf2fb !important;
+  border: none;
+  color: #0fc1d8 !important;
+}
+
+.admin-header .form-control {
+  background: #eaf2fb !important;
+  border: none;
+  box-shadow: none;
+  color: #333 !important;
+}
+
+.admin-header .form-control::placeholder {
+  color: #555;
+  font-size: 16px;
+}
+
+/* ================= ICON ================= */
+.admin-header .bell-icon {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 767px) {
+  .admin-header .header-title {
+    font-size: 24px;
+  }
+}

@@ -1,136 +1,98 @@
-import React, { useState } from 'react';
-import Header from './components/header/Header';
-import { FaCircle, FaMinus, FaUser } from 'react-icons/fa';
+
+import Adminhead from './components/header/Adminhead';
+import Adminside from './components/sidebar/Adminside';
+import { FaUser } from 'react-icons/fa';
 import './CreateUser.css';
 
 const CreateUser = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(true);
+
 
     return (
-        <div className="create-user-container">
-            <Header />
+        <div className="page-wrapper">
+            {/* HEADER */}
+            <Adminhead />
 
-            <div className="create-user-body">
-                {/* Sidebar (Included directly as per request) */}
-                <aside className="admin-sidebar">
-                    <div className="user-profile-banner">
-                        <div className="user-profile-img">
-                            <FaUser />
-                        </div>
-                        <div className="user-profile-info">
-                            <h3>Welcome Mitesh!</h3>
-                            <p>312023016</p>
-                        </div>
-                    </div>
+            {/* BODY */}
+            <div className="page-body">
+                {/* SIDEBAR */}
+                <Adminside />
 
-                    <div className="role-bar">
-                        User : Admin
-                    </div>
 
-                    <ul className="sidebar-nav">
-                        <li className="nav-item" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                            <FaCircle className="nav-dot" />
-                            <span style={{ flex: 1 }}>User management</span>
-                            <FaMinus style={{ fontSize: '0.7rem' }} />
-                        </li>
-                        {isMenuOpen && (
-                            <div className="sub-nav">
-                                <div className="sub-nav-item" style={{ fontWeight: 'bold' }}>Create User</div>
-                                <div className="sub-nav-item">View user</div>
-                            </div>
-                        )}
-
-                        <li className="nav-item">
-                            <FaCircle className="nav-dot" /> Current setup
-                        </li>
-                        <li className="nav-item">
-                            <FaCircle className="nav-dot" /> Audit log
-                        </li>
-                    </ul>
-                </aside>
-
-                {/* Main Form Content */}
+                {/* Main Content */}
                 <main className="form-content-area">
                     <div className="form-wrapper">
 
                         <div className="form-header">
-                            <div className="form-header-icon"><FaUser /></div>
+                            <div className="form-header-icon">
+                                <FaUser />
+                            </div>
                             <h2>Enter valid credentials to create new user.</h2>
                         </div>
 
                         <div className="user-form-container">
 
-                            <div className="form-group-vertical">
-                                <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>Enter name of user</label>
-                                <input type="text" className="input-field" />
+                            <div className="form-group">
+                                <label className="form-label"> Enter Name :</label>
+                                <input type="text" className="form-input" />
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Email id :</label>
-                                <div className="form-controls">
-                                    <input type="text" className="input-underline" />
-                                </div>
+                                <label className="form-label">Email ID :</label>
+                                <input type="email" className="form-input underline" />
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Mobile no. :</label>
-                                <div className="form-controls mobile-group">
-                                    <span className="mobile-prefix">+ 91</span>
+                                <label className="form-label">Mobile No :</label>
+                                <div className="mobile-group">
+                                    <span className="mobile-prefix">+91</span>
                                     <input type="text" className="mobile-input" />
                                 </div>
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Role :</label>
-                                <div className="form-controls">
-                                    <select className="select-field">
-                                        <option>Faculty</option>
-                                    </select>
-                                </div>
+                                <label className="form-label">Role</label>
+                                <select className="form-input">
+                                    <option>Faculty</option>
+                                    <option>HOD</option>
+                                    <option>Coordinator</option>
+                                    <option>Auditor</option>
+                                </select>
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Department :</label>
-                                <div className="form-controls">
-                                    <select className="select-field">
-                                        <option>Computer</option>
-                                    </select>
-                                </div>
+                                <label className="form-label">Department</label>
+                                <select className="form-input">
+                                    <option>Computer</option>
+                                    <option>Information Technology</option>
+                                    <option>Mechanical</option>
+                                    <option>Civil</option>
+                                    <option>Electrical</option>
+                                </select>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">From Year :</label>
-                                <div className="form-controls">
-                                    <input type="text" className="date-join-input" placeholder="2025" />
-                                </div>
+                                <input type="text" className="form-input small" />
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Date of Joining :</label>
-                                <div className="form-controls">
-                                    <input type="text" className="date-join-input" placeholder="DD/MM/YYYY" />
-                                </div>
+                                <input type="text" className="form-input small" placeholder="DD/MM/YYYY" />
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Username :</label>
-                                <div className="form-controls">
-                                    <input type="text" className="input-field" style={{ maxWidth: '300px' }} />
-                                </div>
+                                <input type="text" className="form-input" />
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Password :</label>
-                                <div className="form-controls">
-                                    <input type="password" className="input-field" style={{ maxWidth: '300px' }} />
-                                </div>
+                                <input type="password" className="form-input" />
                             </div>
 
-                            <div className="form-group" style={{ alignItems: 'flex-start' }}>
-                                <label className="form-label" style={{ marginTop: '5px' }}>Profile photo</label>
-                                <div className="form-controls">
-                                    <button className="upload-btn">Upload</button>
-                                </div>
+                            <div className="form-group">
+                                <label className="form-label">Profile Photo</label>
+                                <button className="upload-btn">Upload</button>
                             </div>
 
                         </div>
