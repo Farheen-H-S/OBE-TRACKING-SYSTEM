@@ -6,9 +6,9 @@ from .views import (
 )
 
 urlpatterns = [
-    path('cis/direct/', CalculateDirectCISView.as_view(), name='calculate-direct-cis'),
-    path('cis/direct/report/', DirectCISReportView.as_view(), name='direct-cis-report'),
-    path('cis/indirect/tools/', ListIndirectToolsView.as_view(), name='list-indirect-tools'),
-    path('cis/indirect/surveys/', SubmitIndirectSurveyView.as_view(), name='submit-indirect-survey'),
-    path('cis/indirect/report/', IndirectCISReportView.as_view(), name='indirect-cis-report'),
+    path('direct/', CalculateDirectCISView.as_view(), name='calculate-direct-cis'),
+    path('direct/report/', DirectCISReportView.as_view(), name='direct-cis-report'),
+    path('indirect/tools/', ListIndirectToolsView.as_view(), name='list-indirect-tools'),
+    path('indirect/surveys/', SubmitIndirectSurveyView.as_view(), name='submit-indirect-survey'),
+    path('indirect/report/', IndirectCISReportView.as_view(), name='indirect-cis-report'),
 ]
