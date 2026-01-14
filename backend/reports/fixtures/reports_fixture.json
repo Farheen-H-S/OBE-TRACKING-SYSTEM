@@ -1,0 +1,84 @@
+[
+    {
+        "model": "reports.report",
+        "pk": 1,
+        "fields": {
+            "course_id": 1,
+            "academic_year": "2025-2026",
+            "report_file": "",
+            "created_by": 3,
+            "status": "Draft",
+            "created_at": "2025-12-01 10:00:00",
+            "updated_at": "2025-12-01 10:00:00"
+        }
+    },
+    {
+        "model": "reports.report",
+        "pk": 2,
+        "fields": {
+            "course_id": 2,
+            "academic_year": "2025-2026",
+            "report_file": "",
+            "created_by": 4,
+            "status": "Approved",
+            "approved_by": 2,
+            "created_at": "2025-12-01 10:00:00",
+            "updated_at": "2025-12-02 10:00:00"
+        }
+    },
+    {
+        "model": "reports.report",
+        "pk": 3,
+        "fields": {
+            "course_id": 3,
+            "academic_year": "2025-2026",
+            "report_file": "",
+            "created_by": 5,
+            "status": "Rejected",
+            "approved_by": 2,
+            "auditor_remark": "Incomplete data",
+            "created_at": "2025-12-01 10:00:00",
+            "updated_at": "2025-12-02 10:00:00"
+        }
+    },
+    {
+        "model": "reports.report",
+        "pk": 4,
+        "fields": {
+            "course_id": 4,
+            "academic_year": "2025-2026",
+            "report_file": "",
+            "created_by": 3,
+            "status": "Draft",
+            "created_at": "2025-12-01 10:00:00",
+            "updated_at": "2025-12-01 10:00:00"
+        }
+    },
+    {
+        "model": "reports.report",
+        "pk": 5,
+        "fields": {
+            "course_id": 5,
+            "academic_year": "2025-2026",
+            "report_file": "",
+            "created_by": 4,
+            "status": "Draft",
+            "created_at": "2025-12-01 10:00:00",
+            "updated_at": "2025-12-01 10:00:00"
+        }
+    },
+    {
+        "model": "reports.report",
+        "pk": 6,
+        "fields": {
+            "course_id": 1,
+            "academic_year": "2024-2025",
+            "report_file": "old_report.pdf",
+            "created_by": 3,
+            "status": "Approved",
+            "approved_by": 2,
+            "created_at": "2024-12-01 10:00:00",
+            "updated_at": "2024-12-02 10:00:00"
+        }
+    }
+]

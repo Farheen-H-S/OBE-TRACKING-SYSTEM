@@ -1,0 +1,142 @@
+[
+  {
+    "model": "academics.program",
+    "pk": 1,
+    "fields": {
+      "program_name": "Computer Engineering",
+      "duration": 4,
+      "is_active": true,
+      "created_at": "2023-01-01 10:00:00",
+      "updated_at": "2023-01-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.program",
+    "pk": 2,
+    "fields": {
+      "program_name": "Diploma in Computer Engineering",
+      "duration": 3,
+      "is_active": true,
+      "created_at": "2023-01-01 10:00:00",
+      "updated_at": "2023-01-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.scheme",
+    "pk": 1,
+    "fields": {
+      "scheme_name": "2019 Pattern",
+      "start_year": 2019,
+      "end_year": 2024,
+      "is_active": true,
+      "created_at": "2023-01-01 10:00:00",
+      "updated_at": "2023-01-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.scheme",
+    "pk": 2,
+    "fields": {
+      "scheme_name": "K Scheme",
+      "start_year": 2023,
+      "end_year": 2028,
+      "is_active": true,
+      "created_at": "2023-01-01 10:00:00",
+      "updated_at": "2023-01-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.batch",
+    "pk": 1,
+    "fields": {
+      "batch_year": 2021,
+      "program_id": 1,
+      "scheme_id": 1,
+      "is_active": true,
+      "created_at": "2023-01-01 10:00:00",
+      "updated_at": "2023-01-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.batch",
+    "pk": 2,
+    "fields": {
+      "batch_year": 2023,
+      "program_id": 2,
+      "scheme_id": 2,
+      "is_active": true,
+      "created_at": "2023-01-01 10:00:00",
+      "updated_at": "2023-01-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.course",
+    "pk": 1,
+    "fields": {
+      "course_code": "310241",
+      "course_name": "Software Engineering",
+      "semester": 5,
+      "program_id": 1,
+      "scheme_id": 1,
+      "is_active": true,
+      "created_at": "2023-06-01 10:00:00",
+      "updated_at": "2023-06-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.course",
+    "pk": 2,
+    "fields": {
+      "course_code": "310242",
+      "course_name": "Operating System",
+      "semester": 5,
+      "program_id": 1,
+      "scheme_id": 1,
+      "is_active": true,
+      "created_at": "2023-06-01 10:00:00",
+      "updated_at": "2023-06-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.course",
+    "pk": 3,
+    "fields": {
+      "course_code": "310243",
+      "course_name": "Data Analytics",
+      "semester": 5,
+      "program_id": 1,
+      "scheme_id": 1,
+      "is_active": true,
+      "created_at": "2023-06-01 10:00:00",
+      "updated_at": "2023-06-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.course",
+    "pk": 4,
+    "fields": {
+      "course_code": "310244",
+      "course_name": "Capstone Project",
+      "semester": 5,
+      "program_id": 1,
+      "scheme_id": 1,
+      "is_active": true,
+      "created_at": "2023-06-01 10:00:00",
+      "updated_at": "2023-06-01 10:00:00"
+    }
+  },
+  {
+    "model": "academics.course",
+    "pk": 5,
+    "fields": {
+      "course_code": "310245",
+      "course_name": "Elective K: Internet of Things",
+      "semester": 5,
+      "program_id": 1,
+      "scheme_id": 1,
+      "is_active": true,
+      "created_at": "2023-06-01 10:00:00",
+      "updated_at": "2023-06-01 10:00:00"
+    }
+  }
+]

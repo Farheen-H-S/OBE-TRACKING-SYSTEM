@@ -1,0 +1,92 @@
+[
+    {
+        "model": "teaching_plan.teachingplan",
+        "pk": 1,
+        "fields": {
+            "course_id": 1,
+            "user_id": 3,
+            "batch_id": 1,
+            "scheme_id": 1,
+            "academic_year": "2025-2026",
+            "semester": 5,
+            "is_active": true,
+            "created_at": "2025-07-01 10:00:00",
+            "updated_at": "2025-07-01 10:00:00"
+        }
+    },
+    {
+        "model": "teaching_plan.teachingplan",
+        "pk": 2,
+        "fields": {
+            "course_id": 2,
+            "user_id": 4,
+            "batch_id": 1,
+            "scheme_id": 1,
+            "academic_year": "2025-2026",
+            "semester": 5,
+            "is_active": true,
+            "created_at": "2025-07-01 10:00:00",
+            "updated_at": "2025-07-01 10:00:00"
+        }
+    },
+    {
+        "model": "teaching_plan.teachingplan",
+        "pk": 3,
+        "fields": {
+            "course_id": 3,
+            "user_id": 5,
+            "batch_id": 1,
+            "scheme_id": 1,
+            "academic_year": "2025-2026",
+            "semester": 5,
+            "is_active": true,
+            "created_at": "2025-07-01 10:00:00",
+            "updated_at": "2025-07-01 10:00:00"
+        }
+    },
+    {
+        "model": "teaching_plan.teachingplan",
+        "pk": 4,
+        "fields": {
+            "course_id": 4,
+            "user_id": 3,
+            "batch_id": 2,
+            "scheme_id": 1,
+            "academic_year": "2025-2026",
+            "semester": 3,
+            "is_active": true,
+            "created_at": "2025-07-01 10:00:00",
+            "updated_at": "2025-07-01 10:00:00"
+        }
+    },
+    {
+        "model": "teaching_plan.teachingplan",
+        "pk": 5,
+        "fields": {
+            "course_id": 5,
+            "user_id": 4,
+            "batch_id": 2,
+            "scheme_id": 1,
+            "academic_year": "2025-2026",
+            "semester": 3,
+            "is_active": true,
+            "created_at": "2025-07-01 10:00:00",
+            "updated_at": "2025-07-01 10:00:00"
+        }
+    },
+    {
+        "model": "teaching_plan.teachingplan",
+        "pk": 6,
+        "fields": {
+            "course_id": 1,
+            "user_id": 4,
+            "batch_id": 1,
+            "scheme_id": 1,
+            "academic_year": "2024-2025",
+            "semester": 5,
+            "is_active": false,
+            "created_at": "2024-07-01 10:00:00",
+            "updated_at": "2024-07-01 10:00:00"
+        }
+    }
+]

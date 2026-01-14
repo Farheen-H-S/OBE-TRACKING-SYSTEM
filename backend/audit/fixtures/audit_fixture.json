@@ -1,0 +1,151 @@
+[
+    {
+        "model": "audit.auditlog",
+        "pk": 1,
+        "fields": {
+            "performed_by": 3,
+            "entity_name": "Course",
+            "entity_id": 1,
+            "action": "CREATE",
+            "details": "Created course DAN",
+            "created_at": "2025-06-01 10:00:00"
+        }
+    },
+    {
+        "model": "audit.auditlog",
+        "pk": 2,
+        "fields": {
+            "performed_by": 3,
+            "entity_name": "COTarget",
+            "entity_id": 1,
+            "action": "CREATE",
+            "details": "Set target for CO1",
+            "created_at": "2025-06-16 10:05:00"
+        }
+    },
+    {
+        "model": "audit.auditlog",
+        "pk": 3,
+        "fields": {
+            "performed_by": 2,
+            "entity_name": "COTarget",
+            "entity_id": 1,
+            "action": "UPDATE",
+            "details": "Approved target for CO1",
+            "created_at": "2025-06-17 10:00:00"
+        }
+    },
+    {
+        "model": "audit.auditlog",
+        "pk": 4,
+        "fields": {
+            "performed_by": 3,
+            "entity_name": "Assessment",
+            "entity_id": 1,
+            "action": "CREATE",
+            "details": "Created In-Sem 1",
+            "created_at": "2025-08-01 10:00:00"
+        }
+    },
+    {
+        "model": "audit.auditlog",
+        "pk": 5,
+        "fields": {
+            "performed_by": 3,
+            "entity_name": "MarksEntry",
+            "entity_id": 1,
+            "action": "CREATE",
+            "details": "Entered marks for Student 1",
+            "created_at": "2025-08-10 10:00:00"
+        }
+    },
+    {
+        "model": "audit.auditlog",
+        "pk": 6,
+        "fields": {
+            "performed_by": 4,
+            "entity_name": "Student",
+            "entity_id": 3,
+            "action": "UPDATE",
+            "details": "Updated student details",
+            "created_at": "2025-08-15 11:00:00"
+        }
+    },
+    {
+        "model": "audit.auditlog",
+        "pk": 7,
+        "fields": {
+            "performed_by": 2,
+            "entity_name": "FacultyCourseAssignment",
+            "entity_id": 2,
+            "action": "CREATE",
+            "details": "Assigned faculty to course 2",
+            "created_at": "2025-06-15 12:00:00"
+        }
+    },
+    {
+        "model": "audit.approvalaction",
+        "pk": 1,
+        "fields": {
+            "entity_name": "COTarget",
+            "entity_id": 1,
+            "action": "SUBMIT",
+            "performed_by": 3,
+            "role_id": 4,
+            "remark": "Submitted for approval",
+            "performed_at": "2025-06-16 10:10:00"
+        }
+    },
+    {
+        "model": "audit.approvalaction",
+        "pk": 2,
+        "fields": {
+            "entity_name": "COTarget",
+            "entity_id": 1,
+            "action": "APPROVE",
+            "performed_by": 2,
+            "role_id": 2,
+            "remark": "Approved",
+            "performed_at": "2025-06-17 10:00:00"
+        }
+    },
+    {
+        "model": "audit.approvalaction",
+        "pk": 3,
+        "fields": {
+            "entity_name": "COTarget",
+            "entity_id": 2,
+            "action": "SUBMIT",
+            "performed_by": 3,
+            "role_id": 4,
+            "remark": "Submitted",
+            "performed_at": "2025-06-16 10:10:00"
+        }
+    },
+    {
+        "model": "audit.approvalaction",
+        "pk": 4,
+        "fields": {
+            "entity_name": "COTarget",
+            "entity_id": 2,
+            "action": "APPROVE",
+            "performed_by": 2,
+            "role_id": 2,
+            "remark": "Okay",
+            "performed_at": "2025-06-17 10:00:00"
+        }
+    },
+    {
+        "model": "audit.approvalaction",
+        "pk": 5,
+        "fields": {
+            "entity_name": "Report",
+            "entity_id": 3,
+            "action": "REJECT",
+            "performed_by": 2,
+            "role_id": 2,
+            "remark": "Missing CO-PO mapping details",
+            "performed_at": "2025-12-02 10:00:00"
+        }
+    }
+]

@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 .env
 *.sqlite3
+.idea/
 
 # Node / React
-frontend/webapp/node_modules/
+**/node_modules/
