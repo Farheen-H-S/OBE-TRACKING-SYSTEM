@@ -1,5 +1,5 @@
 
-import Adminhead from './components/header/Adminhead';
+import Header from './components/header/Header';
 import Adminside from './components/sidebar/Adminside';
 import { FaUser } from 'react-icons/fa';
 import './CreateUser.css';
@@ -10,7 +10,7 @@ const CreateUser = () => {
     return (
         <div className="page-wrapper">
             {/* HEADER */}
-            <Adminhead />
+            <Header />
 
             {/* BODY */}
             <div className="page-body">

@@ -40,40 +40,114 @@
   font-weight: 600;
   color: white;
 }
-
 /* ================= SEARCH ================= */
-.search-box {
+.admin-header .search-box {
   max-width: 260px;
 }
 
-.search-box .input-group-text {
-  background: #eaf2fb;
-  border: none;
-  color: #0fc1d8;
+/* Input group wrapper */
+.admin-header .input-group {
+  height: 40px;
 }
 
-.search-box .form-control {
+/* Search input */
+
+/* Search box wrapper */
+/* Search box */
+.admin-header .search-box {
+  max-width: 260px;
+  height: 40px;
   background: #eaf2fb;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  align-items: center; /* 🔑 center everything */
+}
+
+/* Icon */
+.admin-header .search-box .input-group-text {
+  background: transparent !important;
+  border: none;
+  padding: 0 12px;
+  color: #0fc1d8;
+  display: flex;
+  align-items: center;
+}
+
+/* Input */
+.admin-header .search-box .form-control {
+  background: transparent;
+  border: none;
+  height: 100%;
+  padding: 0 1px;
+  font-size: 18px;
+  line-height: 40px; /* 🔑 PERFECT vertical centering */
+}
+
+/* Remove focus styles */
+.admin-header .search-box .form-control:focus {
+  box-shadow: none;
+}
+
+
+
+/* Increase header height so logo has space */
+nav.admin-header {
+  min-height: 120px;
+  padding: 10px 20px;
+}
+
+/* Increase logo size safely */
+.admin-header .header-logo {
+  height: 100px;
+  /* 👈 increase as needed */
+  width: auto;
+  object-fit: contain;
+}
+
+
+/* ================= LEFT TEXT ================= */
+.admin-header .header-text h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.admin-header .header-text span {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* ================= CENTER TITLE ================= */
+.admin-header .header-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+
+.admin-header .form-control {
+  background: #eaf2fb !important;
   border: none;
   box-shadow: none;
-  color: #333;
-  height: 5px;
+  color: #333 !important;
 }
 
-.search-box .form-control::placeholder {
+.admin-header .form-control::placeholder {
   color: #555;
+  font-size: 16px;
 }
 
 /* ================= ICON ================= */
-.bell-icon {
-  font-size: 50px;
+.admin-header .bell-icon {
+  font-size: 35px;
   cursor: pointer;
-  color: white;
+  color: #ffffff;
 }
 
 /* ================= MOBILE ================= */
 @media (max-width: 767px) {
-  .header-title {
-    font-size: 30px;
+  .admin-header .header-title {
+    font-size: 24px;
   }
 }

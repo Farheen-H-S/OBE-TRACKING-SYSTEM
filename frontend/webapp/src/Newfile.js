@@ -2,7 +2,7 @@ import React from 'react';
 
 
 
-import CreateUser from './CreateUser';
+import CreateUser from './admin/CreateUser';
 
 function Newfile() {
   return (

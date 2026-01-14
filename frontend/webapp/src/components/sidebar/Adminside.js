@@ -20,8 +20,10 @@ const Adminside = () => {
                     <img src={Pofile} alt="profile pic" className="rounded-circle border border-3 border-white" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
                 </div>
                 <div className="user-banner-info">
-                    <h3 className="fs-5 mb-1" style={{ color: '#0e2344' }}>Welcome Mitesh!</h3>
-                    <p className="fw-bold mb-0" style={{ color: '#0e2344' }}>312023016</p>
+                    <h3 className="fs-3.5 bold-0" style={{ color: '#0e2344' }}>Welcome Mitesh!</h3>
+                    <p className="fs-5 fw-bold mb-0" style={{ color: '#0e2344' }}>312023016</p>
+                   <h5 className="fw-semibold mb-0" style={{ color: '#ffffff', marginLeft: '180px' }}>Log out!</h5>
+
                 </div>
             </div>
 
