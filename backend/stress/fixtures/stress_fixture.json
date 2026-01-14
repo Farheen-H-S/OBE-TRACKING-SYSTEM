@@ -21,6 +21,7 @@
             "created_at": "2025-11-15 10:00:00"
         }
     },
+
     {
         "model": "stress.stresscategory",
         "pk": 1,
@@ -42,6 +43,7 @@
             "name": "Personal Life"
         }
     },
+
     {
         "model": "stress.stressquestion",
         "pk": 1,
@@ -92,16 +94,17 @@
         "fields": {
             "survey": 1,
             "category": 3,
-            "question_text": "I get support from my friends/family.",
+            "question_text": "I receive emotional support from friends or family.",
             "is_active": true,
             "created_at": "2025-08-15 10:00:00"
         }
     },
+
     {
         "model": "stress.surveysessiontoken",
         "pk": 1,
         "fields": {
-            "token": "token_abc_1",
+            "token": "token_mid_001",
             "survey": 1,
             "is_used": true,
             "created_at": "2025-08-16 10:00:00"
@@ -111,17 +114,18 @@
         "model": "stress.surveysessiontoken",
         "pk": 2,
         "fields": {
-            "token": "token_abc_2",
+            "token": "token_mid_002",
             "survey": 1,
             "is_used": true,
             "created_at": "2025-08-16 10:05:00"
         }
     },
+
     {
         "model": "stress.stressresponse",
-        "pk": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        "pk": "11111111-aaaa-bbbb-cccc-111111111111",
         "fields": {
-            "token": "token_abc_1",
+            "token": "token_mid_001",
             "survey": 1,
             "question": 1,
             "response_value": 3,
@@ -130,9 +134,9 @@
     },
     {
         "model": "stress.stressresponse",
-        "pk": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+        "pk": "22222222-aaaa-bbbb-cccc-222222222222",
         "fields": {
-            "token": "token_abc_1",
+            "token": "token_mid_001",
             "survey": 1,
             "question": 2,
             "response_value": 4,
@@ -141,9 +145,9 @@
     },
     {
         "model": "stress.stressresponse",
-        "pk": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
+        "pk": "33333333-aaaa-bbbb-cccc-333333333333",
         "fields": {
-            "token": "token_abc_1",
+            "token": "token_mid_001",
             "survey": 1,
             "question": 3,
             "response_value": 2,
@@ -152,9 +156,9 @@
     },
     {
         "model": "stress.stressresponse",
-        "pk": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+        "pk": "44444444-aaaa-bbbb-cccc-444444444444",
         "fields": {
-            "token": "token_abc_2",
+            "token": "token_mid_002",
             "survey": 1,
             "question": 1,
             "response_value": 1,
@@ -163,9 +167,9 @@
     },
     {
         "model": "stress.stressresponse",
-        "pk": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
+        "pk": "55555555-aaaa-bbbb-cccc-555555555555",
         "fields": {
-            "token": "token_abc_2",
+            "token": "token_mid_002",
             "survey": 1,
             "question": 2,
             "response_value": 2,

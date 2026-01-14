@@ -29,7 +29,7 @@
         "pk": 2,
         "fields": {
             "nature_id": 1,
-            "type_name": "Final exam",
+            "type_name": "Final Exam",
             "is_active": true
         }
     },

@@ -128,6 +128,40 @@
         }
     },
     {
+        "model": "attainment.copomappingattainment",
+        "pk": 3,
+        "fields": {
+            "course_id": 1,
+            "co_id": 2,
+            "po_id": 1,
+            "direct_attainment": 2.6,
+            "indirect_attainment": 2.1,
+            "co_po_weightage": 3.0,
+            "final_po_contribution": 2.5,
+            "academic_year": "2025-2026",
+            "semester": 5,
+            "is_active": true,
+            "created_at": "2026-01-01 10:05:00"
+        }
+    },
+    {
+        "model": "attainment.copomappingattainment",
+        "pk": 4,
+        "fields": {
+            "course_id": 1,
+            "co_id": 2,
+            "po_id": 2,
+            "direct_attainment": 2.6,
+            "indirect_attainment": 2.1,
+            "co_po_weightage": 2.0,
+            "final_po_contribution": 2.5,
+            "academic_year": "2025-2026",
+            "semester": 5,
+            "is_active": true,
+            "created_at": "2026-01-01 10:05:00"
+        }
+    },
+    {
         "model": "attainment.attainmentsnapshot",
         "pk": 1,
         "fields": {
@@ -155,6 +189,51 @@
             "verified_by": 2,
             "is_locked": false,
             "calculation_date": "2026-01-02 10:00:00"
+        }
+    },
+    {
+        "model": "attainment.attainmentsnapshot",
+        "pk": 3,
+        "fields": {
+            "month": 1,
+            "year": "2026",
+            "course_id": 1,
+            "co_id": 3,
+            "po_id": 1,
+            "attainment_value": 2.32,
+            "verified_by": 2,
+            "is_locked": false,
+            "calculation_date": "2026-01-02 10:10:00"
+        }
+    },
+    {
+        "model": "attainment.attainmentsnapshot",
+        "pk": 4,
+        "fields": {
+            "month": 1,
+            "year": "2026",
+            "course_id": 1,
+            "co_id": 4,
+            "po_id": 1,
+            "attainment_value": 2.6,
+            "verified_by": 2,
+            "is_locked": false,
+            "calculation_date": "2026-01-02 10:10:00"
+        }
+    },
+    {
+        "model": "attainment.attainmentsnapshot",
+        "pk": 5,
+        "fields": {
+            "month": 1,
+            "year": "2026",
+            "course_id": 1,
+            "co_id": 5,
+            "po_id": 1,
+            "attainment_value": 2.42,
+            "verified_by": 2,
+            "is_locked": false,
+            "calculation_date": "2026-01-02 10:15:00"
         }
     }
 ]
