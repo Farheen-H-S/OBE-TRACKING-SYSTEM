@@ -1,0 +1,113 @@
+[
+    {
+        "model": "cis_master.cisnature",
+        "pk": 1,
+        "fields": {
+            "nature_name": "Direct",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cisnature",
+        "pk": 2,
+        "fields": {
+            "nature_name": "Indirect",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cistype",
+        "pk": 1,
+        "fields": {
+            "nature_id": 1,
+            "type_name": "Internal Assessment",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cistype",
+        "pk": 2,
+        "fields": {
+            "nature_id": 1,
+            "type_name": "Final exam",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cistype",
+        "pk": 3,
+        "fields": {
+            "nature_id": 1,
+            "type_name": "Assignments",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cistype",
+        "pk": 4,
+        "fields": {
+            "nature_id": 1,
+            "type_name": "Practical",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cistype",
+        "pk": 5,
+        "fields": {
+            "nature_id": 2,
+            "type_name": "Course Exit Survey",
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cisterm",
+        "pk": 1,
+        "fields": {
+            "type_id": 1,
+            "term_name": "In-Sem 1",
+            "weightage": 0.2,
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cisterm",
+        "pk": 2,
+        "fields": {
+            "type_id": 1,
+            "term_name": "In-Sem 2",
+            "weightage": 0.2,
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cisterm",
+        "pk": 3,
+        "fields": {
+            "type_id": 2,
+            "term_name": "End-Sem",
+            "weightage": 0.6,
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cisterm",
+        "pk": 4,
+        "fields": {
+            "type_id": 3,
+            "term_name": "Assignment 1",
+            "weightage": 0.0,
+            "is_active": true
+        }
+    },
+    {
+        "model": "cis_master.cisterm",
+        "pk": 5,
+        "fields": {
+            "type_id": 3,
+            "term_name": "Assignment 2",
+            "weightage": 0.0,
+            "is_active": true
+        }
+    }
+]
