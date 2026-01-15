@@ -1,0 +1,29 @@
+/* Currentset.css */
+
+/* Replicating the container style from CreateUser.css */
+.create-user-container {
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f0f2f5;
+}
+
+/* 
+   Focus and Hover Effects 
+   - Matching Create User form style
+   - Blue border and glow on focus
+*/
+
+.form-select:focus,
+.form-control:focus,
+.form-select:hover,
+.form-control:hover {
+    border-color: #4b93ff !important;
+    box-shadow: 0 0 0 3px rgba(75, 147, 255, 0.1) !important;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Ensure the transition happens on default state too for smoothness */
+.form-select,
+.form-control {
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}

@@ -13,7 +13,7 @@ const Adminside = () => {
     };
 
     return (
-        <div className="sidebar d-flex flex-column flex-shrink-0 h-100 text-white">
+        <div className="sidebar d-flex flex-column flex-shrink-0 text-white">
 
             <div className="user-banner p-3 text-center">
                 <div className="user-banner-img mb-2">
@@ -22,7 +22,7 @@ const Adminside = () => {
                 <div className="user-banner-info">
                     <h3 className="fs-3.5 bold-0" style={{ color: '#0e2344' }}>Welcome Mitesh!</h3>
                     <p className="fs-5 fw-bold mb-0" style={{ color: '#0e2344' }}>312023016</p>
-                   <h5 className="fw-semibold mb-0" style={{ color: '#ffffff', marginLeft: '180px' }}>Log out!</h5>
+                    <h5 className="fw-semibold mb-0" style={{ color: '#ffffff', marginLeft: '180px' }}>Log out!</h5>
 
                 </div>
             </div>

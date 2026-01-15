@@ -4,7 +4,7 @@
   background: linear-gradient(to bottom, #60a5fa, #3b82f6);
   /* Blue Sidebar */
   overflow-y: auto;
-  height:100%;
+  min-height: 100vh;
 }
 
 /* USER BANNER */
@@ -17,4 +17,3 @@
 .submenu div:hover {
   background: rgba(255, 255, 255, 0.1);
 }
-

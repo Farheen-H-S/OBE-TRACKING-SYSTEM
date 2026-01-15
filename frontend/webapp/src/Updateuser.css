@@ -1,88 +1,44 @@
-/* Page wrapper */
-.page-wrapper {
-  min-height: 100vh;
-  background: #eaf5f8;
+/* Updateuser.css */
+
+/* Generic Page Styles */
+.update-user-container {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f0f2f5;
 }
 
-/* Below header */
-.page-body {
-  display: flex;
-  height: calc(100vh - 80px); /* header height */
-}
 
-/* Content area */
-.content-wrapper {
-  flex: 1;
-  padding: 40px;
-  overflow-y: auto;
-}
-
-/* White box */
-.white-container {
-  background: #ffffff;
-  max-width: 700px;
-  margin: auto;
-  padding: 35px 45px;
-  border-radius: 6px;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.12);
-}
-
-/* Title */
-.form-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #1f2f5c;
-  margin-bottom: 25px;
-}
-
-/* Form */
-.update-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.update-form label {
-  font-weight: 600;
-  margin: 10px 0 6px;
-}
-
-.update-form input,
-.update-form select {
-  padding: 8px 10px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.update-form input:disabled {
-  background: #f0f0f0;
-}
-
-/* Upload */
-.upload-btn {
-  margin-top: 10px;
-  width: 120px;
-  background: #4f8cff;
-  color: #fff;
-  border: none;
-  padding: 7px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* Footer */
-.form-footer {
-  margin-top: 30px;
-  text-align: right;
-}
-
-.save-btn {
-  background: #4f8cff;
-  color: white;
-  padding: 8px 18px;
-  border: none;
+/* Card Visuals */
+.user-form-container {
+  background-color: white;
   border-radius: 8px;
-  font-size: 15px;
-  cursor: pointer;
+  border: 1px solid #e0e0e0;
+}
+
+/* Input Specific Tweaks over Bootstrap */
+.form-control,
+.form-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #4b93ff;
+  box-shadow: 0 0 0 3px rgba(75, 147, 255, 0.1);
+}
+
+/* Button */
+.update-btn-container .btn-primary {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
+}
+
+.update-btn-container .btn-primary:hover {
+  background-color: #1565c0 !important;
+}
+
+/* Form Title Icon */
+.form-header-title {
+  color: #1a237e;
 }

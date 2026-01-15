@@ -37,14 +37,14 @@ const CreateUser = () => {
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Email id :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-5">
                                     <input type="text" className="form-control" />
                                 </div>
                             </div>
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Mobile no. :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-5">
                                     <div className="input-group">
                                         <span className="input-group-text bg-light text-secondary fw-medium">+ 91</span>
                                         <input type="text" className="form-control" />
@@ -54,46 +54,55 @@ const CreateUser = () => {
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Role :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-2">
                                     <select className="form-select">
-                                        <option>Faculty</option>
+                                        <option value="" hidden selected>Faculty</option>
+                                        
+                                    <option>HOD</option>
+                                    <option>Coordinator</option>
+                                    <option>Auditor</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Department :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-5">
                                     <select className="form-select">
                                         <option>Computer</option>
+                                       
+                                    <option value="" hidden selected>Information Technology</option>
+                                    <option>Mechanical</option>
+                                    <option>Civil</option>
+                                    <option>Electrical</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">From Year :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-2">
                                     <input type="text" className="form-control" placeholder="2025" />
                                 </div>
                             </div>
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Date of Joining :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-3">
                                     <input type="text" className="form-control" placeholder="DD/MM/YYYY" />
                                 </div>
                             </div>
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Username :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-3">
                                     <input type="text" className="form-control" />
                                 </div>
                             </div>
 
                             <div className="row mb-3 align-items-center">
                                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Password :</label>
-                                <div className="col-sm-9">
+                                <div className="col-sm-3">
                                     <input type="password" className="form-control" />
                                 </div>
                             </div>

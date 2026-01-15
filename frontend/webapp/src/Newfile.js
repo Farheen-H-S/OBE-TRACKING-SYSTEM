@@ -2,11 +2,12 @@ import React from 'react';
 
 
 
-import CreateUser from './admin/CreateUser';
+
+import Currentset from './admin/Currentset';
 
 function Newfile() {
   return (
-    <CreateUser />
+    <Currentset />
   );
 }
 

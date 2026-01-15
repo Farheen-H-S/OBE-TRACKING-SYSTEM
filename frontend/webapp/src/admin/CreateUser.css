@@ -6,30 +6,6 @@
     background-color: #f0f2f5;
 }
 
-/* Sidebar Visuals */
-.admin-sidebar {
-    background: linear-gradient(180deg, #4b93ff 0%, #85b8ff 100%);
-    border-right: 1px solid #ccc;
-}
-
-.user-profile-banner {
-    background: linear-gradient(135deg, #4b93ff 0%, #2d5eb8 100%);
-}
-
-.user-profile-img {
-    background-color: #ccc;
-    font-size: 24px;
-}
-
-.nav-item:hover,
-.sub-nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.sub-nav-item {
-    font-size: 0.85rem;
-    padding: 5px 0;
-}
 
 /* Card Visuals */
 .user-form-container {
@@ -44,6 +20,7 @@
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 0.95rem;
+    font-style: inter;
 }
 
 .form-control:focus,

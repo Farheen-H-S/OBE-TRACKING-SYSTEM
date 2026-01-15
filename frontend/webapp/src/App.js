@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Profile from './Profile';
 import Newfile from './Newfile';
-import CreateUser from './CreateUser';
+import CreateUser from './admin/CreateUser';
 import Postatement from './Postatement';
 import Psostatement from './Psostatement';
 import Dashboard from './components/Dashboard';
