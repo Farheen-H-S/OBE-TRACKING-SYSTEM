@@ -1,8 +1,12 @@
-import React from 'react'; 
-import Sidebar from './sidebar/Sidebar';
-import Header from "./header/Header";
+import React from 'react';
+import Sidebar from './Sidebar'; // Sidebar is in the same directory now
+import Header from "../header/Header"; // Header is in sibling directory
 
-import "./Dashboard.css";
+import "./Dashboard.css"; // Assuming Dashboard.css is in components/ or verify its location. 
+// Ideally Dashboard.js should be moved to components/, but user asked to solve errors.
+// If Dashboard.css is in components/, it is ../Dashboard.css. 
+// If it is in sidebar/, it is ./Dashboard.css.
+
 
 function Dashboard({ children }) {
   return (

@@ -21,11 +21,17 @@ const Header = () => {
       </div>
 
       {/* Right Section */}
-      <div className="header-right d-flex align-items-center gap-3">
-        <div className="search-box d-flex align-items-center rounded px-3 py-2 bg-white bg-opacity-25">
-          <FaSearch className="search-icon text-info" />
-          <input type="text" className="border-0 bg-transparent ms-2 text-white outline-none placeholder-white" />
-        </div>
+      <div className="col-12 col-md-4 d-flex justify-content-md-end justify-content-center align-items-center gap-3">
+                  <div className="input-group search-box">
+                    <span className="input-group-text">
+                      <FaSearch />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search"
+                    />
+                  </div>
 
         <div className="d-flex align-items-center gap-2">
           <select className="header-select">
@@ -60,7 +66,7 @@ const Header = () => {
           </select>
         </div>
 
-        <FaBell className="bell-icon fs-5 cursor-pointer" />
+        <FaBell className="bell-icon fs-9 cursor-pointer" />
       </div>
     </header>
   );

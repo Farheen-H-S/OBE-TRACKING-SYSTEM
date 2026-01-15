@@ -6,8 +6,9 @@ import Newfile from './Newfile';
 import CreateUser from './admin/CreateUser';
 import Postatement from './Postatement';
 import Psostatement from './Psostatement';
-import Dashboard from './components/Dashboard';
+import Dashboard from './components/sidebar/Dashboard';
 import Updateuser from './Updateuser';
+import Currentset from './admin/Currentset';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import './App.css';
@@ -25,7 +26,8 @@ function App() {
           <Route path="/po-statement" element={<Postatement />} />
           <Route path="/pso-statement" element={<Psostatement />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/update-user" element={<Updateuser />} />         
+          <Route path="/update-user" element={<Updateuser />} />      
+            <Route path="/current-set" element={<Currentset />} />    
  
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -3,11 +3,11 @@ import React from 'react';
 
 
 
-import Currentset from './admin/Currentset';
+import Psostatement from './Psostatement';
 
 function Newfile() {
   return (
-    <Currentset />
+    <Psostatement />
   );
 }
 

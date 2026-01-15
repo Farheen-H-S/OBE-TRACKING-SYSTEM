@@ -3,123 +3,249 @@ import './Sidebar.css';
 import { FaCircle, FaMinus, FaPlus } from 'react-icons/fa';
 import Pofile from '../../admin/profile.jpeg';
 
-const Sidebar = () => {
+const Adminside = () => {
 
     // STATE FOR SIDEBAR TOGGLE
     const [openMenu, setOpenMenu] = useState(null);
+    const [openSubMenu, setOpenSubMenu] = useState(null);
 
     const toggleMenu = (menu) => {
         setOpenMenu(openMenu === menu ? null : menu);
+        setOpenSubMenu(null); // Close nested submenus when main menu changes
+    };
+
+    const toggleSubMenu = (menu) => {
+        setOpenSubMenu(openSubMenu === menu ? null : menu);
     };
 
     return (
-        <div className="sidebar">
+        <div
+            className="sidebar d-flex flex-column flex-shrink-0 text-white"
+            style={{
+                width: '320px',
+                height: '100%', /* Fits exactly into dashboard-body */
+                background: 'linear-gradient(to bottom, #60a5fa, #3b82f6)',
+                overflow: 'hidden' /* Prevents container itself from scrolling */
+            }}
+        >
 
-            <div className="user-banner">
-                <div className="user-banner-img">
-                    <img src={Pofile} alt="profile pic" />
+            {/* Header Section - Fixed */}
+            <div className="user-banner p-3 text-center flex-shrink-0">
+                <div className="user-banner-img mb-2">
+                    <img src={Pofile} alt="profile pic" className="rounded-circle border border-3 border-white" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
                 </div>
                 <div className="user-banner-info">
-                    <h3>Welcome Mitesh!</h3>
-                    <p>312023016</p>
+                    <h3 className="fs-3.5 bold-0" style={{ color: '#0e2344' }}>Welcome Mitesh!</h3>
+                    <p className="fs-5 fw-bold mb-0" style={{ color: '#0e2344' }}>312023016</p>
+                    <h5 className="fw-semibold mb-0" style={{ color: '#ffffff', marginLeft: '180px' }}>Log out!</h5>
                 </div>
             </div>
 
-            <div className="user-role-bar">
+            <div className="user-role-bar p-3 fw-bold fs-5 flex-shrink-0" style={{ color: 'rgb(4, 38, 80)', background: 'rgba(248, 249, 252, 0.1)' }}>
                 User : HOD
             </div>
 
-            {/* MENU */}
-            <ul className="sidebar-menu">
-                {/* View Statements */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("viewStatements")}>
-                        <FaCircle className="menu-dot" />
-                        View Statements
-                        {openMenu === "viewStatements" ? <FaMinus /> : <FaPlus />}
+            {/* MENU LIST - Scrollable */}
+            <ul
+                className="sidebar-menu nav nav-pills flex-column mb-0 p-0 list-unstyled overflow-auto flex-grow-1"
+                style={{
+                    scrollbarWidth: 'thin',
+                    minHeight: 0,
+                    paddingBottom: '100px' /* Extra space at bottom to ensure last items are visible when expanded */
+                }}
+            >
+                {/* user management */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("View statement")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">View statement</span>
+                        {openMenu === "View statement" ? <FaMinus /> : <FaPlus />}
                     </div>
 
-                    {openMenu === "viewStatements" && (
-                        <div className="submenu">
-                            <div>CO Statements</div>
-                            <div>PO Statements</div>
-                            <div>PSO Statements</div>
+                    {openMenu === "View statement" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>CO statement</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>PO statement</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>PSO statement</div>
+
                         </div>
                     )}
                 </li>
 
-                {/* Stress Analysis */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("stressAnalysis")}>
-                        <FaCircle className="menu-dot" />
-                        Stress Analysis
-                        {openMenu === "stressAnalysis" ? <FaMinus /> : <FaPlus />}
+
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        CO-PO mapping
+                    </div>
+                </li>
+
+                {/* Student management */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("Student management")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">Student management</span>
+                        {openMenu === "Student management" ? <FaMinus /> : <FaPlus />}
                     </div>
 
-                    {openMenu === "stressAnalysis" && (
-                        <div className="submenu">
-                            <div>Stress Survey</div>
-                            <div>Stress Report</div>
+                    {openMenu === "Student management" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Add students</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Update students</div>
                         </div>
                     )}
                 </li>
 
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> CO-PO mapping
+                {/* Course Management */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("Course Management")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">Course Management</span>
+                        {openMenu === "Course Management" ? <FaMinus /> : <FaPlus />}
+                    </div>
+
+                    {openMenu === "Course Management" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Add Course</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>View Course</div>
+                        </div>
+                    )}
                 </li>
 
                 {/* CIS */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("cis")}>
-                        <FaCircle className="menu-dot" />
-                        CIS
-                        {openMenu === "cis" ? <FaMinus /> : <FaPlus />}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("CIS")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">CIS</span>
+                        {openMenu === "CIS" ? <FaMinus /> : <FaPlus />}
                     </div>
 
-                    {openMenu === "cis" && (
-                        <div className="submenu">
-                            <div>CIS entry</div>
-                            <div>Direct</div>
-                            <div>Indirect</div>
-                            <div>CIS report</div>
+                    {openMenu === "CIS" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            {/* CIS Survey (Nested) */}
+                            <div
+                                className="py-2 text-white cursor-pointer d-flex align-items-center justify-content-between pe-3"
+                                onClick={(e) => { e.stopPropagation(); toggleSubMenu("CIS Survey"); }}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <span>CIS Survey</span>
+                                {openSubMenu === "CIS Survey" ? <FaMinus size={10} /> : <FaPlus size={10} />}
+                            </div>
+                            {openSubMenu === "CIS Survey" && (
+                                <div className="ps-3 border-start border-white border-opacity-25 ms-2 mb-2">
+                                    <div className="py-1 text-white small cursor-pointer" style={{ cursor: 'pointer' }}>Course Exit Survey Creation</div>
+                                    <div className="py-1 text-white small cursor-pointer" style={{ cursor: 'pointer' }}>Indirect Tool Survey Creation</div>
+                                </div>
+                            )}
+
+                            {/* CIS Report (Nested) */}
+                            <div
+                                className="py-2 text-white cursor-pointer d-flex align-items-center justify-content-between pe-3"
+                                onClick={(e) => { e.stopPropagation(); toggleSubMenu("CIS Report"); }}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <span>CIS Report</span>
+                                {openSubMenu === "CIS Report" ? <FaMinus size={10} /> : <FaPlus size={10} />}
+                            </div>
+                            {openSubMenu === "CIS Report" && (
+                                <div className="ps-3 border-start border-white border-opacity-25 ms-2 mb-2">
+                                    <div className="py-1 text-white small cursor-pointer" style={{ cursor: 'pointer' }}>Direct Reports</div>
+                                    <div className="py-1 text-white small cursor-pointer" style={{ cursor: 'pointer' }}>Indirect Reports</div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </li>
 
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Assign Target
-                </li>
-
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Track Target
-                </li>
-
-                {/* DAC */}
-                <li className="menu-item has-submenu">
-                    <div className="menu-title" onClick={() => toggleMenu("dac")}>
-                        <FaCircle className="menu-dot" />
-                        DAC Report
-                        {openMenu === "dac" ? <FaMinus /> : <FaPlus />}
+                {/* Target Management */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("Target Management")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">Target Management</span>
+                        {openMenu === "Target Management" ? <FaMinus /> : <FaPlus />}
                     </div>
 
-                    {openMenu === "dac" && (
-                        <div className="submenu">
-                            <div>View</div>
-                            <div>Upload</div>
+                    {openMenu === "Target Management" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Assign Target</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Track Target</div>
                         </div>
                     )}
                 </li>
 
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Mapping View
+                {/* DAC Report */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("DAC Report")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">DAC Report</span>
+                        {openMenu === "DAC Report" ? <FaMinus /> : <FaPlus />}
+                    </div>
+
+                    {openMenu === "DAC Report" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>View Report</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Upload Report</div>
+                        </div>
+                    )}
                 </li>
 
-                <li className="menu-item">
-                    <FaCircle className="menu-dot" /> Backtracking
+                {/* Report Verification */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        Report Verification
+                    </div>
                 </li>
 
+                {/* Attainment Backtracking */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        Backtracking
+                    </div>
+                </li>
+
+                {/* Student Stress Analysis */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("Student Stress Analysis")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">Student Stress Analysis</span>
+                        {openMenu === "Student Stress Analysis" ? <FaMinus /> : <FaPlus />}
+                    </div>
+
+                    {openMenu === "Student Stress Analysis" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Stress Survey Creation</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Stress Analysis Report</div>
+                        </div>
+                    )}
+                </li>
+
+                {/* Teacher Feedback */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("Teacher Feedback")} style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        <span className="flex-grow-1">Teacher Feedback</span>
+                        {openMenu === "Teacher Feedback" ? <FaMinus /> : <FaPlus />}
+                    </div>
+
+                    {openMenu === "Teacher Feedback" && (
+                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Feedback Survey Creation</div>
+                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Feedback Analysis Report</div>
+                        </div>
+                    )}
+                </li>
+
+                {/* Templates */}
+                <li className="nav-item">
+                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" style={{ cursor: 'pointer' }}>
+                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
+                        Templates
+                    </div>
+                </li>
             </ul>
         </div>
     )
 }
-export default Sidebar;
+export default Adminside;

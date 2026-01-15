@@ -1,5 +1,5 @@
 .header {
-  height: 80px;
+  height: 100px;
   background: linear-gradient(90deg, #4a90e2, #357ae8);
   /* Bootstrap text-white handles color */
   flex-shrink: 0;
@@ -7,10 +7,9 @@
 
 /* Logo */
 .header-logo {
-  height: 100%;
+   height: 100px;
   width: auto;
   object-fit: contain;
-  padding: 5px 0;
 }
 
 /* Header Text Fonts (Bootstrap handles size/margin) */
@@ -18,23 +17,15 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Search Box Customization */
-.search-box input::placeholder {
-  color: #ddd;
-  opacity: 0.8;
-}
-
-.search-box input:focus {
-  outline: none;
-}
 
 /* Custom Transparent Select Styling */
 .header-select {
   border: none;
   outline: none;
   background: transparent;
-  color: white;
+  color: rgb(252, 252, 252);
   font-size: 18px;
+
   cursor: pointer;
   padding-right: 20px;
   /* Space for arrow */
@@ -49,8 +40,111 @@
   background-size: 10px;
 }
 
-.header-select option {
-  color: black;
-  background: white;
+/* Search input */
+
+/* Search box wrapper */
+/* Search box */
+.admin-header .search-box {
+  max-width: 260px;
+  height: 40px;
+  background: #eaf2fb;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  align-items: center; /* 🔑 center everything */
+}
+
+/* Icon */
+.admin-header .search-box .input-group-text {
+  background: transparent !important;
+  border: none;
+  padding: 0 12px;
+  color: #0fc1d8;
+  display: flex;
+  align-items: center;
+}
+
+/* Input */
+.admin-header .search-box .form-control {
+  background: transparent;
+  border: none;
+  height: 100%;
+  padding: 0 1px;
+  font-size: 18px;
+  line-height: 40px; /* 🔑 PERFECT vertical centering */
+}
+
+/* Remove focus styles */
+.admin-header .search-box .form-control:focus {
+  box-shadow: none;
+}
+
+
+
+/* Increase header height so logo has space */
+nav.admin-header {
+  min-height: 120px;
+  padding: 10px 20px;
+}
+
+/* Increase logo size safely */
+.admin-header .header-logo {
+  height: 100px;
+  /* 👈 increase as needed */
+  width: auto;
+  object-fit: contain;
+}
+
+
+/* ================= LEFT TEXT ================= */
+.admin-header .header-text h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.admin-header .header-text span {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* ================= CENTER TITLE ================= */
+.admin-header .header-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+
+.admin-header .form-control {
+  background: #eaf2fb !important;
+  border: none;
+  box-shadow: none;
+  color: #333 !important;
+}
+
+.admin-header .form-control::placeholder {
+  color: #555;
   font-size: 16px;
+}
+
+/* =================  Bell ICON ================= */
+.admin-header .bell-icon {
+  font-size: 50px;
+  cursor: pointer;
+  color: #ffffff;
+}
+
+.bell-icon
+{
+  font-size: 4rem;
+  line-height: 1;
+
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 767px) {
+  .admin-header .header-title {
+    font-size: 24px;
+  }
 }
