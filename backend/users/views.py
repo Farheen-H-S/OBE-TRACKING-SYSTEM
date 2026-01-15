@@ -5,6 +5,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import User, UserRole
 from .serializers import UserSerializer, UserRoleSerializer
+from django.contrib.auth.hashers import check_password
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # APP: USERS & RBAC
 
@@ -79,3 +81,54 @@ class RoleListAPIView(APIView):
         roles = UserRole.objects.all()
         serializer = UserRoleSerializer(roles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class LoginAPIView(APIView):
+    """
+    Login using email and password.
+    Only non-student active users can login.
+    """
+
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response(
+                {"error": "Email and password are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.select_related('role_id').get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not user.is_active:
+            return Response(
+                {"error": "User account is inactive"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Password check (important)
+        if not check_password(password, user.password):
+            return Response(
+                {"error": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "user_id": user.user_id,
+                "name": user.name,
+                "email": user.email,
+                "role": user.role_id.role_name
+            }
+        }, status=status.HTTP_200_OK)
