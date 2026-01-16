@@ -89,35 +89,25 @@ class LoginAPIView(APIView):
     """
 
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get('email', '').strip().lower()
         password = request.data.get('password')
 
         if not email or not password:
-            return Response(
-                {"error": "Email and password are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Email and password are required"}, status=400)
 
         try:
-            user = User.objects.select_related('role_id').get(email=email)
+            user = User.objects.select_related('role_id').get(email__iexact=email)
         except User.DoesNotExist:
-            return Response(
-                {"error": "Invalid credentials"},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"error": "Invalid credentials"}, status=401)
 
         if not user.is_active:
-            return Response(
-                {"error": "User account is inactive"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "User account is inactive"}, status=403)
 
-        # Password check (important)
+        if user.role_id.role_name.lower() == "student":
+            return Response({"error": "Students cannot login"}, status=403)
+
         if not check_password(password, user.password):
-            return Response(
-                {"error": "Invalid credentials"},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"error": "Invalid credentials"}, status=401)
 
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)

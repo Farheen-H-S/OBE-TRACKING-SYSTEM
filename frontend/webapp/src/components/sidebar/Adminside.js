@@ -4,10 +4,14 @@ import "./Adminside.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../services/authService";
+import { getLoggedInUser } from "../../utils/auth";
+
 
 const AdminSide = ({ isOpen, onClose }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const toggleMenu = (menu) => setOpenMenu(openMenu === menu ? null : menu);
+
+  const user = getLoggedInUser();
 
   const navigate = useNavigate();
 
@@ -40,8 +44,8 @@ const AdminSide = ({ isOpen, onClose }) => {
             style={{ width: 80, height: 80, objectFit: "cover" }}
           />
         </div>
-        <h3 style={{ color: "#0e2344" }}>Welcome Mitesh!</h3>
-        <p style={{ color: "#0e2344" }}>312023016</p>
+        <h3 style={{ color: "#0e2344" }}>Welcome {user?.name || user?.email || "User"}!</h3>
+        <p style={{ color: "#0e2344" }}>{user?.email}</p>
       </div>
 
       {/* USER ROLE */}

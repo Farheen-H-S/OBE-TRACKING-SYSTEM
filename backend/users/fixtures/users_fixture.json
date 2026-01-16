@@ -4,7 +4,7 @@
         "pk": 1,
         "fields": {
             "role_name": "Admin",
-            "role_description": "Administrator with full access"
+            "role_description": "Administrator"
         }
     },
     {
@@ -43,9 +43,9 @@
         "model": "users.user",
         "pk": 1,
         "fields": {
-            "name": "Super Admin",
-            "email": "admin@college.edu",
-            "password": "123",
+            "name": "System Admin",
+            "email": "admin@sandip.poly",
+            "password": "admin123",
             "role_id": 1,
             "contact_no": "9876543210",
             "department": "Administration",
@@ -58,7 +58,7 @@
         "model": "users.user",
         "pk": 2,
         "fields": {
-            "name": "Prof. Ohal sir",
+            "name": "Prof. V. B. Ohol",
             "email": "hod@sandippoly.org",
             "password": "hod123",
             "role_id": 2,
@@ -73,10 +73,10 @@
         "model": "users.user",
         "pk": 3,
         "fields": {
-            "name": "Prof. jadhav sir",
-            "email": "faculty1@sandippoly.org",
-            "password": "faculty123",
-            "role_id": 4,
+            "name": "Prof. Y. N. Jadhav",
+            "email": "coordinator@sandippoly.org",
+            "password": "coordinator123",
+            "role_id": 3,
             "contact_no": "9876543212",
             "department": "Computer Engineering",
             "is_active": true,
@@ -88,9 +88,9 @@
         "model": "users.user",
         "pk": 4,
         "fields": {
-            "name": "Prof.wagh mam",
-            "email": "faculty2aa@sandippoly.org",
-            "password": "faculty2123",
+            "name": "Prof. V. A. Wagh",
+            "email": "faculty@sandippoly.org",
+            "password": "faculty123",
             "role_id": 4,
             "contact_no": "9876543213",
             "department": "Computer Engineering",
@@ -103,24 +103,9 @@
         "model": "users.user",
         "pk": 5,
         "fields": {
-            "name": "Prof.patil",
-            "email": "faculty3@sandippoly.org",
-            "password": "faculty3123",
-            "role_id": 4,
-            "contact_no": "9876543214",
-            "department": "Computer Engineering",
-            "is_active": true,
-            "created_at": "2025-01-01 10:00:00",
-            "updated_at": "2025-01-01 10:00:00"
-        }
-    },
-    {
-        "model": "users.user",
-        "pk": 6,
-        "fields": {
-            "name": "Auditor User",
-            "email": "auditor@college.edu",
-            "password": "pbkdf2_sha256$260000$...",
+            "name": "Auditor",
+            "email": "auditor@sandip.poly",
+            "password": "auditor123",
             "role_id": 5,
             "contact_no": "9876543215",
             "department": "External",
@@ -133,7 +118,7 @@
         "model": "users.student",
         "pk": 1,
         "fields": {
-            "name": "Gayatri deore",
+            "name": "Deore Gayatri",
             "roll_no": "61",
             "enrollment_no": "23611780237",
             "program_id": 1,
@@ -167,9 +152,9 @@
         "model": "users.student",
         "pk": 3,
         "fields": {
-            "name": "Shaikh farheen",
+            "name": "Shaikh Farheen",
             "roll_no": "16",
-            "enrollment_no": "23611780198",
+            "enrollment_no": "23611780186",
             "program_id": 1,
             "batch_id": 1,
             "class_year": "Third Year",
@@ -201,7 +186,7 @@
         "model": "users.student",
         "pk": 5,
         "fields": {
-            "name": "Chitte grishma",
+            "name": "Chitte Grishma",
             "roll_no": "23",
             "enrollment_no": "23611780135",
             "program_id": 1,
@@ -235,7 +220,7 @@
         "model": "users.student",
         "pk": 7,
         "fields": {
-            "name": "Pawar pooja",
+            "name": "Pawar Pooja",
             "roll_no": "36",
             "enrollment_no": "23611780239",
             "program_id": 2,
@@ -252,7 +237,7 @@
         "model": "users.student",
         "pk": 8,
         "fields": {
-            "name": "Sam chavan",
+            "name": "Sam Chavan",
             "roll_no": "1",
             "enrollment_no": "23611780123",
             "program_id": 2,
