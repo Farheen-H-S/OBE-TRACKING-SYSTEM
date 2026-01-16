@@ -3,10 +3,9 @@ import Login from "./pages/common/Login";
 import Profile from "./pages/common/Profile";
 import CreateUser from "./pages/admin/CreateUser";
 import Updateuser from "./pages/admin/Updateuser";
-import Postatement from "./pages/Faculty/Postatement";
-import Psostatement from "./pages/Faculty/Psostatement";
+import Postatement from "./pages/Faculty/Psostatement";
+import Psostatement from "./pages/Faculty/Postatement";
 import Layout from "./components/Layout";
-import Dashboard from './components/sidebar/Dashboard';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./App.css";
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import './Adminside.css';
+import './AdminSide.css';
 import { FaCircle, FaMinus, FaPlus } from 'react-icons/fa';
-import Pofile from '../../admin/profile.jpeg';
+import {profile} from '../../assets/images';
 
-const Adminside = () => {
+const AdminSide = () => {
 
     // STATE FOR SIDEBAR TOGGLE
     const [openMenu, setOpenMenu] = useState(null);
@@ -17,7 +17,7 @@ const Adminside = () => {
 
             <div className="user-banner p-3 text-center">
                 <div className="user-banner-img mb-2">
-                    <img src={Pofile} alt="profile pic" className="rounded-circle border border-3 border-white" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                    <img src={profile} alt="profile pic" className="rounded-circle border border-3 border-white" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
                 </div>
                 <div className="user-banner-info">
                     <h3 className="fs-3.5 bold-0" style={{ color: '#0e2344' }}>Welcome Mitesh!</h3>
@@ -70,4 +70,4 @@ const Adminside = () => {
         </div>
     )
 }
-export default Adminside;
+export default AdminSide;
