@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'surveys',
     'teaching_plan',
     'audit',
+    'bulk_upload',
 ]
 
 MIDDLEWARE = [
