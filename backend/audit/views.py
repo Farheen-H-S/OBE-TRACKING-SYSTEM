@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from .models import AuditLog, ApprovalAction
+from .models import AuditLog # ApprovalAction
 from .serializers import AuditLogSerializer
 from users.models import User, UserRole
 
@@ -38,7 +38,7 @@ class VerifyRecordView(APIView):
         role = user.role_id if user else UserRole.objects.filter(role_name='Auditor').first()
         if not role:
              role = UserRole.objects.first()
-        ApprovalAction.objects.create(entity_name=object_type, entity_id=object_id, action_type='APPROVE', performed_by=user, role_id=role, remark="Verified")
+        # ApprovalAction.objects.create(entity_name=object_type, entity_id=object_id, action_type='APPROVE', performed_by=user, role_id=role, remark="Verified")
         return Response({"verification status": "verified"}, status=status.HTTP_200_OK)
 
 class AddRemarkView(APIView):
@@ -49,5 +49,5 @@ class AddRemarkView(APIView):
             return Response({"error": "object_id and remark are required"}, status=status.HTTP_400_BAD_REQUEST)
         user = request.user if request.user and not request.user.is_anonymous else User.objects.first()
         role = user.role_id if user else UserRole.objects.first()
-        ApprovalAction.objects.create(entity_name="General", entity_id=object_id, action_type='APPROVE', performed_by=user, role_id=role, remark=remark)
+        # ApprovalAction.objects.create(entity_name="General", entity_id=object_id, action_type='APPROVE', performed_by=user, role_id=role, remark=remark)
         return Response({"remark saved": "success"}, status=status.HTTP_200_OK)
