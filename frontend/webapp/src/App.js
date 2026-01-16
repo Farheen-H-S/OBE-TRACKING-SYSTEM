@@ -6,6 +6,8 @@ import Updateuser from "./pages/admin/Updateuser";
 import Postatement from "./pages/Faculty/Postatement";
 import Psostatement from "./pages/Faculty/Psostatement";
 import Layout from "./components/Layout";
+import Dashboard from './components/sidebar/Dashboard';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import "./App.css";
 
 function App() {

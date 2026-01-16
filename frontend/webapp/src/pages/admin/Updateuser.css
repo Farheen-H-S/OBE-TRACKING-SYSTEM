@@ -1,201 +1,44 @@
-/* Page Layout Overrides */
-.page-wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background-color: #eaf2f8;
-}
+/* Updateuser.css */
 
-.page-body {
-    display: flex;
-    flex: 1;
-}
-
-.content-wrapper {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 40px;
-    background-color: #f7fbff;
-}
-
-/* Main Container Card */
-.white-container {
-    background: white;
-    width: 100%;
-    max-width: 700px;
-    /* Reduced width for stacked look */
-    padding: 40px 50px;
-    border: 1px solid #8caee0;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    border-radius: 0;
-    box-sizing: border-box;
-}
-
-/* Typography */
-.form-title {
-    color: #2c4a75;
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin-bottom: 25px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.user-icon {
-    font-size: 1.4rem;
-    color: #0e4c92;
-}
-
-/* Grid Layout for Form - Vertical Stack */
-.update-form {
-    display: grid;
-    grid-template-columns: 160px 1fr;
-    /* Col 1 fixed width for labels */
-    column-gap: 20px;
-    row-gap: 15px;
-    align-items: center;
-}
-
-/* General Input/Select Styles */
-.update-form input[type="text"],
-.update-form input[type="password"],
-.update-form input[type="email"],
-.update-form select {
-    width: 100%;
-    padding: 6px 10px;
-    border: 1px solid #777;
-    border-radius: 2px;
-    font-size: 0.9rem;
-    color: #333;
-    box-sizing: border-box;
-    height: 34px;
-}
-
-.update-form label {
-    font-weight: 600;
-    color: #000;
-    font-size: 0.95rem;
-    white-space: nowrap;
-
-    /* Left aligned typically, or right? Image shows Left aligned Labels */
-    text-align: left;
-}
-
-/* --- Specific Field Formatting (by index) --- */
-
-/* 1. Name Label (Full Width Row) */
-.update-form>label:nth-child(1) {
-    grid-column: 1 / -1;
-    margin-bottom: -5px;
-}
-
-/* 2. Name Input (Full Width Row) */
-.update-form>input:nth-child(2) {
-    grid-column: 1 / -1;
-    height: 40px;
-    padding: 10px;
-}
-
-/* -- Standard Pairs (Label Left, Input Right) -- */
-/* 
-   3: Email Label, 4: Email Input 
-   5: Mobile Label, 6: Mobile Input 
-   7: Role Label, 8: Role Select
-   9: Dept Label, 10: Dept Select
-   11: From Year Label, 12: From Year Input
-   13: DOJ Label, 14: DOJ Input
-   15: User Label, 16: User Input
-   17: Pass Label, 18: Pass Input
-*/
-
-/* 4. Email Input: Underline Style */
-.update-form>input:nth-child(4) {
-    width: 70%;
-    /* Not full width */
-    border: none;
-    border-bottom: 1px solid #333;
-    background: transparent;
-    padding-left: 0;
-    border-radius: 0;
-}
-
-/* 6. Mobile Input: Bold + Fixed Width */
-.update-form>input:nth-child(6) {
-    width: 200px;
-    font-weight: 700;
-    /* Bold for +91 */
-    color: #000;
-}
-
-/* 8. Role, 10. Dept, 12. Year, 14. DOJ - Standard Widths or constrained? */
-/* Reference shows them mostly full width of the 'input column' except maybe Year/DOJ? */
-/* Actually Year/DOJ look full width of their column in the stacked view */
-.update-form>select:nth-child(8),
-/* Role */
-.update-form>select:nth-child(10)
-
-/* Dept */
-    {
-    width: 200px;
-    /* Dropdowns often shorter */
-}
-
-.update-form>input:nth-child(12),
-/* Year */
-.update-form>input:nth-child(14),
-/* Joining */
-.update-form>input:nth-child(16),
-/* User */
-.update-form>input:nth-child(18)
-
-/* Pass */
-    {
-    width: 200px;
-    /* Constrain width to look neat */
+/* Generic Page Styles */
+.update-user-container {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f0f2f5;
 }
 
 
-/* 19. Photo Label */
-.update-form>label:nth-child(19) {
-    align-self: start;
-    margin-top: 5px;
+/* Card Visuals */
+.user-form-container {
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 }
 
-/* 20. Upload Button */
-.upload-btn {
-    justify-self: start;
-    background-color: #5b9bfb;
-    color: white;
-    border: none;
-    padding: 6px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
+/* Input Specific Tweaks over Bootstrap */
+.form-control,
+.form-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.95rem;
 }
 
-/* 21. Footer Buttons */
-.form-footer {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-    padding-top: 20px;
+.form-control:focus,
+.form-select:focus {
+  border-color: #4b93ff;
+  box-shadow: 0 0 0 3px rgba(75, 147, 255, 0.1);
 }
 
-.save-btn {
-    background-color: #5b9bfb;
-    color: white;
-    border: none;
-    padding: 8px 25px;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
+/* Button */
+.update-btn-container .btn-primary {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
 }
 
-.save-btn:hover,
-.upload-btn:hover {
-    background-color: #4a8cdb;
+.update-btn-container .btn-primary:hover {
+  background-color: #1565c0 !important;
+}
+
+/* Form Title Icon */
+.form-header-title {
+  color: #1a237e;
 }
