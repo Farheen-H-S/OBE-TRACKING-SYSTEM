@@ -132,3 +132,15 @@ class LoginAPIView(APIView):
                 "role": user.role_id.role_name
             }
         }, status=status.HTTP_200_OK)
+
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # invalidate the refresh token
+            return Response({"detail": "Logged out successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -1,9 +1,8 @@
+import './Login.css';
+import { logo } from "../../assets/images";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { login } from "../../services/authService";
-import './Login.css';
-import { logo } from "../../assets/images";
-
 
 function Login() {
   const navigate = useNavigate();
