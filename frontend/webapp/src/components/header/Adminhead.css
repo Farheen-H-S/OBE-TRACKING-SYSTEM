@@ -10,144 +10,107 @@
   background: linear-gradient(90deg, #4a90e2, #357ae8);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
 }
 
-/* ================= LOGO ================= */
+/* LOGO */
 .header-logo {
-  height: 120px;
+  height: 60px;
   width: auto;
   object-fit: contain;
 }
 
-
-
-/* ================= TEXT ================= */
+/* LEFT TEXT (Sandip Foundation / SP) */
 .header-text h2 {
-  margin:0;
-  font-size: 26px;
+  margin: 0;
+  font-size: 22px;
   font-weight: 600;
   color: white;
 }
 
 .header-text span {
-  font-size: 200px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  opacity: 0.9;
+  color: white;
 }
 
+/* DASHBOARD TITLE */
 .header-title {
-  margin: 0;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 600;
   color: white;
 }
-/* ================= SEARCH ================= */
-.admin-header .search-box {
-  max-width: 260px;
-}
 
-/* Input group wrapper */
-.admin-header .input-group {
-  height: 40px;
-}
-
-/* Search input */
-
-/* Search box wrapper */
-/* Search box */
-.admin-header .search-box {
-  max-width: 260px;
-  height: 40px;
-  background: #eaf2fb;
-  border-radius: 3px;
-  overflow: hidden;
+/* SEARCH BOX */
+.search-box {
   display: flex;
-  align-items: center; /* 🔑 center everything */
+  align-items: center;
+  background: #eaf2fb;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 36px;
+  max-width: 220px;
 }
 
-/* Icon */
-.admin-header .search-box .input-group-text {
-  background: transparent !important;
+.search-box .input-group-text {
+  background: transparent;
   border: none;
-  padding: 0 12px;
   color: #0fc1d8;
+  padding: 0 8px;
   display: flex;
   align-items: center;
 }
 
-/* Input */
-.admin-header .search-box .form-control {
+.search-box .form-control {
   background: transparent;
   border: none;
   height: 100%;
-  padding: 0 1px;
-  font-size: 18px;
-  line-height: 40px; /* 🔑 PERFECT vertical centering */
+  font-size: 14px;
+  line-height: 36px;
 }
 
-/* Remove focus styles */
-.admin-header .search-box .form-control:focus {
-  box-shadow: none;
-}
-
-
-
-/* Increase header height so logo has space */
-nav.admin-header {
-  min-height: 120px;
-  padding: 10px 20px;
-}
-
-/* Increase logo size safely */
-.admin-header .header-logo {
-  height: 100px;
-  /* 👈 increase as needed */
-  width: auto;
-  object-fit: contain;
-}
-
-
-/* ================= LEFT TEXT ================= */
-.admin-header .header-text h2 {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 600;
-}
-
-.admin-header .header-text span {
-  font-size: 18px;
-  opacity: 0.9;
-}
-
-/* ================= CENTER TITLE ================= */
-.admin-header .header-title {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 600;
-}
-
-
-.admin-header .form-control {
-  background: #eaf2fb !important;
-  border: none;
-  box-shadow: none;
-  color: #333 !important;
-}
-
-.admin-header .form-control::placeholder {
+.search-box .form-control::placeholder {
   color: #555;
-  font-size: 16px;
+  font-size: 14px;
 }
 
-/* ================= ICON ================= */
-.admin-header .bell-icon {
-  font-size: 35px;
+/* BELL ICON */
+.bell-icon {
+  color: white;
   cursor: pointer;
-  color: #ffffff;
+  font-size: 24px;
+  /* smaller and consistent */
 }
 
-/* ================= MOBILE ================= */
+/* HAMBURGER BUTTON */
+.hamburger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #357ae8;
+  border: none;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1200;
+}
+
+/* HIDE TEXT ON MOBILE */
 @media (max-width: 767px) {
-  .admin-header .header-title {
-    font-size: 24px;
+  .header-text {
+    display: none;
+  }
+
+  .header-title {
+    font-size: 20px;
+  }
+}
+
+/* HIDE HAMBURGER ON LARGE SCREENS */
+@media (min-width: 992px) {
+  .hamburger-btn {
+    display: none;
   }
 }

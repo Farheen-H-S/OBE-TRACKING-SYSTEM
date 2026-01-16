@@ -6,8 +6,9 @@
 }
 
 .dashboard-body {
-  display: flex;
   flex: 1;
+  display: flex;
+  position: relative;
   overflow: hidden;
 }
 
@@ -16,4 +17,19 @@
   padding: 20px;
   background-color: #f4f6f8;
   overflow-y: auto;
+}
+
+/* Backdrop for mobile drawer */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 998;
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+  .sidebar-backdrop {
+    display: none;
+  }
 }

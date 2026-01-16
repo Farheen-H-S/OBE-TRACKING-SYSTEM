@@ -1,73 +1,76 @@
-import React, { useState } from 'react';
-import './AdminSide.css';
-import { FaCircle, FaMinus, FaPlus } from 'react-icons/fa';
-import {profile} from '../../assets/images';
+import React, { useState } from "react";
+import "./AdminSide.css";
+import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
+import { profile } from "../../assets/images";
 
-const AdminSide = () => {
+const AdminSide = ({ isOpen, onClose }) => {
+  const [openMenu, setOpenMenu] = useState(null);
+  const toggleMenu = (menu) => setOpenMenu(openMenu === menu ? null : menu);
 
-    // STATE FOR SIDEBAR TOGGLE
-    const [openMenu, setOpenMenu] = useState(null);
+  return (
+    <div className={`sidebar d-flex flex-column text-white ${isOpen ? "open" : ""}`}>
 
-    const toggleMenu = (menu) => {
-        setOpenMenu(openMenu === menu ? null : menu);
-    };
-
-    return (
-        <div className="sidebar d-flex flex-column flex-shrink-0 text-white">
-
-            <div className="user-banner p-3 text-center">
-                <div className="user-banner-img mb-2">
-                    <img src={profile} alt="profile pic" className="rounded-circle border border-3 border-white" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
-                </div>
-                <div className="user-banner-info">
-                    <h3 className="fs-3.5 bold-0" style={{ color: '#0e2344' }}>Welcome Mitesh!</h3>
-                    <p className="fs-5 fw-bold mb-0" style={{ color: '#0e2344' }}>312023016</p>
-                    <h5 className="fw-semibold mb-0" style={{ color: '#ffffff', marginLeft: '180px' }}>Log out!</h5>
-
-                </div>
-            </div>
-
-            <div className="user-role-bar p-3 fw-bold fs-5" style={{ color: 'rgb(4, 38, 80)', background: 'rgba(248, 249, 252, 0.1)' }}>
-                User : Admin
-            </div>
-
-            {/* MENU */}
-            <ul className="sidebar-menu nav nav-pills flex-column mb-auto p-0 list-unstyled">
-                {/* user management */}
-                <li className="nav-item">
-                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" onClick={() => toggleMenu("User Management")} style={{ cursor: 'pointer' }}>
-                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
-                        <span className="flex-grow-1">User Management</span>
-                        {openMenu === "User Management" ? <FaMinus /> : <FaPlus />}
-                    </div>
-
-                    {openMenu === "User Management" && (
-                        <div className="submenu ps-5 bg-black bg-opacity-10 w-100">
-                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>Create User</div>
-                            <div className="py-2 text-white cursor-pointer" style={{ cursor: 'pointer' }}>View User</div>
-                        </div>
-                    )}
-                </li>
-
-
-                <li className="nav-item">
-                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" style={{ cursor: 'pointer' }}>
-                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
-                        Acedamic setup
-                    </div>
-                </li>
-
-
-                <li className="nav-item">
-                    <div className="menu-item nav-link d-flex align-items-center text-white cursor-pointer" style={{ cursor: 'pointer' }}>
-                        <FaCircle className="menu-dot me-3" style={{ fontSize: '0.6rem' }} />
-                        Audit log
-                    </div>
-                </li>
-
-
-            </ul>
+      {/* USER BANNER */}
+      <div className="user-banner p-3 text-center">
+        <div className="user-banner-img mb-2">
+          <img
+            src={profile}
+            alt="profile"
+            className="rounded-circle border border-3 border-white"
+            style={{ width: 80, height: 80, objectFit: "cover" }}
+          />
         </div>
-    )
-}
+        <h3 style={{ color: "#0e2344" }}>Welcome Mitesh!</h3>
+        <p style={{ color: "#0e2344" }}>312023016</p>
+      </div>
+
+      {/* USER ROLE */}
+      <div className="user-role-bar p-3 fw-bold fs-5">
+        User: Admin
+      </div>
+
+      {/* MENU */}
+      <ul className="sidebar-menu list-unstyled p-0 m-0 flex-grow-1">
+        <li className="nav-item">
+          <div
+            className="menu-item d-flex align-items-center text-white"
+            onClick={() => toggleMenu("User Management")}
+          >
+            <FaCircle className="me-2" /> User Management
+            {openMenu === "User Management" ? (
+              <FaMinus className="ms-auto" />
+            ) : (
+              <FaPlus className="ms-auto" />
+            )}
+          </div>
+          {openMenu === "User Management" && (
+            <div className="submenu ps-4">
+              <div className="py-1 text-white cursor-pointer">Create User</div>
+              <div className="py-1 text-white cursor-pointer">View User</div>
+            </div>
+          )}
+        </li>
+
+        <li className="nav-item">
+          <div className="menu-item d-flex align-items-center text-white">
+            <FaCircle className="me-2" /> Academic Setup
+          </div>
+        </li>
+
+        <li className="nav-item">
+          <div className="menu-item d-flex align-items-center text-white">
+            <FaCircle className="me-2" /> View Audit Log
+          </div>
+        </li>
+      </ul>
+
+      {/* LOGOUT */}
+      <div className="logout-container d-flex align-items-center justify-content-end p-3">
+        <FaSignOutAlt className="me-2" />
+        <span className="fw-bold">Log Out</span>
+      </div>
+    </div>
+  );
+};
+
 export default AdminSide;

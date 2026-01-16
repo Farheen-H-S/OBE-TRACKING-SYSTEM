@@ -1,29 +1,112 @@
-/* SIDEBAR */
+/* ================= SIDEBAR ================= */
 .sidebar {
   width: 320px;
   background: linear-gradient(to bottom, #60a5fa, #3b82f6);
-  /* Keep custom gradient */
-  overflow-y: auto;
-  /* min-height is handled inline or by bootstrap utils if possible, but keeping it here is safe */
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* top content + bottom logout */
+  font-size: 0.95rem;
+  overflow: hidden;
+  /* no scrolling */
+  min-height: 80vh;
   transition: all 0.3s;
 }
 
+/* MOBILE SIDEBAR */
 @media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    height: auto;
-    min-height: auto;
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    width: 260px;
+    z-index: 1050;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
   }
 }
 
-/* USER BANNER */
+/* ================= USER BANNER ================= */
 .user-banner {
   background: url("../../assets/images/back-pic.png") no-repeat center center/cover;
+  text-align: center;
 }
 
-/* Hover effects for nav links are handled by Bootstrap's nav-pills or custom classes if added.
-   We can add a subtle hover if Bootstrap's default isn't enough or if we want the specific semi-transparent white. */
-.nav-link:hover {
+.user-banner-img img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid white;
+}
+
+.user-banner h3 {
+  font-size: 1.1rem;
+  color: #0e2344;
+  margin: 0.3rem 0;
+}
+
+.user-banner p {
+  font-size: 0.9rem;
+  color: #0e2344;
+  margin: 0;
+}
+
+/* ================= USER ROLE BAR ================= */
+.user-role-bar {
+  font-size: 0.9rem;
+  color: rgb(4, 38, 80);
+  background: rgba(248, 249, 252, 0.1);
+  padding: 0.75rem 1rem;
+}
+
+/* ================= MENU ================= */
+.sidebar-menu .menu-item {
+  font-size: 0.95rem;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-menu .menu-item:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu .submenu div {
+  font-size: 0.9rem;
+  padding: 0.45rem 0;
+  cursor: pointer;
+}
+
+.menu-dot {
+  font-size: 0.6rem;
+}
+
+/* ================= LOGOUT ================= */
+.logout-container {
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.logout-container:hover {
+  color: #ffd700;
+}
+
+/* MOBILE LOGOUT ALIGNMENT */
+@media (max-width: 768px) {
+  .logout-container {
+    justify-content: start;
+    padding-left: 1.5rem;
+  }
 }
