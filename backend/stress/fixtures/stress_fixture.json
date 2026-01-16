@@ -1,0 +1,185 @@
+[
+    {
+        "model": "stress.stresscategory",
+        "pk": 1,
+        "fields": {
+            "name": "Academic Pressure"
+        }
+    },
+    {
+        "model": "stress.stresscategory",
+        "pk": 2,
+        "fields": {
+            "name": "Time Management"
+        }
+    },
+    {
+        "model": "stress.stresscategory",
+        "pk": 3,
+        "fields": {
+            "name": "Personal Health"
+        }
+    },
+    {
+        "model": "stress.stressmaster",
+        "pk": 1,
+        "fields": {
+            "title": "Semester V Student Stress Audit 2026",
+            "month": 1,
+            "year": 2026,
+            "is_active": true,
+            "end_date": "2026-12-31T23:59:59Z",
+            "created_at": "2026-01-16T10:00:00Z"
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 1,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 1,
+            "question_text": "I feel overwhelmed by the number of assignments.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 2,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 1,
+            "question_text": "I am worried about my academic performance and grades.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 3,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 1,
+            "question_text": "I find it difficult to understand some core subjects.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 4,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 1,
+            "question_text": "The competition among my peers makes me anxious.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 5,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 1,
+            "question_text": "I feel unprepared for upcoming exams.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 6,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 2,
+            "question_text": "I struggle to balance studying with relaxation.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 7,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 2,
+            "question_text": "I often study late at night and feel tired the next day.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 8,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 2,
+            "question_text": "I feel I do not have enough time for my hobbies.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 9,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 2,
+            "question_text": "I frequently miss deadlines for my submissions.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 10,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 2,
+            "question_text": "I feel rushed during my college hours.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 11,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 3,
+            "question_text": "I have trouble falling asleep due to worrying.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 12,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 3,
+            "question_text": "I often skip meals because of my busy schedule.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 13,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 3,
+            "question_text": "I feel physically exhausted most of the time.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 14,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 3,
+            "question_text": "I find it hard to concentrate during lectures.",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stressquestion",
+        "pk": 15,
+        "fields": {
+            "survey_id": 1,
+            "category_id": 3,
+            "question_text": "I feel irritable or easily annoyed by small things.",
+            "is_active": true
+        }
+    }
+]
