@@ -3,7 +3,7 @@ import Header from "../components/header/Header";
 import Adminhead from "../components/header/Adminhead";
 
 // Sidebars
-import AdminSide from "../components/sidebar/AdminSide";
+import AdminSide from "../components/sidebar/Adminside";
 import HodSide from "../components/sidebar/HodSide";
 import FacultySide from "../components/sidebar/FacultySide";
 import CoordinatorSide from "../components/sidebar/CoordinatorSide";

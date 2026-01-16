@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./AdminSide.css";
+import "./Adminside.css";
 import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
 import { profile } from "../../assets/images";
 
