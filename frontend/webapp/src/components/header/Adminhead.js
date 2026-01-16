@@ -1,6 +1,6 @@
 import React from "react";
 import "./Adminhead.css";
-import {sflogo} from "../../assets/images";
+import sflogo from "./sflogo.png";
 import { FaBell, FaSearch } from "react-icons/fa";
 
 const Adminhead = () => {
