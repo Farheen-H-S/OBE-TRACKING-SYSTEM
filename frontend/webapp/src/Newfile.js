@@ -3,11 +3,11 @@ import React from 'react';
 
 
 
-import Psostatement from './Psostatement';
+import Exit from './stress/Exit';
 
 function Newfile() {
   return (
-    <Psostatement />
+    <Exit/>
   );
 }
 

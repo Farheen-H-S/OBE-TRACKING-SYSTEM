@@ -1,0 +1,105 @@
+.exit-container {
+    background-color: #dbeff6;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    padding-top: 2rem;
+}
+
+/* Reuse Logo Styles or redefine for independence */
+.logo-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brain-logo {
+    width: 100px;
+    height: auto;
+    margin-right: -50px;
+    z-index: 1;
+    opacity: 0.5;
+}
+
+.mindease-logo-text {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #FF6B6B;
+    z-index: 2;
+    margin-left: 10px;
+    margin-top: 20px;
+}
+
+/* Title Section */
+.title-section {
+    color: #4A90E2;
+    /* Light Blue matching reference */
+}
+
+.mission-title,
+.mission-completed {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    /* Brush-like font feel */
+    font-weight: bold;
+    font-size: 3rem;
+    font-style: italic;
+    color: #4A90E2;
+}
+
+/* Emoji Section */
+.emoji-medium {
+    font-size: 5rem;
+    line-height: 1;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+.mood-text {
+    color: #FF6B6B;
+    font-weight: bold;
+    font-size: 2.5rem;
+}
+
+/* Score Section */
+.score-section h3 {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: black;
+    margin-bottom: 5px;
+}
+
+/* Button */
+.exit-btn {
+    background-color: #5c8ae6;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 80px;
+    /* Wide button */
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.exit-btn:hover {
+    background-color: #4a7ac9;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+
+    .mission-title,
+    .mission-completed {
+        font-size: 4rem;
+    }
+
+    .emoji-large {
+        font-size: 10rem;
+    }
+
+    .mood-text {
+        font-size: 3rem;
+    }
+
+    .score-section h3 {
+        font-size: 1.8rem;
+    }
+}

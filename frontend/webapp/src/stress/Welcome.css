@@ -1,0 +1,68 @@
+.welcome-container {
+    background-image: url('./bubble.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #6897a762;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    /* Fallback for a friendly/handwritten look */
+}
+
+.welcome-title {
+    color: #4A90E2;
+    /* Light Blue similar to image */
+    font-weight: bold;
+    font-size: 4rem;
+}
+
+.mindease-text {
+    color: #FF6B6B;
+    /* Soft Red/Orange */
+    font-weight: bold;
+    font-size: 1.5rem;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+/* Add underlines using pseudo-elements to match the style more closely if needed, 
+   or just rely on the text decoration if looking for simple. 
+   The image showed lines around "MindEase". Let's try to mimic that simple look 
+   or just keep it clean as "minimal css" was requested. 
+   The image has a line on the left and right of "MindEase". 
+*/
+.mindease-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.line {
+    height: 2px;
+    width: 50px;
+    background-color: #4A90E2;
+}
+
+.brain-img {
+    width: 150px;
+    max-width: 80%;
+    height: auto;
+    filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.footer-text {
+    color: #FF6B6B;
+    font-weight: 500;
+    text-align: center;
+    max-width: 80%;
+    font-size: 30px;
+}
+
+@media (min-width: 768px) {
+    .welcome-title {
+        font-size: 6rem;
+    }
+
+    .brain-img {
+        width: 200px;
+    }
+}

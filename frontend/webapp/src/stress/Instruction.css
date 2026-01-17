@@ -1,0 +1,124 @@
+.instruction-container {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #dbeff6;
+    /* Light blue fallback matching the image tone */
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    /* Matching Welcome page font family */
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.instruction-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.mindease-red {
+    color: #FF6B6B;
+    /* Soft Red/Orange */
+}
+
+.instruction-blue {
+    color: #4A90E2;
+    /* Light Blue */
+}
+
+.title-separator {
+    color: #4A90E2;
+}
+
+.intro-text {
+    color: #4A90E2;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    max-width: 800px;
+}
+
+.how-to-play-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.how-to-play-text {
+    color: #8ce99a;
+    /* Light Green */
+    font-weight: bold;
+    font-size: 2rem;
+    font-style: italic;
+    display: inline-block;
+}
+
+.note-icon {
+    width: 40px;
+    height: auto;
+    position: relative;
+    right: -50px;
+    /* Adjust position based on the image size */
+    top: -10px;
+    transform: rotate(0deg);
+}
+
+.steps-container {
+    max-width: 800px;
+    padding: 0 20px;
+}
+
+.steps-list {
+    color: #555;
+    /* Dark gray for text */
+    font-size: 1.2rem;
+    line-height: 1.8;
+    list-style-position: inside;
+    /* Or outside with padding-left */
+    text-align: left;
+}
+
+.steps-list li {
+    margin-bottom: 10px;
+}
+
+.start-btn {
+    background-color: #5c8ae6;
+    /* Button blue */
+    border: none;
+    border-radius: 10px;
+    /* Soft rounded corners */
+    padding: 10px 40px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.start-btn:hover {
+    background-color: #4a7ac9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
+}
+
+.start-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Adjustments */
+@media (min-width: 768px) {
+    .instruction-title {
+        font-size: 3.5rem;
+    }
+
+    .intro-text {
+        font-size: 1.4rem;
+    }
+
+    .how-to-play-text {
+        font-size: 2.5rem;
+    }
+
+    .steps-list {
+        font-size: 1.4rem;
+    }
+}
