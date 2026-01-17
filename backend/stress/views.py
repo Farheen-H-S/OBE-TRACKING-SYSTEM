@@ -6,14 +6,34 @@ from django.utils import timezone
 from .models import (
     StressMaster,
     StressResponse,
-    SurveySessionToken
+    SurveySessionToken,
+    StressQuestion
 )
 from .serializers import (
     StressMasterSerializer,
     StressResponseSerializer,
-    SurveySessionTokenSerializer
+    SurveySessionTokenSerializer,
+    StressQuestionSerializer
 )
 from .service import StressCalculationService
+
+
+# -------------------------------
+# Questions (Student Access)
+# -------------------------------
+
+class StressQuestionListView(generics.ListAPIView):
+    """
+    Returns list of questions for a specific survey.
+    Usage: /api/stress/questions/?survey_id=1
+    """
+    serializer_class = StressQuestionSerializer
+
+    def get_queryset(self):
+        survey_id = self.request.query_params.get('survey_id')
+        if not survey_id:
+            raise ValidationError("survey_id query parameter is required.")
+        return StressQuestion.objects.filter(survey_id=survey_id, is_active=True)
 
 
 # -------------------------------

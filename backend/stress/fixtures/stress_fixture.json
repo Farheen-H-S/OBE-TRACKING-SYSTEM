@@ -3,28 +3,47 @@
         "model": "stress.stresscategory",
         "pk": 1,
         "fields": {
-            "name": "Academic Pressure"
+            "name": "Academic Load & Evaluation Stress",
+            "is_active": true
         }
     },
     {
         "model": "stress.stresscategory",
         "pk": 2,
         "fields": {
-            "name": "Time Management"
+            "name": "Teaching–Learning & Subject Understanding",
+            "is_active": true
         }
     },
     {
         "model": "stress.stresscategory",
         "pk": 3,
         "fields": {
-            "name": "Personal Health"
+            "name": "Emotional & Career Stress",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stresscategory",
+        "pk": 4,
+        "fields": {
+            "name": "Study Habits & Academic Behavior",
+            "is_active": true
+        }
+    },
+    {
+        "model": "stress.stresscategory",
+        "pk": 5,
+        "fields": {
+            "name": "Physical Health & Lifestyle Stress",
+            "is_active": true
         }
     },
     {
         "model": "stress.stressmaster",
         "pk": 1,
         "fields": {
-            "title": "Semester V Student Stress Audit 2026",
+            "title": "Student Well-being & Stress Survey 2026",
             "month": 1,
             "year": 2026,
             "is_active": true,
@@ -38,8 +57,10 @@
         "fields": {
             "survey_id": 1,
             "category_id": 1,
-            "question_text": "I feel overwhelmed by the number of assignments.",
-            "is_active": true
+            "question_text": "Are assignments too much?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -48,8 +69,10 @@
         "fields": {
             "survey_id": 1,
             "category_id": 1,
-            "question_text": "I am worried about my academic performance and grades.",
-            "is_active": true
+            "question_text": "Are exams scary?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -58,8 +81,10 @@
         "fields": {
             "survey_id": 1,
             "category_id": 1,
-            "question_text": "I find it difficult to understand some core subjects.",
-            "is_active": true
+            "question_text": "Do marks worry me?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -67,9 +92,11 @@
         "pk": 4,
         "fields": {
             "survey_id": 1,
-            "category_id": 1,
-            "question_text": "The competition among my peers makes me anxious.",
-            "is_active": true
+            "category_id": 2,
+            "question_text": "Is the class boring?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -77,9 +104,11 @@
         "pk": 5,
         "fields": {
             "survey_id": 1,
-            "category_id": 1,
-            "question_text": "I feel unprepared for upcoming exams.",
-            "is_active": true
+            "category_id": 2,
+            "question_text": "Are many assignments given on the same day?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -88,8 +117,10 @@
         "fields": {
             "survey_id": 1,
             "category_id": 2,
-            "question_text": "I struggle to balance studying with relaxation.",
-            "is_active": true
+            "question_text": "Do I clearly understand the concepts taught in class?",
+            "is_reverse": true,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -97,9 +128,11 @@
         "pk": 7,
         "fields": {
             "survey_id": 1,
-            "category_id": 2,
-            "question_text": "I often study late at night and feel tired the next day.",
-            "is_active": true
+            "category_id": 3,
+            "question_text": "Am I feeling sad?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -107,9 +140,11 @@
         "pk": 8,
         "fields": {
             "survey_id": 1,
-            "category_id": 2,
-            "question_text": "I feel I do not have enough time for my hobbies.",
-            "is_active": true
+            "category_id": 3,
+            "question_text": "Am I scared about my job or career?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -117,9 +152,11 @@
         "pk": 9,
         "fields": {
             "survey_id": 1,
-            "category_id": 2,
-            "question_text": "I frequently miss deadlines for my submissions.",
-            "is_active": true
+            "category_id": 3,
+            "question_text": "Do I feel tired or mentally exhausted?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -127,9 +164,11 @@
         "pk": 10,
         "fields": {
             "survey_id": 1,
-            "category_id": 2,
-            "question_text": "I feel rushed during my college hours.",
-            "is_active": true
+            "category_id": 4,
+            "question_text": "Do I delay homework?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -137,9 +176,11 @@
         "pk": 11,
         "fields": {
             "survey_id": 1,
-            "category_id": 3,
-            "question_text": "I have trouble falling asleep due to worrying.",
-            "is_active": true
+            "category_id": 4,
+            "question_text": "Do I skip college or classes?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -147,9 +188,11 @@
         "pk": 12,
         "fields": {
             "survey_id": 1,
-            "category_id": 3,
-            "question_text": "I often skip meals because of my busy schedule.",
-            "is_active": true
+            "category_id": 4,
+            "question_text": "Do I avoid group study?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -157,9 +200,11 @@
         "pk": 13,
         "fields": {
             "survey_id": 1,
-            "category_id": 3,
-            "question_text": "I feel physically exhausted most of the time.",
-            "is_active": true
+            "category_id": 5,
+            "question_text": "Do I sleep less?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -167,9 +212,11 @@
         "pk": 14,
         "fields": {
             "survey_id": 1,
-            "category_id": 3,
-            "question_text": "I find it hard to concentrate during lectures.",
-            "is_active": true
+            "category_id": 5,
+            "question_text": "Do I eat junk food frequently?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     },
     {
@@ -177,9 +224,11 @@
         "pk": 15,
         "fields": {
             "survey_id": 1,
-            "category_id": 3,
-            "question_text": "I feel irritable or easily annoyed by small things.",
-            "is_active": true
+            "category_id": 5,
+            "question_text": "Do I watch reels or social media too much?",
+            "is_reverse": false,
+            "is_active": true,
+            "created_at": "2026-01-16T10:00:00Z"
         }
     }
 ]

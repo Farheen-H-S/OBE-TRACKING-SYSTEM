@@ -18,6 +18,9 @@ class Migration(migrations.Migration):
                 ('category_id', models.AutoField(primary_key=True, serialize=False)),
                 ('name', models.CharField(help_text='academic/emotional/lifestyle', max_length=255)),
             ],
+            options={
+                'db_table': 'stress_category',
+            },
         ),
         migrations.CreateModel(
             name='StressSurvey',
@@ -29,6 +32,9 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(default=False, help_text='only one survey active at a time')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
+            options={
+                'db_table': 'stress_survey',
+            },
         ),
         migrations.CreateModel(
             name='StressQuestion',
@@ -40,6 +46,9 @@ class Migration(migrations.Migration):
                 ('category_id', models.ForeignKey(db_column='category_id', on_delete=django.db.models.deletion.CASCADE, related_name='questions', to='stress.stresscategory')),
                 ('survey_id', models.ForeignKey(db_column='survey_id', on_delete=django.db.models.deletion.CASCADE, related_name='questions', to='stress.stresssurvey')),
             ],
+            options={
+                'db_table': 'stress_question',
+            },
         ),
         migrations.CreateModel(
             name='StressResponse',
@@ -51,6 +60,9 @@ class Migration(migrations.Migration):
                 ('question_id', models.ForeignKey(db_column='question_id', on_delete=django.db.models.deletion.CASCADE, related_name='responses', to='stress.stressquestion')),
                 ('survey_id', models.ForeignKey(db_column='survey_id', on_delete=django.db.models.deletion.CASCADE, related_name='responses', to='stress.stresssurvey')),
             ],
+            options={
+                'db_table': 'stress_response',
+            },
         ),
         migrations.CreateModel(
             name='SurveySessionToken',
@@ -61,5 +73,8 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('survey_id', models.ForeignKey(db_column='survey_id', on_delete=django.db.models.deletion.CASCADE, to='stress.stresssurvey')),
             ],
+            options={
+                'db_table': 'stress_session_token',
+            },
         ),
     ]

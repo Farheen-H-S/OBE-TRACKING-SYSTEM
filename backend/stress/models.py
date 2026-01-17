@@ -37,6 +37,7 @@ class StressCategory(models.Model):
         unique=True,
         help_text="Academic/Emotional/Lifestyle"
     )
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = "stress_category"
@@ -61,6 +62,7 @@ class StressQuestion(models.Model):
         db_column='category_id'
     )
     question_text = models.TextField(help_text="The actual question text")
+    is_reverse = models.BooleanField(default=False, help_text="If true, high score (4) is good/positive. If false, high score (4) is stress.")
     is_active = models.BooleanField(default=True, help_text="Enables/disables question")
     created_at = models.DateTimeField(auto_now_add=True)
 

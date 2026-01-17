@@ -7,10 +7,13 @@ from .views import (
     StressSurveyAnalyticsView,
     StressCategoryStatsView,
     AnonymousTokenGenerateView,
-    StressReportExportView
+    StressReportExportView,
+    StressQuestionListView
 )
 
 urlpatterns = [
+    # Questions
+    path('questions/', StressQuestionListView.as_view(), name='stress-question-list'),
     # Survey Admin
     path('surveys/', StressMasterListCreateView.as_view(), name='stress-survey-list'),
     path('surveys/<int:pk>/', StressMasterDetailView.as_view(), name='stress-survey-detail'),
