@@ -13,7 +13,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Login screen */}
+        Login screen
         <Route path="/" element={<Login />} />
 
         {/* Protected routes wrapped in Layout */}

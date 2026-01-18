@@ -1,11 +1,35 @@
-import React, { useState } from "react";
-import "./Adminside.css";
 import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
-import { profile } from "../../assets/images";
+import { profile } from "../../assets/images"
+import "./Adminside.css";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { logout } from "../../services/authService";
+import { getLoggedInUser } from "../../utils/auth";
+
 
 const AdminSide = ({ isOpen, onClose }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const toggleMenu = (menu) => setOpenMenu(openMenu === menu ? null : menu);
+
+  const user = getLoggedInUser();
+
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refresh") || sessionStorage.getItem("refresh");
+    if (refreshToken) {
+      try {
+        await logout(refreshToken);
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
+    }
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    sessionStorage.removeItem("access");
+    sessionStorage.removeItem("refresh");
+    navigate("/");
+  };
 
   return (
     <div className={`sidebar d-flex flex-column text-white ${isOpen ? "open" : ""}`}>
@@ -20,8 +44,8 @@ const AdminSide = ({ isOpen, onClose }) => {
             style={{ width: 80, height: 80, objectFit: "cover" }}
           />
         </div>
-        <h3 style={{ color: "#0e2344" }}>Welcome Mitesh!</h3>
-        <p style={{ color: "#0e2344" }}>312023016</p>
+        <h3 style={{ color: "#0e2344" }}>Welcome {user?.name || user?.email || "User"}!</h3>
+        <p style={{ color: "#0e2344" }}>{user?.email}</p>
       </div>
 
       {/* USER ROLE */}
@@ -65,7 +89,10 @@ const AdminSide = ({ isOpen, onClose }) => {
       </ul>
 
       {/* LOGOUT */}
-      <div className="logout-container d-flex align-items-center justify-content-end p-3">
+      <div
+        className="logout-container d-flex align-items-center justify-content-end p-3"
+        onClick={handleLogout}
+      >
         <FaSignOutAlt className="me-2" />
         <span className="fw-bold">Log Out</span>
       </div>
