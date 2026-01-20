@@ -1,0 +1,59 @@
+/* Viewuser2.css */
+
+.sidebar-wrapper {
+    /* Ensure sidebar sticks correctly */
+    min-width: 250px;
+}
+
+.profile-heading {
+    /* Adjust size/weight if bootstrap class isn't enough */
+    font-size: 2rem;
+}
+
+
+
+.profile-card {
+    background-color: #dbeafe;
+    /* Light blue background like in image */
+    border: 1px solid #bfdbfe;
+    /* Slightly darker border */
+    width: 100%;
+    max-width: 500px;
+    /* Constrain width to look like a card */
+    min-height: 450px;
+    /* Give it some height */
+}
+
+.profile-img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+}
+
+.btn-action {
+    background-color: #dbeafe;
+    /* Match card background or similar light blue */
+    color: #000;
+    transition: all 0.2s;
+    border-color: #bfdbfe;
+    font-size: large;
+      font-family: 'Inter', sans-serif;
+}
+
+.btn-action:hover {
+    background-color: #bfdbfe;
+    border-color: #93c5fd;
+}
+
+/* Ensure text inside card matches image style */
+.profile-card p {
+    font-family: sans-serif;
+    /* Or specific font if known */
+    color: #000;
+}
+
+.inter-heading {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem; /* large but clean */
+}
+
