@@ -10,19 +10,21 @@ import "./Dashboard.css"; // Assuming Dashboard.css is in components/ or verify 
 
 function Dashboard({ children }) {
   return (
-    <div className="dashboard-wrapper">
+    <div className="d-flex flex-column vh-100">
       {/* Top Header */}
       <Header />
 
       {/* Body Section */}
-      <div className="dashboard-body">
+      <div className="d-flex flex-grow-1 overflow-hidden">
         {/* Left Sidebar */}
-        <Sidebar />
+        <div className="h-100 overflow-y-auto">
+          <Sidebar />
+        </div>
 
         {/* Middle Content (Blank Container) */}
-        <div className="dashboard-content">
+        <div className="flex-grow-1 p-4 bg-white overflow-y-auto">
           {children}
-          {/* You can add other components here later */}
+          <h1>HI this is HOD dashboard</h1>
         </div>
       </div>
     </div>

@@ -1,9 +1,18 @@
 
 import '../admin/Currentset.css';
+import Adminhead from '../components/header/Adminhead';
+import Adminside from '../components/sidebar/Adminside';
 
 const Currentset = () => {
     return (
-        <div >
+        <div className="create-user-container d-flex flex-column min-vh-100 overflow-hidden">
+            {/* Header - Full Width */}
+            <Adminhead />
+
+            {/* Body - Sidebar + Content */}
+            <div className="d-flex flex-grow-1 overflow-hidden">
+                {/* Sidebar */}
+                <Adminside />
 
                 {/* Main Content */}
                 <main className="flex-grow-1 p-4 d-flex justify-content-center align-items-start overflow-auto" style={{ backgroundColor: '#f0f2f5' }}>
@@ -59,7 +68,7 @@ const Currentset = () => {
 
                 </main>
             </div>
-        
+        </div>
     );
 };
 

@@ -1,13 +1,10 @@
 import React from 'react';
 
-
-
-
-import Exit from './stress/Exit';
+import Addash from './admin/Addash'
 
 function Newfile() {
   return (
-    <Exit/>
+    <Addash/>
   );
 }
 

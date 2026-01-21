@@ -1,12 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaUserEdit } from 'react-icons/fa';
 import "./Updateuser.css";
 import Adminside from "./components/sidebar/Adminside";
 import Adminhead from "./components/header/Adminhead";
+import celebImg from "./celeb.jpg"; // Importing the image found in src
 
 const Updateuser = () => {
+  const [showPopup, setShowPopup] = useState(false);
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    setShowPopup(true);
+  };
+
+  const closePopup = () => {
+    setShowPopup(false);
+  };
+
   return (
-    <div className="update-user-container d-flex flex-column min-vh-100 overflow-hidden">
+    <div className="update-user-container d-flex flex-column min-vh-100 overflow-hidden position-relative">
       {/* HEADER */}
       <Adminhead />
 
@@ -47,22 +59,22 @@ const Updateuser = () => {
 
                 {/* Mobile */}
                 <div className="row mb-3 align-items-center">
-  <label className="col-sm-3 col-form-label fw-bold text-secondary">
-    Mobile no. :
-  </label>
-  <div className="col-sm-6">
-    <div className="input-group">
-      <span className="input-group-text">+91</span>
-      <input
-        type="text"
-        className="form-control"
-        maxLength={10}
-        placeholder="Enter mobile number"
-        defaultValue="7745062029"
-      />
-    </div>
-  </div>
-</div>
+                  <label className="col-sm-3 col-form-label fw-bold text-secondary">
+                    Mobile no. :
+                  </label>
+                  <div className="col-sm-6">
+                    <div className="input-group">
+                      <span className="input-group-text">+91</span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        maxLength={10}
+                        placeholder="Enter mobile number"
+                        defaultValue="7745062029"
+                      />
+                    </div>
+                  </div>
+                </div>
 
 
                 {/* Role */}
@@ -137,12 +149,26 @@ const Updateuser = () => {
             </div>
 
             <div className="update-btn-container d-flex justify-content-center mt-4 mb-4">
-              <button type="submit" className="btn btn-primary px-5 py-2 fw-semibold" style={{ backgroundColor: '#1976d2' }}>Save changes</button>
+              <button onClick={handleSave} className="btn btn-primary px-5 py-2 fw-semibold" style={{ backgroundColor: '#1976d2' }}>Save changes</button>
             </div>
 
           </div>
         </main>
       </div>
+
+      {/* Success Popup - Matching the requested UI */}
+      {showPopup && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="bg-white p-5 rounded shadow d-flex flex-column align-items-center justify-content-center text-center" style={{ maxWidth: '700px', width: '90%', minHeight: '400px' }}>
+            <h3 className="mb-4 text-primary fw-bold" style={{ color: '#3f51b5' }}>User with username 312023046 has been successfully updated</h3>
+            <div className="mb-4">
+              <img src={celebImg} alt="Celebration" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
+            </div>
+            <button onClick={closePopup} className="btn btn-primary px-4 py-2" style={{ backgroundColor: '#4285f4', border: 'none', borderRadius: '4px' }}>OK</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
