@@ -1,0 +1,69 @@
+.cwel2-container {
+    min-height: 100vh;
+    background-color: #fff;
+    overflow-x: hidden;
+    font-family: Arial, sans-serif;
+}
+
+.cwel2-bg-image {
+    max-width: 100%;
+    height: auto;
+}
+
+.cwel2-title {
+    color: #ff3333;
+    font-weight: bold;
+    font-size: 2.5rem;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.cwel2-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #000;
+}
+
+.cwel2-instruction {
+    font-size: 1.1rem;
+}
+
+.cwel2-rating-scale {
+    font-size: 1.1rem;
+}
+
+.cwel2-start-btn {
+    background-color: #ff2222;
+    color: white;
+    border: none;
+    font-weight: 500;
+    padding: 8px 30px;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.cwel2-start-btn:hover {
+    background-color: #e60000;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .cwel2-title {
+        font-size: 1.8rem;
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .cwel2-bg-image {
+        width: 50%;
+        /* Make image smaller on mobile if needed */
+        display: block;
+        margin: 0 auto;
+    }
+
+    .d-flex.justify-content-end {
+        justify-content: center !important;
+        padding-right: 0 !important;
+    }
+}

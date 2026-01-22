@@ -1,0 +1,64 @@
+.po-container {
+    min-height: 100vh;
+    background-color: #fff;
+    padding: 2rem;
+}
+
+.po-table-wrapper {
+    width: 100%;
+    max-width: 300px;
+    /* Narrow table as per image */
+}
+
+.po-table {
+    border: 2px solid #000 !important;
+}
+
+.po-table th,
+.po-table td {
+    border: 1px solid #000 !important;
+}
+
+.po-header {
+    background-color: #f53a3a !important;
+    /* Red background */
+    color: white !important;
+    font-weight: 500;
+    vertical-align: middle;
+    padding: 10px;
+    font-size: 1.50rem;
+    border-bottom: 2px solid #000 !important;
+}
+
+.po-input {
+    border: none;
+    border-radius: 0;
+    height: 40px;
+    text-align: center;
+    background-color: transparent;
+    font-size: 1rem;
+}
+
+.po-input:focus {
+    background-color: #f8f9fa;
+}
+
+.po-submit-btn {
+    background-color: #ff2222;
+    color: white;
+    border: none;
+    padding: 8px 30px;
+    font-weight: 500;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.po-submit-btn:hover {
+    background-color: #e60000;
+    color: white;
+}
+
+/* Ensure table cells have enough height even if input is empty */
+.po-table td {
+    height: 40px;
+}

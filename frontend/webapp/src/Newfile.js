@@ -1,10 +1,11 @@
 import React from 'react';
 
-import Addash from './admin/Addash'
+import Clogin from './Cis-indirect/Clogin';
 
 function Newfile() {
   return (
-    <Addash/>
+   
+    <Clogin/ >
   );
 }
 

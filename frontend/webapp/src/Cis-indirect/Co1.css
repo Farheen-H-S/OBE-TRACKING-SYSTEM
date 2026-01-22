@@ -1,0 +1,55 @@
+.co1-container {
+    min-height: 100vh;
+    background-color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+.co1-content {
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+}
+
+.co1-title {
+    color: #ff3333;
+    /* Red color */
+    font-weight: bold;
+    font-size: 2rem;
+}
+
+.co1-question {
+    font-size: 1.25rem;
+    color: #000;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.co1-radio-input {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #272626;
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: #7a7a7a;
+    border-color: #7a7777;
+}
+
+.co1-option-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding-top: 1px;
+}
+
+.co1-option-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.co1-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    font-weight: 500;
+    min-width: 100px;
+}

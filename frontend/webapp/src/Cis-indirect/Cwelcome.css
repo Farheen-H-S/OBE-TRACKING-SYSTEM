@@ -1,0 +1,55 @@
+.cwelcome-container {
+    background-color: #fff;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.cwelcome-bg-img {
+    max-width: 300px;
+    /* Adjusted size based on image */
+    height: 200px;
+}
+
+.cwelcome-title {
+    color: #ff3333;
+    /* Red color matching image */
+    font-weight: bold;
+    font-size: 2rem;
+}
+
+.cwelcome-text {
+    font-size: 1.1rem;
+    color: #000;
+}
+
+.cwelcome-table td {
+    border-color: #888;
+    padding: 8px 15px;
+    vertical-align: middle;
+}
+
+.cwelcome-instruction {
+    font-size: 1.05rem;
+}
+
+.cwelcome-rating li {
+    margin-bottom: 2px;
+}
+
+.cwelcome-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .cwelcome-title {
+        font-size: 1.5rem;
+    }
+
+    .cwelcome-bg-img {
+        max-width: 150px;
+    }
+}

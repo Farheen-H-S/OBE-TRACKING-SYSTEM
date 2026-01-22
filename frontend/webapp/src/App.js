@@ -19,15 +19,22 @@ import Addash from './admin/Addash';
 import Facdash from './faculty/Facdash';
 
 
+
 import AdminDashboardHome from './admin/AdminDashboardHome';
 
 import Viewuser1 from './admin/Viewuser1';
 import Viewuser2 from './admin/Viewuser2';
 import Auditlog from './admin/Auditlog';
 import Cisentry from './faculty/Cisentry';
+import Clogin from './Cis-indirect/Clogin';
+import Cwelcome from './Cis-indirect/Cwelcome';
+import Co1 from './Cis-indirect/Co1';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import './App.css';
+import POinput from './Cis-indirect/POinput';
+import Thank from './Cis-indirect/Thank';
+import Cwel2 from './Cis-indirect/Cwel2'
 
 
 
@@ -44,7 +51,7 @@ function App() {
           <Route path="/pso-statement" element={<Psostatement />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/update-user" element={<Updateuser />} />
-          
+
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/instruction" element={<Instruction />} />
           <Route path="/quea" element={<Quea />} />
@@ -53,19 +60,27 @@ function App() {
           <Route path="/stresscreate" element={<Stresscreate />} />
           <Route path="/fac-dash" element={<Facdash />} />
           <Route path="/cis-entry" element={<Cisentry />} />
-          
+          <Route path="/clogin" element={<Clogin />} />
+          <Route path="/cwelcome" element={<Cwelcome />} />
+          <Route path="/co1" element={<Co1 />} />
+             <Route path="/poinput" element={<POinput />} />
+             <Route path="/cwel2" element={<Cwel2 />} />
+             <Route path="/thankpage" element={<Thank />} />
+
+
+
           <Route path="/admin-dash" element={<Addash />}>
-          
-            
+
+
             <Route index element={<AdminDashboardHome />} />
             <Route path="create-user" element={<CreateUser />} />
-             <Route path="view-user1" element={<Viewuser1 />} />
-             <Route path="currentset" element={<Currentset />} />
-             <Route path="auditlog" element={<Auditlog />} />
+            <Route path="view-user1" element={<Viewuser1 />} />
+            <Route path="currentset" element={<Currentset />} />
+            <Route path="auditlog" element={<Auditlog />} />
           </Route>
-         
+
           <Route path="/view-user2" element={<Viewuser2 />} />
-         
+
 
 
 

@@ -2,7 +2,7 @@ import React from "react";
 
 import Header from '../components/header/Header';
 
-import Facside from '../components/sidebar/Facside'
+import Facside from '../components/sidebar/Facside';
 
 
 
@@ -29,9 +29,10 @@ const Facdash = () => {
             </h2>
             <hr />
 
-            
+
           </div>
         </div>
+
       </div>
     </div>
 

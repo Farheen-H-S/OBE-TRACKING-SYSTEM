@@ -1,0 +1,42 @@
+.clogin-container {
+    min-height: 100vh;
+    background-color: #fff;
+    font-family: 'Times New Roman', Times, serif;
+}
+
+.clogin-logo {
+    max-width: 180x;
+}
+
+.clogin-header-text {
+    color: #ff3333;
+    /* Red color */
+    font-weight: 500;
+    margin-top: 10px;
+}
+
+.clogin-card {
+    width: 100%;
+    max-width: 380px;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+}
+
+.clogin-label {
+    font-weight: bold;
+    color: #000;
+    font-size: 1.2rem;
+}
+
+.clogin-input {
+    border-radius: 4px;
+    border: 1px solid #6c757d;
+}
+
+.clogin-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    font-family: sans-serif;
+    /* Button usually sans-serif */
+    font-weight: 500;
+}
