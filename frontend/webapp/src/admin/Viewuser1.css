@@ -1,0 +1,22 @@
+input.form-control {
+  background-color: #e6f0f5;
+  border: none;
+  height: 45px;
+}
+
+.position-absolute {
+    top: 50%;
+    left:12px;
+    transform: translateY(-50%);
+    color: #236fe2;
+    
+}
+
+
+
+
+
+.inter-heading {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem; /* large but clean */
+}

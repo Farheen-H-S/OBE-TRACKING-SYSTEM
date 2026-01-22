@@ -1,27 +1,28 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Adminhead from '../components/header/Adminhead.js';
+import Adminhead from '../components/header/Adminhead';
 import Adminside from '../components/sidebar/Adminside';
 
-
-
-function Addash({ children }) {
+function Addash() {
   return (
     <div className="d-flex flex-column vh-100">
-
+      
+      {/* Header */}
       <Adminhead />
 
-      {/* Body Section */}
+      {/* Body */}
       <div className="d-flex flex-grow-1 overflow-hidden">
-        <div className="h-100 overflow-y-auto">
+        
+        {/* Sidebar */}
+        <div className="flex-shrink-0">
           <Adminside />
         </div>
 
-        {/* Middle Content (Render Child Routes Here) */}
-        <div className="d-flex flex-column flex-grow-1 overflow-hidden">
-          
+        {/* Main Content */}
+        <div className="flex-grow-1 overflow-auto p-3">
           <Outlet />
         </div>
+
       </div>
     </div>
   );

@@ -34,7 +34,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import POinput from './Cis-indirect/POinput';
 import Thank from './Cis-indirect/Thank';
-import Cwel2 from './Cis-indirect/Cwel2'
+import Cwel2 from './Cis-indirect/Cwel2';
+import Stressreport from './hod/Stressreport';
 
 
 
@@ -62,6 +63,9 @@ function App() {
           <Route path="/cis-entry" element={<Cisentry />} />
           <Route path="/clogin" element={<Clogin />} />
           <Route path="/cwelcome" element={<Cwelcome />} />
+          
+          <Route path="/stress-report" element={<Stressreport />} />
+          
           <Route path="/co1" element={<Co1 />} />
              <Route path="/poinput" element={<POinput />} />
              <Route path="/cwel2" element={<Cwel2 />} />
