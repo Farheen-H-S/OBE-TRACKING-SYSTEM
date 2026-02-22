@@ -1,0 +1,132 @@
+.exit-container {
+    background-color: #dbeff6;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+
+/* Logo Section */
+.logo-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 600px;
+    width: 100%;
+}
+
+.brain-logo {
+    width: 100px;
+    max-width: 15vw;
+    height: auto;
+    margin-right: -50px;
+    z-index: 1;
+    opacity: 0.5;
+}
+
+.mindease-logo-text {
+    font-size: clamp(1.5rem, 2vw, 3rem);
+    font-weight: bold;
+    color: #FF6B6B;
+    z-index: 2;
+    margin-left: 10px;
+    margin-top: 1rem;
+}
+
+/* Title */
+.title-section {
+    color: #4A90E2;
+    text-align: center;
+    max-width: 700px;
+    width: 100%;
+}
+
+.mission-title,
+.mission-completed {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    font-weight: bold;
+    font-size: clamp(2rem, 2.5vw, 4rem);
+    font-style: italic;
+    color: #4A90E2;
+    margin: 0.2rem 0;
+}
+
+/* Emoji & Mood */
+.emoji-medium {
+    font-size: clamp(4rem, 8vw, 10rem);
+    line-height: 1;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+.mood-text {
+    color: #FF6B6B;
+    font-weight: bold;
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin: 0.5rem 0;
+}
+
+/* Score */
+.score-section {
+    text-align: center;
+    max-width: 600px;
+    width: 100%;
+}
+
+.score-section h3 {
+    font-weight: bold;
+    font-size: clamp(1.2rem, 1.5vw, 1.8rem);
+    color: black;
+    margin: 0.3rem 0;
+}
+
+/* Exit Button */
+.exit-btn-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: sticky;
+    bottom: 1rem;
+    z-index: 10;
+    padding: 0 1rem;
+}
+
+.exit-btn {
+    background-color: #5c8ae6;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 6vw;
+    font-size: clamp(1rem, 1.5vw, 1.5rem);
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.exit-btn:hover {
+    background-color: #4a7ac9;
+}
+
+/* Responsive tweaks for very small screens */
+@media (max-width: 480px) {
+
+    .mission-title,
+    .mission-completed {
+        font-size: 2rem;
+    }
+
+    .emoji-medium {
+        font-size: 5rem;
+    }
+
+    .mood-text {
+        font-size: 2rem;
+    }
+
+    .score-section h3 {
+        font-size: 1.2rem;
+    }
+}

@@ -1,0 +1,105 @@
+/* POPSOAttainment.css */
+.ppo-wrapper {
+    padding: 24px;
+    min-height: 100vh;
+    background: #f8f9fa;
+}
+
+.ppo-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    border: 1px solid #e9ecef;
+}
+
+.ppo-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1a237e;
+}
+
+/* Summary row */
+.ppo-summary-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.ppo-summary-card {
+    padding: 16px 24px;
+    border-radius: 10px;
+    min-width: 140px;
+    font-family: sans-serif;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+}
+
+.ppo-card-label {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .75;
+    margin-bottom: 4px;
+}
+
+.ppo-card-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.ppo-card-achieved {
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+
+.ppo-card-target {
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+.ppo-card-gap {
+    background: #ffebee;
+    color: #b71c1c;
+}
+
+.ppo-card-met {
+    background: #f3e5f5;
+    color: #4a148c;
+}
+
+/* Sections */
+.ppo-section {
+    border-left: 3px solid #1a237e;
+    padding-left: 14px;
+    margin-bottom: 32px;
+}
+
+.ppo-section-title {
+    font-weight: 700;
+    color: #1a237e;
+    margin-bottom: 8px;
+}
+
+/* Filter */
+.filter-row-v2 {
+    border-radius: 10px !important;
+}
+
+.filter-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #6c757d;
+    letter-spacing: .04em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.filter-select {
+    font-size: .85rem;
+}
+
+/* Report preview */
+.ppo-report-preview {
+    font-family: 'Times New Roman', serif;
+}

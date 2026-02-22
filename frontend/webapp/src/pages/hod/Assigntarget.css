@@ -1,0 +1,205 @@
+/* Widened layout */
+.assign-target-container .content-area {
+    max-width: 100%;
+}
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Toggle Button Group (Image 2 style) */
+.toggle-container-v2 {
+    display: flex;
+    background-color: #f1f5f9;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.toggle-btn-v2 {
+    border: none;
+    background: transparent;
+    padding: 8px 24px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn-v2.active {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Refined Table Header (Blue Theme) */
+.target-table-refined {
+    border: 1px solid #e2e8f0;
+    background-color: white;
+}
+
+.target-table-refined thead th {
+    background-color: #f8fafc;
+    color: #1a237e;
+    /* Dark blue theme */
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    padding: 1.25rem 1rem;
+    border-bottom: 2px solid #eef2f6;
+    text-align: center;
+}
+
+.target-table-refined tbody td {
+    padding: 1rem;
+    font-size: 0.95rem;
+    color: #475569;
+}
+
+.metric-input {
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    max-width: 100px;
+    margin: 0 auto;
+}
+
+.metric-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Character wrapping for PO statements */
+.text-wrap-cell {
+    white-space: normal;
+    word-wrap: break-word;
+    min-width: 300px;
+    line-height: 1.5;
+    text-align: justify;
+}
+
+.program-view-container h5 {
+    color: #1a237e;
+    border-left: 4px solid #3b82f6;
+    padding-left: 12px;
+}
+
+/* Attainment Table Toggle - Smaller and more compact */
+.attainment-toggle-btn {
+    background-color: transparent;
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.attainment-toggle-btn:hover {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.attainment-tables-wrapper {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.attainment-level-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.attainment-info-table {
+    width: 100%;
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
+.attainment-info-table th {
+    background-color: #1a237e !important;
+    color: white !important;
+    text-transform: none !important;
+    padding: 8px !important;
+}
+
+.attainment-info-table td {
+    padding: 6px 8px !important;
+}
+
+.attainment-info-table tr:nth-child(even) {
+    background-color: #f1f5f9;
+}
+
+/* Multi-Filter Section Styles */
+.filter-row-v2 {
+    background-color: #ffffff !important;
+    border: 1px solid #e0e6ed !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+.filter-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.filter-select {
+    height: 42px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #374151;
+    background-color: #fff;
+    transition: all 0.2s ease;
+    padding-left: 12px;
+}
+
+.filter-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+/* Search Bar Styling */
+.search-input-v2 {
+    border: 1px solid #d1d5db;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background-color: #f8fafc;
+}
+
+.search-input-v2:focus {
+    background-color: #fff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+}

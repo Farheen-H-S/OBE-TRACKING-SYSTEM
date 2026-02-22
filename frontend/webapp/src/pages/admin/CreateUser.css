@@ -1,0 +1,49 @@
+/* CreateUser.css */
+
+/* Generic Page Styles */
+.create-user-container {
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f0f2f5;
+}
+
+
+/* Card Visuals */
+.user-form-container {
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Input Specific Tweaks over Bootstrap */
+.form-control,
+.form-select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-style: inter;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #4b93ff;
+    box-shadow: 0 0 0 3px rgba(75, 147, 255, 0.1);
+}
+
+/* Mobile Prefix */
+.input-group-text {
+    background-color: #f5f5f5;
+    border: 1px solid #ced4da;
+    /* Match bootstrap default or custom? Bootstrap is dedce4. User had #ccc. I'll stick to bootstrap or override if needed. Using standard bootstrap feel. */
+    border-right: 0;
+}
+
+/* Button */
+.create-btn-container .btn-primary {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+}
+
+.create-btn-container .btn-primary:hover {
+    background-color: #1565c0 !important;
+    /* darken */
+}

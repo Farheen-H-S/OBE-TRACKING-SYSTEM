@@ -1,0 +1,31 @@
+/* Auditlog.css */
+
+.audit-table thead th {
+    background-color: #cfe2ff !important;
+    /* Light blue header to match image */
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 500;
+}
+
+.audit-table tbody td {
+    vertical-align: middle;
+    height: 50px;
+    /* Consistent row height */
+    padding: 0.5rem 1rem;
+    /* Added padding back since inputs are removed */
+    color: #495057;
+    /* Standard text color */
+}
+
+.view-details-btn {
+    margin-left: auto;
+    background-color: #4285f4;
+    border: none;
+}
+
+.table-wrapper {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+}

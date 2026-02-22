@@ -1,0 +1,63 @@
+/* OITWelcome.css — mirrors Cwelcome.css red theme */
+.oitwelcome-container {
+    background-color: #fff;
+    min-height: 100vh;
+}
+
+/* Red background header strip — same as cwelcome */
+.oitwelcome-header-section {
+    position: relative;
+    width: 100%;
+    height: 120px;
+    overflow: hidden;
+    background-color: #b30000;
+}
+
+.oitwelcome-bg-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.55;
+}
+
+.oitwelcome-title {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.5rem;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+
+/* Info card */
+.oitwelcome-info-card {
+    border: 1px solid #e0e0e0 !important;
+}
+
+.oitwelcome-table td {
+    font-size: .87rem;
+    padding: .4rem .65rem;
+}
+
+.oitwelcome-rating-table td {
+    font-size: .83rem;
+    padding: .3rem .55rem;
+}
+
+.letter-spacing-1 {
+    letter-spacing: .05em;
+}
+
+.oitwelcome-start-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    letter-spacing: .06em;
+}
+
+.oitwelcome-start-btn:hover {
+    background-color: #cc0000;
+    border-color: #cc0000;
+}

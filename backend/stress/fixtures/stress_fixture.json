@@ -1,0 +1,607 @@
+[
+  {
+    "model": "stress.stresscategory",
+    "pk": 1,
+    "fields": {
+      "name": "Academic stress",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stresscategory",
+    "pk": 2,
+    "fields": {
+      "name": "Emotional and social stress",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stresscategory",
+    "pk": 3,
+    "fields": {
+      "name": "Physical and routine stress",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stresscategory",
+    "pk": 4,
+    "fields": {
+      "name": "Behavioural and digital stress",
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestionset",
+    "pk": 1,
+    "fields": {
+      "name": "Default Stress Question Set",
+      "description": "Standard predefined stress questions",
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "stress.stressquestionset",
+    "pk": 2,
+    "fields": {
+      "name": "Stress Survey Question Set 2",
+      "description": "Standard survey questions set 2",
+      "is_active": true,
+      "created_at": "2026-02-08T00:00:00Z"
+    }
+  },
+  {
+    "model": "stress.stressmaster",
+    "pk": 1,
+    "fields": {
+      "title": "Student Well-being & Stress Survey 2026",
+      "month": 1,
+      "year": 2026,
+      "approved_question_set": 1,
+      "is_active": true,
+      "end_date": "2026-12-31T23:59:59Z",
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "question_text": "Are assignments too much?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 2,
+    "fields": {
+      "category": 1,
+      "question_text": "Are exams scary?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 3,
+    "fields": {
+      "category": 1,
+      "question_text": "Do marks worry me?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 4,
+    "fields": {
+      "category": 1,
+      "question_text": "Is the class boring?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 5,
+    "fields": {
+      "category": 1,
+      "question_text": "Are many assignments given on the same day?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 6,
+    "fields": {
+      "category": 1,
+      "question_text": "Do I clearly understand the concepts taught in class?",
+      "is_reverse": true,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 7,
+    "fields": {
+      "category": 2,
+      "question_text": "Am I feeling sad?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 8,
+    "fields": {
+      "category": 2,
+      "question_text": "Am I scared about my job or career?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 9,
+    "fields": {
+      "category": 2,
+      "question_text": "Do I feel tired or mentally exhausted?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 10,
+    "fields": {
+      "category": 4,
+      "question_text": "Do I delay homework?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 11,
+    "fields": {
+      "category": 4,
+      "question_text": "Do I skip college or classes?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 12,
+    "fields": {
+      "category": 4,
+      "question_text": "Do I avoid group study?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 13,
+    "fields": {
+      "category": 3,
+      "question_text": "Do I sleep less?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 14,
+    "fields": {
+      "category": 3,
+      "question_text": "Do I eat junk food frequently?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 15,
+    "fields": {
+      "category": 3,
+      "question_text": "Do I watch reels or social media too much?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 16,
+    "fields": {
+      "category": 1,
+      "question_text": "My group projects fall behind schedule?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 17,
+    "fields": {
+      "category": 1,
+      "question_text": "Lab experiments and practicals confuse me?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 18,
+    "fields": {
+      "category": 1,
+      "question_text": "Class notes and textbooks feel too much?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 19,
+    "fields": {
+      "category": 1,
+      "question_text": "Presenting in front of the class makes me nervous?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 20,
+    "fields": {
+      "category": 1,
+      "question_text": "Teacher feedback on my work upsets me?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 21,
+    "fields": {
+      "category": 2,
+      "question_text": "I feel lonely even on a crowded campus?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 22,
+    "fields": {
+      "category": 2,
+      "question_text": "Family expectations about my course scare me?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 23,
+    "fields": {
+      "category": 2,
+      "question_text": "College events make me feel drained?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 24,
+    "fields": {
+      "category": 2,
+      "question_text": "Comparing myself with classmates makes me sad?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 25,
+    "fields": {
+      "category": 3,
+      "question_text": "Moving around the campus makes me tired?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 26,
+    "fields": {
+      "category": 3,
+      "question_text": "Problems in my living place disturb my routine?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 27,
+    "fields": {
+      "category": 3,
+      "question_text": "Food-related issues affect my mood?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 28,
+    "fields": {
+      "category": 4,
+      "question_text": "I forget to submit work on online platforms?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 29,
+    "fields": {
+      "category": 4,
+      "question_text": "I reach classes late?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestion",
+    "pk": 30,
+    "fields": {
+      "category": 4,
+      "question_text": "College or class messages keep disturbing me?",
+      "is_reverse": false,
+      "is_active": true
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 1,
+    "fields": {
+      "question_set": 1,
+      "question": 1
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 2,
+    "fields": {
+      "question_set": 1,
+      "question": 2
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 3,
+    "fields": {
+      "question_set": 1,
+      "question": 3
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 4,
+    "fields": {
+      "question_set": 1,
+      "question": 4
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 5,
+    "fields": {
+      "question_set": 1,
+      "question": 5
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 6,
+    "fields": {
+      "question_set": 1,
+      "question": 6
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 7,
+    "fields": {
+      "question_set": 1,
+      "question": 7
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 8,
+    "fields": {
+      "question_set": 1,
+      "question": 8
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 9,
+    "fields": {
+      "question_set": 1,
+      "question": 9
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 10,
+    "fields": {
+      "question_set": 1,
+      "question": 10
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 11,
+    "fields": {
+      "question_set": 1,
+      "question": 11
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 12,
+    "fields": {
+      "question_set": 1,
+      "question": 12
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 13,
+    "fields": {
+      "question_set": 1,
+      "question": 13
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 14,
+    "fields": {
+      "question_set": 1,
+      "question": 14
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 15,
+    "fields": {
+      "question_set": 1,
+      "question": 15
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 16,
+    "fields": {
+      "question_set": 2,
+      "question": 16
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 17,
+    "fields": {
+      "question_set": 2,
+      "question": 17
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 18,
+    "fields": {
+      "question_set": 2,
+      "question": 18
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 19,
+    "fields": {
+      "question_set": 2,
+      "question": 19
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 20,
+    "fields": {
+      "question_set": 2,
+      "question": 20
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 21,
+    "fields": {
+      "question_set": 2,
+      "question": 21
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 22,
+    "fields": {
+      "question_set": 2,
+      "question": 22
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 23,
+    "fields": {
+      "question_set": 2,
+      "question": 23
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 24,
+    "fields": {
+      "question_set": 2,
+      "question": 24
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 25,
+    "fields": {
+      "question_set": 2,
+      "question": 25
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 26,
+    "fields": {
+      "question_set": 2,
+      "question": 26
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 27,
+    "fields": {
+      "question_set": 2,
+      "question": 27
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 28,
+    "fields": {
+      "question_set": 2,
+      "question": 28
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 29,
+    "fields": {
+      "question_set": 2,
+      "question": 29
+    }
+  },
+  {
+    "model": "stress.stressquestionsetquestion",
+    "pk": 30,
+    "fields": {
+      "question_set": 2,
+      "question": 30
+    }
+  }
+]

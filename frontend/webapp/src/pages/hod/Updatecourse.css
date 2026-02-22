@@ -1,0 +1,133 @@
+.update-course-container {
+    padding: 2rem;
+    background-color: #f8fbff;
+    min-height: 100vh;
+}
+
+.update-course-header {
+    margin-bottom: 2.5rem;
+}
+
+.btn-back-link {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.btn-back-link:hover {
+    color: #007bff;
+}
+
+.update-course-header h2 {
+    color: #042850;
+    font-weight: 700;
+}
+
+.update-search-wrapper {
+    position: relative;
+    width: 250px;
+}
+
+.search-icon-small {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #adb5bd;
+    font-size: 0.9rem;
+}
+
+.update-filter-input {
+    width: 100%;
+    padding: 0.5rem 0.8rem 0.5rem 2.2rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.update-filter-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.update-course-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.custom-update-table {
+    margin-bottom: 0;
+}
+
+.custom-update-table thead th {
+    background-color: #f0f7ff;
+    color: #042850;
+    border-bottom: 2px solid #e9ecef;
+    padding: 1rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.table-input-edit {
+    border: 1px solid transparent;
+    background-color: transparent;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    padding: 0.4rem;
+    transition: all 0.2s;
+}
+
+.table-input-edit:hover {
+    background-color: #f8fbff;
+    border-color: #dee2e6;
+}
+
+.table-input-edit:focus {
+    outline: none;
+    border-color: #007bff;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-update-save {
+    padding: 0.75rem 2rem;
+    font-weight: 700;
+    border-radius: 8px;
+    background-color: #007bff;
+    border: none;
+    transition: all 0.3s;
+}
+
+.btn-update-save:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .update-course-header .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+
+    .update-search-wrapper {
+        width: 100%;
+    }
+}

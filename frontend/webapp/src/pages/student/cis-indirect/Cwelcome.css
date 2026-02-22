@@ -1,0 +1,81 @@
+.cwelcome-container {
+    background-color: #fff;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.cwelcome-bg-img {
+    max-width: 300px;
+    /* Adjusted size based on image */
+    height: 200px;
+}
+
+.cwelcome-title {
+    color: #ff3333;
+    font-weight: 800;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.cwelcome-text {
+    color: #475569;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.cwelcome-info-card {
+    border-top: 4px solid #ff3333 !important;
+}
+
+.cwelcome-table td {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+}
+
+.cwelcome-instruction {
+    font-size: 1.05rem;
+}
+
+.cwelcome-rating li {
+    margin-bottom: 2px;
+}
+
+.cwelcome-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    font-weight: 500;
+}
+
+.secondary-text {
+    color: #64748b;
+    width: 160px;
+}
+
+.rating-pill {
+    background: #f8fafc;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.letter-spacing-1 {
+    letter-spacing: 1px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .cwelcome-title {
+        font-size: 1.2rem;
+    }
+
+    .cwelcome-bg-img {
+        max-width: 150px;
+    }
+
+    .secondary-text {
+        width: 120px;
+    }
+}

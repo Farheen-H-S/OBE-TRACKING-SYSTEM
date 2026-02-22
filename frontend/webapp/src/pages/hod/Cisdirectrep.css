@@ -1,0 +1,199 @@
+.cisdirectrep-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #f5f5f5;
+}
+
+.cisdirectrep-main {
+    flex: 1;
+    padding: 20px;
+    background-color: #f5f5f5;
+    overflow-y: auto;
+}
+
+.cisdirectrep-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    padding: 40px;
+    min-height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* align-items: center; Remove center alignment to let full width work */
+    /* Center the title initially, content will adjust */
+}
+
+.cis-report-title {
+    color: #1a237e;
+    /* Updated to match Target Management */
+    font-weight: 700;
+    margin-bottom: 0;
+    /* Adjusted for header layout */
+    text-align: left;
+    font-size: 1.5rem;
+}
+
+.cis-report-content {
+    width: 100%;
+    /* max-width: 800px; Remove max-width to use full space */
+    margin: 0 auto;
+}
+
+.cis-section-header {
+    color: #1a237e;
+    /* Darker blue */
+    font-weight: 600;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    text-align: left;
+    border-bottom: 2px solid #eef2f6;
+    padding-bottom: 10px;
+}
+
+.cis-report-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-left: 20px;
+    text-align: left;
+}
+
+.report-row {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #555;
+    flex-wrap: wrap;
+    text-align: left;
+}
+
+.report-col-title {
+    width: 150px;
+    font-weight: bold;
+    color: #082e5a;
+    text-align: left;
+}
+
+.report-col-file {
+    display: flex;
+    align-items: left;
+    gap: 5px;
+    cursor: pointer;
+    width: 250px;
+}
+
+.excel-icon {
+    color: #217346;
+    font-size: 1.2rem;
+}
+
+.file-name {
+    color: #333;
+    font-weight: 400;
+}
+
+.report-col-date {
+    color: #888;
+    font-size: 0.85rem;
+}
+
+/* Multi-Filter Section Styles (Copied from Assigntarget.css) */
+.filter-row-v2 {
+    background-color: #ffffff !important;
+    border: 1px solid #e0e6ed !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+    width: 100%;
+}
+
+.filter-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.filter-select {
+    height: 42px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #374151;
+    background-color: #fff;
+    transition: all 0.2s ease;
+    padding-left: 12px;
+    width: 100%;
+}
+
+.filter-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+/* Search Bar Styling */
+.search-input-v2 {
+    border: 1px solid #d1d5db;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background-color: #f8fafc;
+}
+
+.search-input-v2:focus {
+    background-color: #fff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .cisdirectrep-card {
+        padding: 20px;
+    }
+
+    .report-row {
+        gap: 10px;
+    }
+
+    .report-col-title {
+        width: 80px;
+    }
+
+    .report-col-file {
+        width: auto;
+        margin-right: 20px;
+    }
+
+    .cis-report-title {
+        margin-bottom: 30px;
+        font-size: 1.3rem;
+    }
+
+}
+
+/* FA-TH Theme Styles for Preview Modal */
+.bg-fath-blue-header {
+    background-color: #2b4c8c !important;
+    color: #ffffff !important;
+}
+
+.bg-fath-summary-light {
+    background-color: #f1f5f9 !important;
+}
+
+.attainment-preview-table th {
+    font-size: 0.8rem;
+    padding: 12px 8px;
+}
+
+.attainment-preview-table td {
+    font-size: 0.9rem;
+    padding: 10px 8px;
+}

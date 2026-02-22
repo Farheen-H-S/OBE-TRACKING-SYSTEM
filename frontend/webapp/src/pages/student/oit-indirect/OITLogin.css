@@ -1,0 +1,46 @@
+/* OITLogin.css — matches Clogin.css red theme */
+.oitlogin-container {
+    min-height: 100vh;
+    background-color: #fff;
+    font-family: 'Times New Roman', Times, serif;
+}
+
+.oitlogin-logo {
+    max-width: 180px;
+}
+
+.oitlogin-header-text {
+    color: #ff3333;
+    font-weight: 500;
+    margin-top: 10px;
+}
+
+.oitlogin-card {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+}
+
+.oitlogin-label {
+    font-weight: bold;
+    color: #000;
+    font-size: 1.2rem;
+}
+
+.oitlogin-input {
+    border-radius: 4px;
+    border: 1px solid #6c757d;
+}
+
+.oitlogin-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    font-family: sans-serif;
+    font-weight: 500;
+}
+
+.oitlogin-btn:hover {
+    background-color: #e01111;
+    border-color: #e01111;
+}

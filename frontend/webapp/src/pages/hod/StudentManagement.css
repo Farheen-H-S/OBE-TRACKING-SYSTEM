@@ -1,0 +1,13 @@
+.student-management-wrapper {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.student-management-main {
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 64px);
+}
+
+.bg-fath-blue-header {
+  background-color: #1a237e !important;
+}

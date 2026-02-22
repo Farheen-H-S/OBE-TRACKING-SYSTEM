@@ -1,0 +1,61 @@
+/* Whole page background */
+.login-wrapper {
+  background-color: #dbeff4;
+}
+
+/* White card */
+.login-card {
+  width: 380px;
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 5px;
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Logo */
+.login-logo {
+  width: 180px;
+  margin-bottom: 10px;
+}
+
+/* Title */
+.login-title {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Inputs */
+.input-box {
+  background: #eef8ff;
+  border: 1px solid #cfe2f3;
+  margin-top: 0 !important;
+  /* Overriding user margin */
+}
+
+/* Remember me */
+.remember-box {
+  font-size: 14px;
+}
+
+/* Login button */
+.login-btn {
+  background: #e53935;
+  color: white;
+  border: none;
+  font-size: 16px;
+}
+
+.login-btn:hover {
+  background: #e53935;
+  color: white;
+  border: none;
+}
+
+/* Forgot password link */
+.forgot {
+  color: #e53935;
+  cursor: pointer;
+  font-size: 14px;
+}

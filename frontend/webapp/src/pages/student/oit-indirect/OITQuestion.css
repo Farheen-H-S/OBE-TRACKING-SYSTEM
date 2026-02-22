@@ -1,0 +1,63 @@
+/* OITQuestion.css — mirrors Co1.css red theme */
+.oitq-container {
+    background-color: #fff;
+    min-height: 100vh;
+}
+
+.oitq-content {
+    padding: 0 16px 40px;
+}
+
+.oitq-section-label {
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #999;
+}
+
+/* Red CO-style number heading */
+.oitq-title {
+    color: #ff3333;
+    font-weight: 700;
+    font-size: 2.2rem;
+}
+
+.oitq-question {
+    line-height: 1.7;
+    font-family: 'Times New Roman', Times, serif;
+}
+
+/* Pill options — same as Co1 */
+.oitq-option-label {
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.oitq-option-label:hover {
+    background-color: #fff5f5;
+    border-color: #ff3333 !important;
+}
+
+.oitq-option-label:has(.oitq-radio-input:checked) {
+    background-color: #fff5f5;
+    border-color: #ff3333 !important;
+}
+
+.oitq-radio-input {
+    width: 20px;
+    height: 20px;
+    accent-color: #ff3333;
+    cursor: pointer;
+}
+
+.oitq-btn {
+    background-color: #ff2222;
+    border-color: #ff2222;
+    letter-spacing: .04em;
+}
+
+.oitq-btn:hover:not(:disabled) {
+    background-color: #cc0000;
+    border-color: #cc0000;
+}

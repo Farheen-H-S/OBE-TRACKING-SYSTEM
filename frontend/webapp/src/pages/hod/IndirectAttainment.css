@@ -1,0 +1,44 @@
+/* IndirectAttainment.css */
+.indir-wrapper {
+    padding: 24px;
+    min-height: 100vh;
+    background: #f8f9fa;
+}
+
+.indir-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    border: 1px solid #e9ecef;
+}
+
+.indir-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1a237e;
+}
+
+.indir-th {
+    color: #1a237e !important;
+    font-weight: 700 !important;
+    font-size: .78rem;
+    letter-spacing: .03em;
+}
+
+.filter-row-v2 {
+    border-radius: 10px !important;
+}
+
+.filter-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #6c757d;
+    letter-spacing: .04em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.filter-select {
+    font-size: .85rem;
+}

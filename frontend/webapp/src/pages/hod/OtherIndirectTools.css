@@ -1,0 +1,227 @@
+/* OtherIndirectTools.css — mirrors Cescreate.css blue theme */
+
+.oit-wrapper {
+    background: #f5f7fb;
+    min-height: 100vh;
+    padding: 28px 16px;
+}
+
+.oit-main {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.oit-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, .07);
+}
+
+/* ----- Link bar ----- */
+.oit-link-bar {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 16px 20px;
+}
+
+.oit-link-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.link-input-group {
+    display: flex;
+    align-items: center;
+}
+
+/* ----- Filters ----- */
+.filter-card {
+    background: #fafbff;
+    border-color: #e0e7ff !important;
+}
+
+.filter-label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: #6b7280;
+    text-transform: uppercase;
+    display: block;
+}
+
+/* ----- Tool grid ----- */
+.oit-tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.oit-tool-btn {
+    border: 2px solid #c7d2fe;
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: .82rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all .18s ease;
+    text-align: left;
+    line-height: 1.35;
+}
+
+.oit-tool-btn:hover {
+    border-color: #6366f1;
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.oit-tool-btn.active {
+    border-color: #4f46e5;
+    background: #4f46e5;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, .3);
+}
+
+/* ----- Question set card ----- */
+.oit-qset-card {
+    border-color: #e5e7eb !important;
+}
+
+.oit-section-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: #4f46e5;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.oit-question-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #f9fafb;
+    border: 1px solid #f3f4f6;
+}
+
+.oit-question-item:hover {
+    background: #eff6ff;
+}
+
+.oit-qnum {
+    font-weight: 700;
+    color: #4f46e5;
+    font-size: .82rem;
+    min-width: 55px;
+    flex-shrink: 0;
+}
+
+.oit-qdesc {
+    font-size: .84rem;
+    color: #374151;
+    line-height: 1.5;
+}
+
+/* ----- Status badges ----- */
+.status-badge-compact {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.status-badge-compact.approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge-compact.closed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge-compact.draft {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* ----- Attainment legend ----- */
+.oit-legend-card {
+    background: #fafbff;
+    border-color: #e0e7ff !important;
+}
+
+/* ----- Attainment badges ----- */
+.attainment-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.al-5 {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.al-4 {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.al-3 {
+    background: #fef9c3;
+    color: #713f12;
+}
+
+.al-2 {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.al-1 {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ----- Input group prefix for activity type ----- */
+.oit-type-prefix {
+    background: #e9ecef;
+    color: #495057;
+    font-size: .82rem;
+    white-space: nowrap;
+    max-width: 180px;
+}
+
+.oit-stats-table thead th {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+.oit-blue-header {
+    background: #312e81;
+    color: #fff !important;
+    text-align: center;
+    min-width: 72px;
+}
+
+.oit-summary-row td {
+    background: #f0f4ff;
+    font-size: .8rem;
+}
+
+.oit-attainment-row td {
+    background: #eef2ff;
+    font-size: .8rem;
+}

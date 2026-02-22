@@ -1,0 +1,120 @@
+.instruction-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #dbeff6;
+
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.instruction-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.mindease-red {
+    color: #FF6B6B;
+}
+
+.instruction-blue {
+    color: #4A90E2;
+}
+
+.title-separator {
+    color: #4A90E2;
+}
+
+.intro-text {
+    color: #4A90E2;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.how-to-play-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto;
+}
+
+.how-to-play-text {
+    color: #8ce99a;
+    font-weight: bold;
+    font-size: 2rem;
+    font-style: italic;
+}
+
+.note-icon {
+    width: 40px;
+    margin-left: 10px;
+}
+
+.steps-container {
+    max-width: 800px;
+    padding: 0 20px;
+}
+
+.steps-list {
+    color: #555;
+    font-size: 1.2rem;
+    line-height: 1.8;
+    list-style-position: inside;
+    text-align: left;
+}
+
+.steps-list li {
+    margin-bottom: 10px;
+}
+
+.start-btn {
+    pointer-events: auto;
+    background-color: #5c8ae6;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 40px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 1rem;
+}
+
+.start-btn:hover {
+    background-color: #4a7ac9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.25);
+}
+
+.start-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    .instruction-title {
+        font-size: 3.5rem;
+    }
+
+    .intro-text {
+        font-size: 1.4rem;
+    }
+
+    .how-to-play-text {
+        font-size: 2.5rem;
+    }
+
+    .steps-list {
+        font-size: 1.4rem;
+    }
+}

@@ -1,0 +1,204 @@
+/* STANDALONE LAYOUT FIX */
+.statement1-main-standalone,
+.statement2-main-standalone {
+    background-color: #f0f2f5;
+    min-height: calc(100vh - 60px);
+    /* Adjust for Layout header */
+    padding: 20px;
+}
+
+/* CARDS */
+.statement-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* TOGGLE BUTTON STYLE - MATCHING CIS ENTRY */
+.toggle-container {
+    display: flex;
+    gap: 2px;
+    background-color: #f1f3f5;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.toggle-btn {
+    border: none;
+    padding: 6px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 4px;
+    background: transparent;
+    color: #6c757d;
+    transition: all 0.2s;
+}
+
+.toggle-btn.active {
+    background-color: #0d6efd;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-btn:hover:not(.active) {
+    background-color: #e9ecef;
+}
+
+/* SECTION TITLES */
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+/* BANNER BOARD STYLES - AS PER IMAGE */
+.banner-board {
+    border: 8px solid #3d466b;
+    border-radius: 4px;
+    background-color: white;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.banner-header-section {
+    background-color: white;
+    padding: 15px;
+}
+
+.banner-logo-img {
+    height: 100px;
+    object-fit: contain;
+}
+
+.logo-subtext {
+    font-size: 10px;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.1;
+    margin-top: 5px;
+    text-align: center;
+}
+
+.banner-center-text .top-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ff0000;
+    text-transform: uppercase;
+}
+
+.banner-center-text .main-college-name {
+    font-size: 32px;
+    font-weight: 800;
+    color: #ff0000;
+    margin: -2px 0;
+    line-height: 1;
+}
+
+.banner-center-text .college-address {
+    font-size: 12px;
+    font-weight: 600;
+    color: #000;
+    margin-top: 2px;
+}
+
+.dept-bar-blue {
+    background-color: #3d466b;
+    color: white;
+    font-weight: 700;
+    font-size: 20px;
+    text-transform: uppercase;
+    padding: 8px 0;
+    letter-spacing: 1px;
+}
+
+.main-board-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #333;
+    text-decoration: underline;
+    margin-top: 15px;
+}
+
+.red-label {
+    color: #ff0000;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.blue-text {
+    color: #3d466b;
+    font-weight: 600;
+    line-height: 1.5;
+    font-size: 15px;
+}
+
+/* TABLE STYLING */
+.board-table {
+    border: 2px solid #3d466b !important;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.board-table thead th {
+    background-color: #3d466b !important;
+    color: white !important;
+    border-color: #3d466b !important;
+    font-size: 14px;
+    padding: 10px !important;
+    text-transform: uppercase;
+}
+
+.board-table td {
+    border: 1px solid #dee2e6 !important;
+    font-size: 14px;
+    padding: 8px 12px !important;
+    vertical-align: middle;
+}
+
+.board-table td:first-child {
+    font-weight: 700;
+    color: #3d466b;
+    width: 100px;
+    text-align: center;
+}
+
+/* PRINTING */
+@media print {
+
+    .no-print,
+    .btn-group-top,
+    .toggle-container,
+    .statement-actions,
+    .program-selector {
+        display: none !important;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: white !important;
+    }
+
+    .statement2-main-standalone {
+        padding: 0 !important;
+        background-color: white !important;
+    }
+
+    .banner-board {
+        border-width: 4px;
+        margin-bottom: 20px;
+        page-break-inside: avoid;
+    }
+
+    .statement-card {
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+}

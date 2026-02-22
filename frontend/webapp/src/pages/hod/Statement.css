@@ -1,0 +1,23 @@
+/* Blue dropdown box with bigger size */
+.dept-dropdown-toggle {
+    background-color: #7bb3f0 ;
+    color: white ;
+    padding: 15px 18px;          
+    font-size: 20px;
+    border-radius: 6px;
+    border: none;
+    min-width: 180px;            
+    text-align: left;
+}
+
+/* Remove default bootstrap focus shadow */
+.dept-dropdown-toggle:focus,
+.dept-dropdown-toggle:active {
+    box-shadow: none ;
+    background-color: #7bb3f0 ;
+}
+
+/* Dropdown menu width aligned with button */
+.dropdown-custom .dropdown-menu {
+    min-width: 180px;
+}

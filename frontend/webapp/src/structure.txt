@@ -1,0 +1,68 @@
+webapp/
+|_ .gitignore
+|_ package-lock.json
+|_ package.json
+|_ public/
+|   |_ index.html                # Main HTML entry
+|   |_ favicon.ico               # Optional, small site icon
+|   |_ logo.png
+|   |_ logo192.png
+|   |_ logo512.png
+|   |_ manifest.json             # PWA config
+|   |_ robots.txt                # SEO / crawler instructions
+|
+|_ src/
+|   |_ App.js                    # Root React component
+|   |_ App.css
+|   |_ App.test.js               # Unit tests for App
+|   |_ index.js                  # ReactDOM.render entry
+|   |_ index.css                 # Global styles
+|
+|   |_ assets/
+|   |   |_ images/
+|   |       |_ back-pic.png
+|   |       |_ logo.png
+|   |       |_ profile.jpeg
+|   |       |_ sflogo.png
+|
+|   |_ components/
+|   |   |_ header/
+|   |   |   |_ Header.js
+|   |   |   |_ Header.css
+|   |   |_ sidebar/
+|   |       |_ Sidebar.js
+|   |       |_ Sidebar.css
+|   |   |_ Layout.js              # Combines Header + Sidebar + content wrapper
+|   |   |_ Layout.css
+|
+|   |_ layouts/                   # Folder to hold layout templates (if you expand, e.g., AdminLayout.js, HODLayout.js)
+|
+|   |_ pages/
+|   |   |_ admin/
+|   |   |   |_ CreateUser.js
+|   |   |   |_ CreateUser.css
+|   |   |   |_ UpdateUser.js
+|   |   |   |_ UpdateUser.css
+|   |   |_ common/
+|   |   |   |_ Dashboard.js
+|   |   |   |_ Dashboard.css
+|   |   |   |_ Login.js
+|   |   |   |_ Login.css
+|   |   |   |_ Profile.js
+|   |   |   |_ Profile.css
+|   |   |_ Faculty/
+|   |   |   |_ Postatement.js
+|   |   |   |_ Postatement.css
+|   |   |   |_ Psostatement.js
+|   |   |   |_ Psostatement.css
+|   |   |_ HOD/
+|   |       # Could include HOD-specific pages like CO-PO Mapping, Stress Survey, etc.
+|
+|   |_ services/
+|   |   # API services, axios/fetch wrappers, auth services, etc.
+|
+|   |_ utils/
+|       # Helper functions, constants, validators, role-checking logic, etc.
+|
+|_ reportWebVitals.js
+|_ setupTests.js                  # Testing setup

@@ -1,0 +1,78 @@
+.po-container {
+    min-height: 100vh;
+    background-color: #fff;
+    padding: 2rem;
+}
+
+.po-table-wrapper {
+    width: 100%;
+    max-width: 500px;
+    /* Slightly wider for radio pills */
+}
+
+.po-table {
+    border: 2px solid #000 !important;
+}
+
+.po-table th,
+.po-table td {
+    border: 1px solid #000 !important;
+}
+
+.po-header {
+    background-color: #f53a3a !important;
+    color: white !important;
+    font-weight: 500;
+    vertical-align: middle;
+    padding: 10px;
+    font-size: 1.25rem;
+    border-bottom: 2px solid #000 !important;
+}
+
+.po-submit-btn {
+    background-color: #ff2222;
+    color: white;
+    border: none;
+    padding: 8px 40px;
+    font-weight: 600;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+.po-submit-btn:hover {
+    background-color: #e60000;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.po-table td {
+    height: 55px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.radio-pill-label {
+    padding: 6px 15px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.radio-pill-label:hover {
+    background-color: #fff0f0;
+    border-color: #f53a3a;
+}
+
+.custom-radio {
+    accent-color: #f53a3a;
+    width: 18px;
+    height: 18px;
+}
+
+.po-table tr:hover td {
+    background-color: #fffafa;
+}

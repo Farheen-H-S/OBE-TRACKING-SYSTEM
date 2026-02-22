@@ -1,0 +1,117 @@
+[
+    {
+        "model": "users.userrole",
+        "pk": 1,
+        "fields": {
+            "role_name": "Admin",
+            "role_description": "Administrator"
+        }
+    },
+    {
+        "model": "users.userrole",
+        "pk": 2,
+        "fields": {
+            "role_name": "HOD",
+            "role_description": "Head of Department"
+        }
+    },
+    {
+        "model": "users.userrole",
+        "pk": 3,
+        "fields": {
+            "role_name": "Coordinator",
+            "role_description": "Program Coordinator"
+        }
+    },
+    {
+        "model": "users.userrole",
+        "pk": 4,
+        "fields": {
+            "role_name": "Faculty",
+            "role_description": "Academic Faculty"
+        }
+    },
+    {
+        "model": "users.userrole",
+        "pk": 5,
+        "fields": {
+            "role_name": "Auditor",
+            "role_description": "External or Internal Auditor"
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": 1,
+        "fields": {
+            "name": "System Admin",
+            "email": "admin@sandippoly.org",
+            "password": "admin123",
+            "role_id": 1,
+            "contact_no": "9876543210",
+            "department": "Administration",
+            "is_active": true,
+            "created_at": "2025-01-01 10:00:00",
+            "updated_at": "2025-01-01 10:00:00"
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": 2,
+        "fields": {
+            "name": "Prof. V. B. Ohol",
+            "email": "hod@sandippoly.org",
+            "password": "hod123",
+            "role_id": 2,
+            "contact_no": "9876543211",
+            "department": "Computer Engineering",
+            "is_active": true,
+            "created_at": "2025-01-01 10:00:00",
+            "updated_at": "2025-01-01 10:00:00"
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": 3,
+        "fields": {
+            "name": "Prof. Y. N. Jadhav",
+            "email": "coordinator@sandippoly.org",
+            "password": "coordinator123",
+            "role_id": 3,
+            "contact_no": "9876543212",
+            "department": "Computer Engineering",
+            "is_active": true,
+            "created_at": "2025-01-01 10:00:00",
+            "updated_at": "2025-01-01 10:00:00"
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": 4,
+        "fields": {
+            "name": "Prof. V. A. Wagh",
+            "email": "faculty@sandippoly.org",
+            "password": "faculty123",
+            "role_id": 4,
+            "contact_no": "9876543213",
+            "department": "Computer Engineering",
+            "is_active": true,
+            "created_at": "2025-01-01 10:00:00",
+            "updated_at": "2025-01-01 10:00:00"
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": 5,
+        "fields": {
+            "name": "Auditor",
+            "email": "auditor@sandippoly.org",
+            "password": "auditor123",
+            "role_id": 5,
+            "contact_no": "9876543215",
+            "department": "External",
+            "is_active": true,
+            "created_at": "2025-01-01 10:00:00",
+            "updated_at": "2025-01-01 10:00:00"
+        }
+    }
+]
