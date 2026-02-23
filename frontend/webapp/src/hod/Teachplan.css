@@ -1,0 +1,137 @@
+.teachplan-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow-x: hidden;
+    background-color: #f4f6f9;
+}
+
+.teachplan-content-main {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #f4f6f9;
+    overflow-y: auto;
+}
+
+.teachplan-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 1200px;
+    border-top: 5px solid #0d6efd;
+    /* Optional: adds a nice top border like some dashboards */
+}
+
+.teachplan-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.teachplan-table th,
+.teachplan-table td {
+    border: 1px solid #333;
+    /* Darker border as per image */
+    padding: 10px;
+    vertical-align: top;
+}
+
+.teachplan-table th {
+    background-color: white;
+    color: #000080;
+    /* Dark blue text for headers */
+    font-weight: 700;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.teachplan-table td {
+    color: #333;
+    font-size: 0.95rem;
+}
+
+/* Specific column widths if needed */
+.col-lecture {
+    width: 10%;
+    text-align: center;
+}
+
+.col-date {
+    width: 15%;
+    text-align: center;
+}
+
+.col-topics {
+    width: 60%;
+}
+
+.col-completed {
+    width: 15%;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* Editable Inputs */
+.editable-input {
+    width: 100%;
+    border: 1px solid transparent;
+    padding: 5px;
+    border-radius: 4px;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.editable-input:focus,
+.editable-input:hover {
+    border: 1px solid #ced4da;
+    background-color: #fff;
+}
+
+.editable-textarea {
+    width: 100%;
+    border: 1px solid transparent;
+    padding: 5px;
+    border-radius: 4px;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    outline: none;
+    resize: vertical;
+    min-height: 60px;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.editable-textarea:focus,
+.editable-textarea:hover {
+    border: 1px solid #ced4da;
+    background-color: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .teachplan-card {
+        padding: 10px;
+    }
+
+    .teachplan-table th,
+    .teachplan-table td {
+        padding: 5px;
+        font-size: 0.85rem;
+    }
+
+    .col-lecture,
+    .col-date,
+    .col-topics,
+    .col-completed {
+        width: auto;
+        /* Let table adjust automatically on small screens */
+    }
+}

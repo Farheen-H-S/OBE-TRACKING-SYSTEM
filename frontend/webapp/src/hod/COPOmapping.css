@@ -1,0 +1,83 @@
+.co-po-mapping-container {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.table-header-blue {
+    background-color: #4472c4 !important;
+    /* Matches the blue in the image */
+    color: white !important;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.table-sub-header-blue {
+    background-color: #4472c4 !important;
+    color: white !important;
+    text-align: center;
+}
+
+.co-po-table th,
+.co-po-table td {
+    border: 1px solid #000 !important;
+    /* Distinct borders as in image */
+    text-align: center;
+    vertical-align: middle;
+}
+
+.co-po-table input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: center;
+    outline: none;
+}
+
+.co-po-table input:focus {
+    background-color: #e8f0fe;
+}
+
+.average-row {
+    background-color: #4472c4;
+    color: white;
+    font-weight: bold;
+}
+
+.save-btn {
+    background-color: #4285f4;
+    border: none;
+    padding: 8px 30px;
+}
+
+.course-info {
+    font-weight: bold;
+    font-family: 'Inter', 'sans-serif';
+
+}
+
+
+@media (max-width: 768px) {
+    .sidebar-container {
+        display: none !important;
+    }
+}
+
+/* Force sidebar to fit content and ignore fixed width */
+.co-po-mapping-container .sidebar {
+    width: auto !important;
+    min-width: 250px;
+    max-width: none !important;
+    flex-basis: auto !important;
+}
+
+.co-po-mapping-container .sidebar-container {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    max-width: none !important;
+}
+
+/* Reduce table width and center it */
+.co-po-mapping-container .table-responsive {
+    max-width: 90%;
+    margin: 0 auto;
+}

@@ -1,0 +1,92 @@
+.report-container {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    padding-bottom: 20px;
+}
+
+.report-content-wrapper {
+    /* margin-left removed as sidebar is relative in flex container */
+    padding: 20px;
+    padding-top: 20px;
+    width: 100%;
+}
+
+.report-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    /* Soft shadow */
+    padding: 30px;
+    min-height: 80vh;
+    /* Make card tall enough */
+}
+
+.report-title {
+    color: #0e2344;
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin-bottom: 30px;
+}
+
+.file-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.file-list-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 10px;
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f3f5;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #f8f9fa;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #333;
+    font-weight: 500;
+}
+
+.file-icon {
+    color: #dc3545;
+    /* PDF Red color */
+    font-size: 1.2rem;
+}
+
+.file-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+    min-width: 150px;
+    text-align: right;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .report-content-wrapper {
+        padding-top: 20px;
+    }
+
+    .file-date {
+        font-size: 0.8rem;
+        min-width: 120px;
+    }
+}

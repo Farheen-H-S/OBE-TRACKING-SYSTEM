@@ -1,0 +1,114 @@
+.teacher-feedback-container {
+    background-color: #f8f9fa;
+    /* Light background for the dashboard */
+    min-height: 100vh;
+    padding-bottom: 20px;
+}
+
+.feedback-content-wrapper {
+    /* margin-left removed as sidebar is relative in flex container */
+    padding: 20px;
+    padding-top: 20px;
+    width: 100%;
+}
+
+.feedback-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    /* Soft shadow */
+    padding: 30px;
+}
+
+.feedback-section-title {
+    color: #445069;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 8px;
+    display: inline-block;
+    text-align: left;
+}
+
+
+
+.feedback-section-title  h5
+{
+    text-align: left;
+}
+.url-input-group .form-control {
+    border-color: #ced4da;
+    color: #6c757d;
+}
+
+.btn-copy {
+    background-color: #4facfe;
+    border-color: #4facfe;
+    color: white;
+    font-weight: 500;
+}
+
+.btn-copy:hover {
+    background-color: #507aaa;
+    border-color: #4b88b1;
+    color: white;
+}
+
+.status-table {
+    margin-top: 10px;
+}
+
+.status-table th {
+    color: #445069;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.status-table td {
+    color: #445069;
+    vertical-align: middle;
+}
+
+.text-conducted {
+    color: #445069;
+}
+
+.text-not-conducted {
+    color: #445069;
+}
+
+.btn-approve {
+    background-color: #4facfe;
+    border: none;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.btn-approve:hover {
+    background-color: #216c97;
+}
+
+.question-list {
+    list-style-type: decimal;
+    padding-left: 20px;
+    color: #333;
+    text-align: left;
+}
+
+.question-list li {
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .feedback-content-wrapper {
+        margin-left: 0;
+        padding-top: 80px;
+    }
+}

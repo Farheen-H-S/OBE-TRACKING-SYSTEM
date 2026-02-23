@@ -1,0 +1,311 @@
+.statement2-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    /* Full viewport height */
+    overflow: hidden;
+    /* Prevent body scroll */
+    background-color: #f5f5f5;
+}
+
+/* Force smaller header to match Statement1 */
+.statement2-wrapper header.header {
+    min-height: 60px !important;
+    height: 60px !important;
+    max-height: 60px !important;
+    padding: 0 15px !important;
+    overflow: hidden !important;
+}
+
+/* Force Logo Size Down */
+.statement2-wrapper header.header .header-logo,
+.statement2-wrapper header.header img.header-logo {
+    height: 40px !important;
+    max-height: 40px !important;
+    width: auto !important;
+    object-fit: contain;
+}
+
+/* Force Text Sizes Down */
+.statement2-wrapper header.header .header-text h2 {
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0 !important;
+}
+
+.statement2-wrapper header.header .header-text span {
+    font-size: 11px !important;
+    opacity: 0.8;
+}
+
+.statement2-wrapper header.header .header-title {
+    font-size: 18px !important;
+    line-height: 1 !important;
+}
+
+/* Shrink Search Box */
+.statement2-wrapper header.header .search-box {
+    height: 28px !important;
+    min-height: 28px !important;
+}
+
+.statement2-wrapper header.header .form-control {
+    font-size: 13px !important;
+    height: 100% !important;
+    line-height: normal !important;
+    padding: 0 5px !important;
+}
+
+/* Shrink Icons */
+.statement2-wrapper header.header .bell-icon {
+    font-size: 20px !important;
+}
+
+/* Shrink Selects */
+.statement2-wrapper header.header select.header-select {
+    font-size: 13px !important;
+}
+
+/* Adjust layout spacing */
+.statement2-wrapper header.header>div {
+    gap: 10px !important;
+}
+
+/* Bottom Section Styling */
+.statement2-bottom-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #ffffff;
+    /* Pinkish background from image */
+    border-radius: 8px;
+}
+
+.table-section {
+    margin-bottom: 30px;
+}
+
+.table-section .section-title {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    color: #000;
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    border: 1px solid #7f8c8d;
+}
+
+.custom-table th {
+    background-color: #dbeaf9;
+
+    border: 1px solid #7f8c8d;
+    padding: 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #2c3e50;
+    white-space: nowrap;
+}
+
+.custom-table td {
+    border: 1px solid #7f8c8d;
+    padding: 8px;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.col-no {
+    width: 120px;
+    background-color: #bfd6eb !important;
+}
+
+.col-no-body {
+    background-color: #9cbce0;
+    color: white !important;
+    text-align: left;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+.col-stmt {
+    background-color: #dbeaf9;
+    text-align: left;
+}
+
+
+.statement2-wrapper>.d-flex {
+    /* Target the d-flex div directly inside wrapper to apply flex:1 */
+    flex: 1;
+    overflow: hidden;
+    /* Contain scrollbars to children */
+}
+
+/* Ensure Sidebar fits within the flex container */
+.statement2-wrapper .sidebar {
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow-y: auto;
+}
+
+/* Main Content Area */
+.statement2-main {
+    flex: 1;
+    /* Grow to fill remaining width */
+    padding: 20px;
+    background-color: #f5f5f5;
+    overflow-y: auto;
+
+}
+
+@media (max-width: 768px) {
+    .statement2-main {
+        width: 100%;
+        padding: 10px;
+    }
+}
+
+.statement2-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 30px;
+
+    /* Take whole remaining height at minimum */
+    min-height: 100%;
+
+    /* Default block width behavior is fine, or width: 100% */
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+}
+
+/* Button Group at Top */
+.btn-group-top {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.btn-option {
+    padding: 6px 20px;
+    border: 1px solid #007bff;
+    border-radius: 20px;
+    background-color: white;
+    color: #007bff;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-option.active {
+    background-color: #4da3ff;
+    color: white;
+    border-color: #4da3ff;
+}
+
+.btn-option:hover {
+    background-color: #e6f2ff;
+}
+
+.btn-option.active:hover {
+    background-color: #3d8bfd;
+}
+
+
+/* Sections */
+.section-header {
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.vision-mission-label {
+    color: #ff4d4d;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: block;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.content-text {
+    color: #3d466b;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.mission-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.mission-item {
+    display: flex;
+    margin-bottom: 8px;
+    color: #3d466b;
+    font-size: 1rem;
+}
+
+.mission-no {
+    font-weight: 700;
+    margin-right: 8px;
+    min-width: 40px;
+}
+
+.edit-btn-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -10px;
+    margin-bottom: 30px;
+}
+
+.btn-edit {
+    background-color: #4da3ff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.btn-edit:hover {
+    background-color: #3d8bfd;
+}
+
+/* Specific Section Spacing */
+.department-section {
+    margin-top: 40px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .statement2-card {
+        padding: 15px;
+    }
+
+    .btn-group-top {
+        justify-content: center;
+    }
+
+    .mission-item {
+        flex-direction: column;
+    }
+
+    .mission-no {
+        margin-bottom: 4px;
+    }
+}
