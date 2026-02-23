@@ -46,6 +46,7 @@ const MissionTable = ({ missions, type, onChange, onAdd, onRemove }) => {
                                     value={mission.text}
                                     placeholder={getPlaceholder(index)}
                                     onChange={(e) => onChange(index, e.target.value)}
+                                    readOnly={!onChange}
                                 />
                             </td>
                         </tr>
@@ -249,10 +250,15 @@ const Statement1 = () => {
             <div className="mx-auto" style={{ maxWidth: '1100px' }}>
                 <div className="statement-card shadow-sm">
                     <div className="d-flex justify-content-between align-items-center mb-4 no-print">
-                        <div className="toggle-container">
-                            <button className="toggle-btn active">Define</button>
-                            <button className="toggle-btn" onClick={() => navigate('/statement2')}>View</button>
-                        </div>
+                        {canEdit && (
+                            <div className="toggle-container">
+                                <button className="toggle-btn active">Define</button>
+                                <button className="toggle-btn" onClick={() => navigate('/statement2')}>View</button>
+                            </div>
+                        )}
+                        {!canEdit && (
+                            <h4 className="m-0 fw-bold text-primary">PEOs, POs, and PSOs Statements</h4>
+                        )}
                         <div className="program-view-selector d-flex align-items-center gap-3">
                             <label className="fw-bold small text-muted text-uppercase mb-0">Select Program:</label>
                             <select
@@ -285,6 +291,7 @@ const Statement1 = () => {
                                         value={instituteVision}
                                         placeholder={DEFAULT_PLACEHOLDERS.INSTITUTE_VISION}
                                         onChange={(e) => setInstituteVision(e.target.value)}
+                                        readOnly={!canEdit}
                                     />
                                 </div>
                                 <div className="mission-table-group">
@@ -292,7 +299,7 @@ const Statement1 = () => {
                                     <MissionTable
                                         type="INSTITUTE_MISSION"
                                         missions={instituteMissions}
-                                        onChange={(i, v) => handleMissionChange(instituteMissions, setInstituteMissions, i, v)}
+                                        onChange={canEdit ? (i, v) => handleMissionChange(instituteMissions, setInstituteMissions, i, v) : null}
                                         onAdd={canEdit ? () => handleAddRow(instituteMissions, setInstituteMissions, 'M') : null}
                                         onRemove={canEdit ? () => handleRemoveRow(instituteMissions, setInstituteMissions) : null}
                                     />
@@ -310,6 +317,7 @@ const Statement1 = () => {
                                         value={deptVision}
                                         placeholder={DEFAULT_PLACEHOLDERS.DEPT_VISION(currentProgramName)}
                                         onChange={(e) => setDeptVision(e.target.value)}
+                                        readOnly={!canEdit}
                                     />
                                 </div>
                                 <div className="mission-table-group">
@@ -317,7 +325,7 @@ const Statement1 = () => {
                                     <MissionTable
                                         type="DEPT_MISSION"
                                         missions={deptMissions}
-                                        onChange={(i, v) => handleMissionChange(deptMissions, setDeptMissions, i, v)}
+                                        onChange={canEdit ? (i, v) => handleMissionChange(deptMissions, setDeptMissions, i, v) : null}
                                         onAdd={canEdit ? () => handleAddRow(deptMissions, setDeptMissions, 'M') : null}
                                         onRemove={canEdit ? () => handleRemoveRow(deptMissions, setDeptMissions) : null}
                                     />
@@ -330,7 +338,7 @@ const Statement1 = () => {
                                 <MissionTable
                                     type="PEO"
                                     missions={peoMissions}
-                                    onChange={(i, v) => handleMissionChange(peoMissions, setPeoMissions, i, v)}
+                                    onChange={canEdit ? (i, v) => handleMissionChange(peoMissions, setPeoMissions, i, v) : null}
                                     onAdd={canEdit ? () => handleAddRow(peoMissions, setPeoMissions, 'PEO') : null}
                                     onRemove={canEdit ? () => handleRemoveRow(peoMissions, setPeoMissions) : null}
                                 />
@@ -342,7 +350,7 @@ const Statement1 = () => {
                                 <MissionTable
                                     type="PO"
                                     missions={poMissions}
-                                    onChange={(i, v) => handleMissionChange(poMissions, setPoMissions, i, v)}
+                                    onChange={canEdit ? (i, v) => handleMissionChange(poMissions, setPoMissions, i, v) : null}
                                     onAdd={canEdit ? () => handleAddRow(poMissions, setPoMissions, 'PO') : null}
                                     onRemove={canEdit ? () => handleRemoveRow(poMissions, setPoMissions) : null}
                                 />
@@ -354,7 +362,7 @@ const Statement1 = () => {
                                 <MissionTable
                                     type="PSO"
                                     missions={psoMissions}
-                                    onChange={(i, v) => handleMissionChange(psoMissions, setPsoMissions, i, v)}
+                                    onChange={canEdit ? (i, v) => handleMissionChange(psoMissions, setPsoMissions, i, v) : null}
                                     onAdd={canEdit ? () => handleAddRow(psoMissions, setPsoMissions, 'PSO') : null}
                                     onRemove={canEdit ? () => handleRemoveRow(psoMissions, setPsoMissions) : null}
                                 />

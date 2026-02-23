@@ -33,17 +33,21 @@ const Co1 = () => {
             const surveyRes = await api.get('/surveys/', { params: { course_id: courseId, is_active: true } });
             const survey = surveyRes.data.find(s => s.course_id === parseInt(courseId) && s.status === 'APPROVED');
 
-            if (survey) {
-                // If we use the SurveyQuestion model, we fetch those. 
-                // BUT current HOD logic edits Course Outcomes (CO).
-                // Let's assume the survey logic uses COs as the questions.
+            if (survey && survey.questions && survey.questions.length > 0) {
+                setCos(survey.questions.map(q => ({
+                    co_id: q.co_id,
+                    question_id: q.question_id,
+                    description: q.question_text,
+                    co_number: q.co_number || (q.co_id ? `CO${q.co_id}` : "Q"),
+                    survey_id: survey.survey_id
+                })));
+            } else if (survey) {
                 const coRes = await api.get(`/academics/courses/${courseId}/cos/`);
                 setCos(coRes.data.map(co => ({
                     ...co,
                     survey_id: survey.survey_id
                 })));
             } else {
-                // Fallback to COs directly if no survey master found yet (old way)
                 const response = await api.get(`/academics/courses/${courseId}/cos/`);
                 setCos(response.data);
             }

@@ -22,7 +22,7 @@ const DashboardRedirect = () => {
         } else if (role === 'COORDINATOR') {
             navigate('/hod-dashboard');
         } else if (role === 'AUDITOR') {
-            navigate('/peo-po-pso');
+            navigate('/auditor-dashboard');
         } else {
             navigate('/profile');
         }

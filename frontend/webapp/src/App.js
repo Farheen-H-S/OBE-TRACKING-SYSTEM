@@ -49,6 +49,8 @@ const Stressreport = lazy(() => import("./pages/hod/stress/Stressreport"));
 
 // Auditor
 const AuditorDashboard = lazy(() => import("./pages/auditor/AuditorDashboardHome"));
+const AuditorViewReports = lazy(() => import("./pages/auditor/ViewReports"));
+const ViewRemark = lazy(() => import("./pages/auditor/ViewRemark"));
 
 // Student (Stress)
 const Welcome = lazy(() => import("./pages/student/stress/Welcome"));
@@ -138,7 +140,8 @@ function App() {
 
           {/* Auditor Routes */}
           <Route path="/auditor-dashboard" element={<Layout><AuditorDashboard /></Layout>} />
-          <Route path="/my-audit-remarks" element={<Layout><PlaceholderPage title="My Audit Remarks" /></Layout>} />
+          <Route path="/auditor/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
+          <Route path="/auditor/view-my-remarks" element={<Layout><ViewRemark /></Layout>} />
 
           {/* Stress module flow (Student) - No Layout */}
           <Route path="/stress/welcome" element={<Welcome key="welcome" />} />

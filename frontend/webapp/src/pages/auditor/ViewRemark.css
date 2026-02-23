@@ -1,94 +1,39 @@
 .view-remark-page {
-    background-color: #f4f7f6;
+    background-color: #f7f9fc;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
 }
 
-.main-content {
-    background-color: #eef2f5;
-    flex-grow: 1;
+.remark-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.white-box {
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 40px;
-    margin-top: 20px;
-    min-height: 80vh;
+.remark-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
 }
 
-.page-title {
-    color: #2e4374;
-    font-weight: 500;
-    font-size: 1.4rem;
+.italic-text {
+    font-style: italic;
+    color: #5a6268;
+    min-height: 60px;
 }
 
-/* Table Styling */
-.remark-table {
-    border: 1px solid #dee2e6;
-    margin-bottom: 0;
+.remark-preview {
+    max-height: 100px;
+    overflow: hidden;
 }
 
-.remark-table thead th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    color: #495057;
+.badge {
     font-weight: 600;
-    vertical-align: middle;
+    letter-spacing: 0.3px;
 }
 
-.remark-table td {
-    vertical-align: middle;
-    padding: 0 !important;
-    /* Remove padding for editable cells */
-    height: 40px;
+.modal-header {
+    background-color: #f8f9fc;
+    border-bottom: 2px solid #e3e6f0;
 }
 
-/* Editable Cell Styling */
-.editable-cell {
-    border: none;
-    border-radius: 0;
-    height: 100%;
-    width: 100%;
-    padding: 8px 12px;
-    background-color: transparent;
-}
-
-.editable-cell:focus {
-    box-shadow: inset 0 0 0 2px #a1c4fd;
-    background-color: #fff;
-    outline: none;
-}
-
-.static-cell {
-    padding: 8px 12px;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-}
-
-/* Add Row Icon Styling */
-.add-row-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background-color: #fff;
-    border: 1px solid #ced4da;
-    border-radius: 50%;
-    color: #6c757d;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.add-row-icon:hover {
-    background-color: #e9ecef;
-    color: #495057;
-    border-color: #adb5bd;
-    transform: scale(1.1);
+.modal-footer {
+    background-color: #f8f9fc;
+    border-top: 2px solid #e3e6f0;
 }

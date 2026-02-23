@@ -1,99 +1,86 @@
 .dac-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     background-color: #f0f2f5;
-}
-
-.dac-content-wrapper {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.dac-sidebar {
-    width: 320px;
-    flex-shrink: 0;
-    overflow-y: auto;
 }
 
 .dac-main-content {
     flex: 1;
-    padding: 30px;
-    overflow-y: auto;
+    padding: 25px;
     background-color: #f8f9fa;
-    /* Light background for the content area */
 }
 
 .file-manager-card {
     background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    padding: 20px;
-    min-height: 80vh;
-    /* Make it look like the white page in the image */
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    min-height: 85vh;
+}
+
+.filters-grid {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #007bff;
 }
 
 /* Table Styles */
-.file-table th {
-    font-weight: 500;
-    color: #6c757d;
-    border-bottom: 1px solid #dee2e6;
-    padding: 12px;
-    font-size: 0.9rem;
-    text-align: left;
+.file-table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 15px 12px;
+    border-bottom: 2px solid #dee2e6;
 }
 
-.file-table td {
-    padding: 12px;
-    vertical-align: left;
-    font-size: 0.95rem;
-    border-bottom: none;
-    text-align: left;
- 
+.file-table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f3f5;
 }
 
 .file-table tbody tr:hover {
-    background-color: #f1f3f9;
-    cursor: pointer;
+    background-color: #f8fbff;
 }
 
 .file-icon {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
 }
 
 .file-name {
     font-weight: 500;
-    color: #212529;
+    color: #2d3436;
 }
 
-/* Responsiveness */
-@media (max-width: 992px) {
-    .dac-sidebar {
-        position: absolute;
-        z-index: 1000;
-        height: 100%;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
+.btn-outline-primary:hover,
+.btn-outline-danger:hover {
+    color: white !important;
+}
 
-    .dac-sidebar.open {
-        transform: translateX(0);
-    }
+/* Custom Scrollbar for better UX */
+.dac-main-content::-webkit-scrollbar {
+    width: 6px;
+}
 
-    
+.dac-main-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
 
-    .dac-main-content {
-        padding: 15px;
-    }
+.dac-main-content::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
 }
 
 @media (max-width: 768px) {
-    .file-manager-card {
-        padding: 10px;
+    .dac-main-content {
+        padding: 15px;
     }
 
-    /* Hide less important columns on small screens if needed, 
-     but overflow-x usually handles tables nicely */
+    .file-manager-card {
+        padding: 15px;
+    }
 }

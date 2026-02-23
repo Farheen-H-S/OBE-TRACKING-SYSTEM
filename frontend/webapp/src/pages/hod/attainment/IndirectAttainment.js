@@ -319,7 +319,7 @@ export default function IndirectAttainment() {
                         disabled
                         title="Backend report generation coming soon"
                     >
-                        <BsFileEarmarkExcelFill size={16} /> Generate Report (Coming Soon)
+                        <BsFileEarmarkExcelFill size={16} /> Generate Report
                     </Button>
                 </Modal.Footer>
             </Modal>

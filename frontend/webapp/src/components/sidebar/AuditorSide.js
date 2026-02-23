@@ -27,10 +27,10 @@ const AuditorSide = ({ isOpen, onClose, user: propUser }) => {
     };
 
     const menuItems = [
-        { title: "PEOs, POs, PSOs", path: "/peo-po-pso" },
-        { title: "View Reports", path: "/view-reports" },
+        { title: "PEOs, POs, PSOs", path: "/statement2" },
+        { title: "View Reports", path: "/auditor/view-reports" },
         { title: "System Activity Logs", path: "/activity-log" },
-        { title: "My Audit Remarks", path: "/my-audit-remarks" }
+        { title: "My Audit Remarks", path: "/auditor/view-my-remarks" }
     ];
 
     return (

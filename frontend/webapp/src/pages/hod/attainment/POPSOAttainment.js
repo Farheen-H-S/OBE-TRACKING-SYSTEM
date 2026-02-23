@@ -331,7 +331,7 @@ export default function POPSOAttainment() {
                 <Modal.Footer className="bg-light">
                     <Button variant="secondary" onClick={() => setShowReport(false)}>Close</Button>
                     <Button variant="success" className="d-flex align-items-center gap-2" disabled title="Backend coming soon">
-                        <BsFileEarmarkExcelFill size={15} /> Download Excel (Coming Soon)
+                        <BsFileEarmarkExcelFill size={15} /> Download Excel
                     </Button>
                 </Modal.Footer>
             </Modal>

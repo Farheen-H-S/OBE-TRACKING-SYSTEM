@@ -108,15 +108,21 @@ const Statement2 = () => {
         </div>
     );
 
+    const isAuditor = (user?.role || user?.role_name || "").toUpperCase() === 'AUDITOR';
+
     return (
         <div className="statement2-main-standalone">
             <div className="mx-auto" style={{ maxWidth: '1100px' }}>
 
                 <div className="d-flex justify-content-between align-items-center mb-4 no-print">
-                    <div className="toggle-container">
-                        <button className="toggle-btn" onClick={() => navigate('/peo-po-pso')}>Define</button>
-                        <button className="toggle-btn active">View</button>
-                    </div>
+                    {!isAuditor ? (
+                        <div className="toggle-container">
+                            <button className="toggle-btn" onClick={() => navigate('/peo-po-pso')}>Define</button>
+                            <button className="toggle-btn active">View</button>
+                        </div>
+                    ) : (
+                        <h4 className="m-0 fw-bold text-primary">PEOs, POs, and PSOs Statements</h4>
+                    )}
                     <div className="program-view-selector d-flex align-items-center gap-3">
                         <label className="fw-bold small text-muted text-uppercase mb-0">Select Program:</label>
                         <select
@@ -257,11 +263,13 @@ const Statement2 = () => {
                     </>
                 )}
 
-                <div className="text-center mt-4 no-print pb-5">
-                    <button className="btn btn-outline-secondary px-5 fw-bold" onClick={() => navigate('/peo-po-pso')}>
-                        Edit Statements
-                    </button>
-                </div>
+                {!isAuditor && (
+                    <div className="text-center mt-4 no-print pb-5">
+                        <button className="btn btn-outline-secondary px-5 fw-bold" onClick={() => navigate('/peo-po-pso')}>
+                            Edit Statements
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

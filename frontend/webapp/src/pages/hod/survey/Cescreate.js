@@ -217,19 +217,9 @@ const Cescreate = () => {
                 description: tempQuestions[courseId][idx]
             }));
 
-            try {
-                const dataToSync = updatedCos.map(co => ({
-                    co_number: co.co_number,
-                    description: co.description
-                }));
-                await api.post(`academics/courses/${courseId}/cos/`, dataToSync);
-                setCourseCos(prev => ({ ...prev, [courseId]: updatedCos }));
-                setEditingCourseId(null);
-                alert("Questions updated successfully!");
-            } catch (err) {
-                console.error("Error saving CO edits:", err);
-                alert("Failed to save updates.");
-            }
+            setCourseCos(prev => ({ ...prev, [courseId]: updatedCos }));
+            setEditingCourseId(null);
+            alert("Survey questions updated locally. They will be saved to this survey upon approval.");
         } else {
             setEditingCourseId(courseId);
             setTempQuestions(prev => ({
@@ -265,6 +255,12 @@ const Cescreate = () => {
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + durationDays);
 
+        const currentCos = courseCos[courseId] || [];
+        const questionsPayload = currentCos.map(co => ({
+            co_id: co.co_id,
+            question_text: co.description // Store the raw description, Co1.js will format it as before
+        }));
+
         try {
             const payload = {
                 survey_name: `CES - ${courseCode}`,
@@ -274,7 +270,8 @@ const Cescreate = () => {
                 course_id: courseId,
                 status: 'APPROVED',
                 expires_at: expiry.toISOString(),
-                is_active: true
+                is_active: true,
+                questions: questionsPayload
             };
             const res = await api.post('surveys/', payload);
             const link = `${window.location.origin}/student/cis-login?course_id=${courseId}`;
