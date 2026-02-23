@@ -24,33 +24,28 @@ const Auditlog = lazy(() => import("./pages/admin/Auditlog"));
 
 // Faculty
 const FacultyDashboard = lazy(() => import("./pages/faculty/FacultyDashboardHome"));
-const Psostatement = lazy(() => import("./pages/faculty/Psostatement"));
-const Postatement = lazy(() => import("./pages/faculty/Postatement"));
 const Cisentry = lazy(() => import("./pages/faculty/cis/Cisentry"));
 const ViewCisEntries = lazy(() => import("./pages/faculty/cis/ViewCisEntries"));
 
 // HOD / Coordinator
 const HodDashboard = lazy(() => import("./pages/hod/HodDashboardHome"));
-const StudentManagement = lazy(() => import("./pages/hod/StudentManagement"));
-const OtherIndirectTools = lazy(() => import("./pages/hod/OtherIndirectTools"));
-const Statement1 = lazy(() => import("./pages/hod/Statement1")); // PEO, PO, PSO
-const Statement2 = lazy(() => import("./pages/hod/Statement2")); // View PEO, PO, PSO
-const COPOmapping = lazy(() => import("./pages/hod/COPOmapping"));
-const Viewcourse1 = lazy(() => import("./pages/hod/Viewcourse1")); // Course Mgmt
-const Viewcourse2 = lazy(() => import("./pages/hod/Viewcourse2")); // Course Details
-const Viewcourse3 = lazy(() => import("./pages/hod/Viewcourse3")); // Course Details
-const Addcourse = lazy(() => import("./pages/hod/Addcourse"));
-const Updatecourse = lazy(() => import("./pages/hod/Updatecourse"));
-const Assigntarget = lazy(() => import("./pages/hod/Assigntarget")); // Target Mgmt
-const Cisdirectrep = lazy(() => import("./pages/hod/Cisdirectrep")); // Direct Attainment
-const Dacreview = lazy(() => import("./pages/hod/Dacreview")); // DAC Reports
+const StudentManagement = lazy(() => import("./pages/hod/student/StudentManagement"));
+const OtherIndirectTools = lazy(() => import("./pages/hod/survey/OtherIndirectTools"));
+const Statement1 = lazy(() => import("./pages/common/statement/Statement1")); // PEO, PO, PSO
+const Statement2 = lazy(() => import("./pages/common/statement/Statement2")); // View PEO, PO, PSO
+const COPOmapping = lazy(() => import("./pages/hod/mapping/COPOmapping"));
+const Viewcourse1 = lazy(() => import("./pages/hod/course/Viewcourse1")); // Course Mgmt
+const Addcourse = lazy(() => import("./pages/hod/course/Addcourse"));
+const Assigntarget = lazy(() => import("./pages/hod/target/Assigntarget")); // Target Mgmt
+const Cisdirectrep = lazy(() => import("./pages/hod/attainment/Cisdirectrep")); // Direct Attainment
+const Dacreview = lazy(() => import("./pages/hod/dac/Dacreview")); // DAC Reports
 const Reportverifiy = lazy(() => import("./pages/hod/Reportverifiy")); // Report Verification
-const Backtracking = lazy(() => import("./pages/hod/Backtracking")); // Attainment Backtracking
-const IndirectAttainment = lazy(() => import("./pages/hod/IndirectAttainment")); // Indirect Attainment
-const POPSOAttainment = lazy(() => import("./pages/hod/POPSOAttainment")); // PO & PSO Attainment
-const Cescreate = lazy(() => import("./pages/hod/Cescreate")); // Course Exit Survey
-const Stresscreate = lazy(() => import("./pages/hod/Stresscreate"));
-const Stressreport = lazy(() => import("./pages/hod/Stressreport"));
+const Backtracking = lazy(() => import("./pages/hod/backtracking/Backtracking")); // Attainment Backtracking
+const IndirectAttainment = lazy(() => import("./pages/hod/attainment/IndirectAttainment")); // Indirect Attainment
+const POPSOAttainment = lazy(() => import("./pages/hod/attainment/POPSOAttainment")); // PO & PSO Attainment
+const Cescreate = lazy(() => import("./pages/hod/survey/Cescreate")); // Course Exit Survey
+const Stresscreate = lazy(() => import("./pages/hod/stress/Stresscreate"));
+const Stressreport = lazy(() => import("./pages/hod/stress/Stressreport"));
 
 // Auditor
 const AuditorDashboard = lazy(() => import("./pages/auditor/AuditorDashboardHome"));
@@ -96,7 +91,6 @@ function App() {
           {/* Admin Routes */}
           <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
           <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
-          <Route path="/update-user" element={<Layout><Updateuser /></Layout>} />
           <Route path="/view-user" element={<Layout><Viewuser1 /></Layout>} />
           <Route path="/view-user2" element={<Layout><Viewuser2 /></Layout>} />
           <Route path="/academic-setup" element={<Layout><AcademicSetup /></Layout>} />
@@ -104,8 +98,6 @@ function App() {
 
           {/* Faculty Routes */}
           <Route path="/faculty-dashboard" element={<Layout><FacultyDashboard /></Layout>} />
-          <Route path="/po-statement" element={<Layout><Postatement /></Layout>} />
-          <Route path="/pso-statement" element={<Layout><Psostatement /></Layout>} />
           <Route path="/my-courses" element={<Layout><Viewcourse1 isMyCourses={true} /></Layout>} />
           <Route path="/teaching-plan" element={<Layout><PlaceholderPage title="Teaching Plan" /></Layout>} />
           <Route path="/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
@@ -119,10 +111,9 @@ function App() {
           <Route path="/student-management" element={<Layout><StudentManagement /></Layout>} />
 
           <Route path="/course-management" element={<Layout><Viewcourse1 /></Layout>} />
-          <Route path="/view-course2" element={<Layout><Viewcourse2 /></Layout>} />
-          <Route path="/view-course3" element={<Layout><Viewcourse3 /></Layout>} />
+          {/* <Route path="/view-course2" element={<Layout><Viewcourse2 /></Layout>} />
+          <Route path="/view-course3" element={<Layout><Viewcourse3 /></Layout>} /> */}
           <Route path="/add-course" element={<Layout><Addcourse /></Layout>} />
-          <Route path="/update-course" element={<Layout><Updatecourse /></Layout>} />
 
           <Route path="/co-po-pso-mapping" element={<Layout><COPOmapping /></Layout>} />
 

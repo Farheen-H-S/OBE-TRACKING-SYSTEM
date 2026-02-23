@@ -1,0 +1,489 @@
+import React, { useState, useEffect } from 'react';
+import './OtherIndirectTools.css';
+import api from '../../../utils/axios';
+import { FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+
+const SURVEY_TOOLS = [
+    { id: 'co-curricular', label: 'Co-curricular / Extra Curricular Activity Feedback', hasActivity: true },
+    { id: 'resource-person', label: 'Resource Person Feedback', hasActivity: true },
+    { id: 'program-exit', label: 'Program Exit Survey', hasActivity: false },
+    { id: 'alumni', label: 'Alumni Feedback', hasActivity: false },
+];
+
+const ACTIVITY_TYPES = ['Expert Lecture', 'Industry Visit', 'Value Added Program'];
+
+const ATTAINMENT_LEVELS = [
+    { level: 5, label: 'Very High', min: 2.50, max: 3.00, score: 3 },
+    { level: 4, label: 'High', min: 2.00, max: 2.49, score: 2.5 },
+    { level: 3, label: 'Medium', min: 1.50, max: 1.99, score: 2 },
+    { level: 2, label: 'Low', min: 1.00, max: 1.49, score: 1.5 },
+    { level: 1, label: 'Very Low', min: 0, max: 0.99, score: 1 },
+];
+
+const getAttainmentLevel = (avg) => {
+    if (avg === null || avg === undefined) return null;
+    for (const al of ATTAINMENT_LEVELS) {
+        if (avg >= al.min && avg <= al.max) return al;
+    }
+    return ATTAINMENT_LEVELS[4];
+};
+
+const OtherIndirectTools = () => {
+    const [programs, setPrograms] = useState([]);
+    const [selectedProgram, setSelectedProgram] = useState('');
+    const [selectedYear, setSelectedYear] = useState('2025 - 26');
+    const [selectedClass, setSelectedClass] = useState('FY');
+    const [selectedDivision, setSelectedDivision] = useState('A');
+    const [academicYear, setAcademicYear] = useState('');
+
+    const [selectedTool, setSelectedTool] = useState(SURVEY_TOOLS[0]);
+    const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
+    // User types only the suffix; full title = `${activityType} — ${activityDetail}`
+    const [activityDetail, setActivityDetail] = useState('');
+
+    const [pos, setPos] = useState([]);
+    const [psos, setPsos] = useState([]);
+    const [loadingStmts, setLoadingStmts] = useState(false);
+
+    const [surveyState, setSurveyState] = useState(null);
+    const [timeLeft, setTimeLeft] = useState('');
+    const [showStats, setShowStats] = useState(false);
+    const [responses, setResponses] = useState([]);
+
+    const isRP = selectedTool.id === 'resource-person';
+
+    // localStorage key — unique per tool/program/year/class/div
+    const surveyKey = `oit_survey_${selectedTool.id}_${selectedProgram}_${selectedYear.replace(/\s/g, '')}_${selectedClass}_${selectedDivision}`;
+
+    const computedTitle = selectedTool.hasActivity
+        ? (activityDetail.trim() ? `${activityType} — ${activityDetail.trim()}` : activityType)
+        : '';
+
+    // ── Lifecycle ────────────────────────────────────────────────────────
+    useEffect(() => { fetchInitialData(); }, []);
+    useEffect(() => { if (selectedProgram) fetchStatements(); }, [selectedProgram]);
+    useEffect(() => {
+        const saved = localStorage.getItem(surveyKey);
+        setSurveyState(saved ? JSON.parse(saved) : null);
+        setShowStats(false);
+    }, [surveyKey]);
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (!surveyState?.expires_at) { setTimeLeft(''); return; }
+            const diff = new Date(surveyState.expires_at) - new Date();
+            if (diff <= 0) { setTimeLeft('Expired'); return; }
+            const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000),
+                m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+            setTimeLeft(`${d}d ${h}h ${m}m ${s}s`);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [surveyState]);
+
+    // ── API ──────────────────────────────────────────────────────────────
+    const fetchInitialData = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const userDept = user?.department || user?.department_id;
+            const [progRes, setupRes] = await Promise.allSettled([
+                api.get('academics/programs/'),
+                api.get('academics/academic-setup/'),
+            ]);
+            if (progRes.status === 'fulfilled') {
+                const data = (progRes.value.data || []).filter(p => p.program_name && !p.program_name.toLowerCase().includes('test'));
+                setPrograms(data);
+                if (userDept) {
+                    const m = data.find(p => String(p.program_id) === String(userDept));
+                    setSelectedProgram(m ? String(m.program_id) : String(data[0]?.program_id || ''));
+                } else if (data.length) setSelectedProgram(String(data[0].program_id));
+            }
+            if (setupRes.status === 'fulfilled' && setupRes.value.data?.academic_year) {
+                const yr = setupRes.value.data.academic_year;
+                setAcademicYear(yr);
+                setSelectedYear(yr.includes(' - ') ? yr : yr.replace('-', ' - '));
+            }
+        } catch (e) { console.error('OIT init error:', e); }
+    };
+
+    const fetchStatements = async () => {
+        setLoadingStmts(true);
+        try {
+            const [poRes, psoRes] = await Promise.allSettled([
+                api.get(`/academics/pos/?program_id=${selectedProgram}`),
+                api.get(`/academics/psos/?program_id=${selectedProgram}`),
+            ]);
+            if (poRes.status === 'fulfilled') setPos(Array.isArray(poRes.value.data) ? poRes.value.data : []);
+            if (psoRes.status === 'fulfilled') setPsos(Array.isArray(psoRes.value.data) ? psoRes.value.data : []);
+        } catch (e) { console.error('PO/PSO fetch error:', e); }
+        finally { setLoadingStmts(false); }
+    };
+
+    const allStatements = [
+        ...pos.map((p, i) => ({ type: 'PO', id: `po_${i}`, number: p.po_number || `PO ${i + 1}`, description: p.description })),
+        ...psos.map((p, i) => ({ type: 'PSO', id: `pso_${i}`, number: p.pso_number || `PSO ${i + 1}`, description: p.description })),
+    ];
+
+    // ── Survey link ──────────────────────────────────────────────────────
+    const buildLink = () => {
+        const params = new URLSearchParams({
+            survey: selectedTool.id,
+            program: selectedProgram,
+            class: selectedClass,
+            div: selectedDivision,
+            year: selectedYear,
+        });
+        if (selectedTool.hasActivity) {
+            params.set('activity_type', activityType);
+            params.set('activity_title', computedTitle);
+        }
+        return `${window.location.origin}/student/oit-login?${params.toString()}`;
+    };
+
+    // ── Actions ──────────────────────────────────────────────────────────
+    const handleApprove = () => {
+        if (surveyState?.status === 'APPROVED') {
+            if (window.confirm('Close this survey early?')) {
+                const u = { ...surveyState, status: 'CLOSED' };
+                localStorage.setItem(surveyKey, JSON.stringify(u));
+                setSurveyState(u);
+            }
+            return;
+        }
+        if (selectedTool.hasActivity && !activityDetail.trim()) {
+            alert('Please enter the activity detail (e.g. the topic or company name) before approving.');
+            return;
+        }
+        const duration = parseInt(surveyState?.duration || '7');
+        const expiry = new Date(); expiry.setDate(expiry.getDate() + duration);
+        const newState = { status: 'APPROVED', expires_at: expiry.toISOString(), duration: String(duration), link: buildLink() };
+        localStorage.setItem(surveyKey, JSON.stringify(newState));
+        setSurveyState(newState);
+        alert(`Survey approved! Expires: ${expiry.toLocaleDateString()}`);
+    };
+
+    const handleCopy = () => {
+        if (!surveyState?.link) return;
+        navigator.clipboard.writeText(surveyState.link);
+        alert('Link copied to clipboard!');
+    };
+
+    const loadResponses = () => {
+        const key = `oit_responses_${surveyKey}`;
+        const saved = localStorage.getItem(key);
+        setResponses(saved ? JSON.parse(saved) : []);
+        setShowStats(true);
+    };
+
+    // ── Stats table ──────────────────────────────────────────────────────
+    const StatsTable = () => {
+        const stats = allStatements.map(stmt => {
+            const vals = responses.map(r => r.answers?.[stmt.id]).filter(v => v !== undefined && v !== null);
+            const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+            const countAbove = avg !== null ? vals.filter(v => v >= avg).length : 0;
+            const pctAbove = vals.length ? ((countAbove / vals.length) * 100).toFixed(1) : '0.0';
+            return { ...stmt, vals, avg: avg !== null ? avg.toFixed(2) : '-', countAbove, pctAbove, attainment: getAttainmentLevel(avg) };
+        });
+
+        return (
+            <div className="oit-stats-wrapper mt-4 overflow-auto rounded">
+                <table className="table table-sm table-bordered oit-stats-table mb-0">
+                    <thead>
+                        <tr className="align-middle text-center">
+                            {isRP ? (
+                                <th className="px-3" style={{ minWidth: 180 }}>Name</th>
+                            ) : (
+                                <>
+                                    <th style={{ minWidth: 150 }}>Enrollment No.</th>
+                                    <th style={{ minWidth: 80 }}>Roll No.</th>
+                                    <th style={{ minWidth: 180 }}>Name</th>
+                                </>
+                            )}
+                            {allStatements.map(s => (
+                                <th key={s.id} className="oit-blue-header" style={{ minWidth: 90 }}>
+                                    <div>{s.number}</div>
+                                    {s.description && (
+                                        <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.65rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 110 }}>
+                                            {s.description.split(' ').slice(0, 5).join(' ')}{s.description.split(' ').length > 5 ? '…' : ''}
+                                        </div>
+                                    )}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {responses.length > 0 ? (
+                            <>
+                                {responses.map((r, i) => (
+                                    <tr key={i} className="align-middle">
+                                        {isRP ? (
+                                            <td className="ps-3 fw-semibold text-muted">{r.respondentName || `Respondent ${i + 1}`}</td>
+                                        ) : (
+                                            <>
+                                                <td className="ps-3 fw-semibold text-muted">{r.enrollment || '—'}</td>
+                                                <td className="text-center">{r.rollNo || '—'}</td>
+                                                <td>{r.respondentName || '—'}</td>
+                                            </>
+                                        )}
+                                        {allStatements.map(s => (
+                                            <td key={s.id} className="text-center fw-bold">
+                                                {r.answers?.[s.id] !== undefined ? r.answers[s.id] : <span className="text-muted opacity-50">-</span>}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                                <tr className="oit-summary-row fw-bold border-top-2">
+                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">No. of Respondents</td>
+                                    {stats.map(s => <td key={s.id} className="text-center">{s.vals.length}</td>)}
+                                </tr>
+                                <tr className="oit-summary-row fw-bold">
+                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">Average Rating</td>
+                                    {stats.map(s => <td key={s.id} className="text-center text-primary fw-bold">{s.avg}</td>)}
+                                </tr>
+                                <tr className="oit-summary-row fw-bold">
+                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">% At or Above Average</td>
+                                    {stats.map(s => <td key={s.id} className="text-center">{s.pctAbove}%</td>)}
+                                </tr>
+                                <tr className="oit-attainment-row fw-bold">
+                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small text-primary">PO/PSO Attainment Level</td>
+                                    {stats.map(s => (
+                                        <td key={s.id} className="text-center">
+                                            {s.attainment
+                                                ? <span className={`attainment-badge al-${s.attainment.level}`}>{s.attainment.level} – {s.attainment.label}</span>
+                                                : '-'}
+                                        </td>
+                                    ))}
+                                </tr>
+                            </>
+                        ) : (
+                            <tr>
+                                <td colSpan={(isRP ? 1 : 3) + allStatements.length} className="text-center py-4 text-muted">
+                                    No responses collected yet.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    // ── Render ───────────────────────────────────────────────────────────
+    return (
+        <div className="oit-wrapper">
+            <div className="oit-main">
+                <div className="oit-card">
+
+                    {/* ── Active link bar — clean white, no yellow ── */}
+                    {surveyState?.status === 'APPROVED' && (
+                        <div className="oit-link-bar mb-4">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h5 className="oit-link-title mb-0">{selectedTool.label}</h5>
+                                    {computedTitle && <small className="text-muted">{computedTitle}</small>}
+                                </div>
+                                <span className="badge bg-light text-danger fw-bold border border-danger small">
+                                    ⏱ {timeLeft || '…'}
+                                </span>
+                            </div>
+                            <div className="link-input-group">
+                                <input
+                                    type="text"
+                                    className="form-control bg-white font-monospace small"
+                                    readOnly
+                                    value={surveyState.link}
+                                />
+                                <button className="btn btn-primary px-4 ms-2" onClick={handleCopy}>
+                                    Copy Link
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Filters ── */}
+                    <div className="filter-card p-4 border rounded mb-4">
+                        <div className="row g-3">
+                            <div className="col-md">
+                                <label className="filter-label mb-2">DEPARTMENT</label>
+                                <select className="form-select" value={selectedProgram} onChange={e => setSelectedProgram(e.target.value)}>
+                                    <option value="">Select Department</option>
+                                    {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_name}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label mb-2">ACADEMIC YEAR</label>
+                                <select className="form-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                                    <option value="2024 - 25">2024 - 25</option>
+                                    <option value="2025 - 26">2025 - 26</option>
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label mb-2">BATCH</label>
+                                <select className="form-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                                    <option value="FY">FY</option>
+                                    <option value="SY">SY</option>
+                                    <option value="TY">TY</option>
+                                </select>
+                            </div>
+                            <div className="col-md" style={{ maxWidth: 110 }}>
+                                <label className="filter-label mb-2">DIVISION</label>
+                                <select className="form-select" value={selectedDivision} onChange={e => setSelectedDivision(e.target.value)}>
+                                    {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Tool selector */}
+                        <div className="mt-4">
+                            <label className="filter-label mb-2">SURVEY TOOL</label>
+                            <div className="oit-tool-grid">
+                                {SURVEY_TOOLS.map(tool => (
+                                    <button
+                                        key={tool.id}
+                                        className={`oit-tool-btn ${selectedTool.id === tool.id ? 'active' : ''}`}
+                                        onClick={() => { setSelectedTool(tool); setActivityDetail(''); setActivityType(ACTIVITY_TYPES[0]); setShowStats(false); }}
+                                    >
+                                        {tool.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Activity metadata — Co-curricular AND Resource Person */}
+                        {selectedTool.hasActivity && (
+                            <div className="mt-3 p-3 bg-light rounded border">
+                                <label className="filter-label mb-2 d-block">ACTIVITY DETAILS</label>
+                                <div className="row g-2">
+                                    <div className="col-md-4">
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={activityType}
+                                            onChange={e => setActivityType(e.target.value)}
+                                        >
+                                            {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-8">
+                                        {/* Input group — activity type auto-prepended */}
+                                        <div className="input-group input-group-sm">
+                                            <span className="input-group-text oit-type-prefix fw-semibold">
+                                                {activityType} —
+                                            </span>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder={
+                                                    activityType === 'Industry Visit' ? 'company / organisation name'
+                                                        : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
+                                                            : 'program name / topic'
+                                                }
+                                                value={activityDetail}
+                                                onChange={e => setActivityDetail(e.target.value)}
+                                            />
+                                        </div>
+                                        {activityDetail && (
+                                            <small className="text-success fw-semibold mt-1 d-block">
+                                                Title: <em>{computedTitle}</em>
+                                            </small>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── Question-set card ── */}
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 className="fw-bold text-dark mb-0">PO / PSO Question Set</h5>
+                            {computedTitle && surveyState?.status === 'APPROVED' && (
+                                <small className="text-muted">{computedTitle}</small>
+                            )}
+                        </div>
+                        <span className={`status-badge-compact ${surveyState?.status === 'APPROVED' ? 'approved' : surveyState?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
+                            {surveyState?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
+                            {surveyState?.status || 'DRAFT'}
+                        </span>
+                    </div>
+
+                    <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
+                        {loadingStmts ? (
+                            <div className="text-center py-4"><div className="spinner-border text-primary" /></div>
+                        ) : allStatements.length === 0 ? (
+                            <div className="text-center py-4 text-muted">
+                                <FaExclamationCircle size={28} className="mb-2" />
+                                <p className="mb-0">No PO / PSO statements found for the selected department.</p>
+                                <small>Go to <strong>PEO / PO / PSO → Define</strong> to add statements first.</small>
+                            </div>
+                        ) : (
+                            <>
+                                <h6 className="oit-section-label">Program Outcomes (PO)</h6>
+                                {pos.map((p, i) => (
+                                    <div key={i} className="oit-question-item d-flex gap-3 mb-2">
+                                        <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
+                                        <span className="oit-qdesc">{p.description || '—'}</span>
+                                    </div>
+                                ))}
+                                {psos.length > 0 && (
+                                    <>
+                                        <h6 className="oit-section-label mt-4">Program Specific Outcomes (PSO)</h6>
+                                        {psos.map((p, i) => (
+                                            <div key={i} className="oit-question-item d-flex gap-3 mb-2">
+                                                <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
+                                                <span className="oit-qdesc">{p.description || '—'}</span>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        {/* Action row */}
+                        <div className="action-row mt-4 pt-3 border-top d-flex align-items-center gap-3 flex-wrap">
+                            {(surveyState?.status === 'APPROVED' || surveyState?.status === 'CLOSED') && (
+                                <button
+                                    className="btn btn-sm btn-info text-white"
+                                    onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
+                                >
+                                    {showStats ? 'Show Questions' : 'Show Statistics'}
+                                </button>
+                            )}
+                            <select
+                                className="form-select form-select-sm w-auto"
+                                value={surveyState?.duration || '7'}
+                                onChange={e => setSurveyState(s => ({ ...(s || {}), duration: e.target.value }))}
+                                disabled={surveyState?.status === 'APPROVED'}
+                            >
+                                <option value="3">3 Days</option>
+                                <option value="7">7 Days</option>
+                                <option value="15">15 Days</option>
+                                <option value="30">30 Days</option>
+                            </select>
+                            <button
+                                className={`btn btn-sm px-5 ${surveyState?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
+                                onClick={handleApprove}
+                                disabled={allStatements.length === 0 || !selectedProgram}
+                            >
+                                {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ── Attainment reference ── */}
+                    <div className="oit-legend-card border rounded p-3 mb-4">
+                        <h6 className="oit-section-label mb-3">PO / PSO Attainment Level Reference  <small className="text-muted fw-normal">(Rating scale: 0 – 3)</small></h6>
+                        <div className="d-flex flex-wrap gap-2">
+                            {ATTAINMENT_LEVELS.map(al => (
+                                <span key={al.level} className={`attainment-badge al-${al.level}`}>
+                                    L{al.level} {al.label} (avg {al.min}–{al.max})
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {showStats && <StatsTable />}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default OtherIndirectTools;
