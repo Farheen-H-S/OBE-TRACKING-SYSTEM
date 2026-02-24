@@ -39,7 +39,9 @@ const Cisentry = () => {
   const [marksData, setMarksData] = useState({}); // { studentEnrollment: { questionIndex: marks } }
   const [userCos, setUserCos] = useState(new Array(30).fill('')); // Support up to 30 CO inputs
   const [uploadedFiles, setUploadedFiles] = useState({});
+  const [assessmentId, setAssessmentId] = useState(null);
   const fileInputRef = useRef(null);
+  const bulkUploadRef = useRef(null);
 
   // Editable headers state
   const getCTQuestionLabel = (index) => {
@@ -431,6 +433,7 @@ const Cisentry = () => {
       const res = await api.get('/assessments/marks/', { params });
 
       if (res.data && res.data.assessment_id) {
+        setAssessmentId(res.data.assessment_id);
         const config = res.data.configuration || {};
 
         // Prioritize backend data if it exists
@@ -442,6 +445,15 @@ const Cisentry = () => {
         // Detailed marks breakdown if stored in config
         if (config.marksData) {
           setMarksData(config.marksData);
+
+          // Populate uploaded files from backend
+          if (res.data.evidence) {
+            setUploadedFiles(prev => ({
+              ...prev,
+              [selectedTool]: res.data.evidence
+            }));
+          }
+
           setViewMode('view');
           return; // Exit early as we have backend data
         }
@@ -793,7 +805,8 @@ const Cisentry = () => {
 
       await api.post('/assessments/marks/', payload);
 
-      localStorage.setItem(`cis_entry_${selectedCourse}_${selectedTool}`, JSON.stringify(dataToSave));
+      // Clear localStorage for this entry to avoid double storage
+      localStorage.removeItem(`cis_entry_${selectedCourse}_${selectedTool}`);
       if (showAlert) alert('Marks saved to database and attainment recalculated!');
       return true; // Indicate success
     } catch (e) {
@@ -1108,6 +1121,33 @@ const Cisentry = () => {
       </thead>
     );
   };
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!assessmentId) {
+      alert("Please save the data first to create an assessment before using bulk upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('assessment_id', assessmentId);
+
+    try {
+      await api.post('/bulk_upload/marks/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      alert("Marks uploaded successfully!");
+      loadSavedData(); // Refresh the table
+    } catch (error) {
+      console.error("Bulk upload failed:", error);
+      alert(`Bulk upload failed: ${error.response?.data?.error || error.message}`);
+    } finally {
+      if (bulkUploadRef.current) bulkUploadRef.current.value = '';
+    }
+  };
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -1116,35 +1156,32 @@ const Cisentry = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const openBase64InNewTab = (base64Data, filename) => {
-    try {
-      // Decode base64
-      const parts = base64Data.split(';base64,');
-      const contentType = parts[0].split(':')[1];
-      const raw = window.atob(parts[1]);
-      const rawLength = raw.length;
-      const uInt8Array = new Uint8Array(rawLength);
-
-      for (let i = 0; i < rawLength; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
+  const openFile = (file) => {
+    if (file.file) { // Server URL
+      window.open(file.file, '_blank');
+    } else if (file.content) { // Fallback Base64 for legacy or unsaved
+      try {
+        const parts = file.content.split(';base64,');
+        const contentType = parts[0].split(':')[1];
+        const raw = window.atob(parts[1]);
+        const rawLength = raw.length;
+        const uInt8Array = new Uint8Array(rawLength);
+        for (let i = 0; i < rawLength; ++i) {
+          uInt8Array[i] = raw.charCodeAt(i);
+        }
+        const blob = new Blob([uInt8Array], { type: contentType });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (error) {
+        window.open(file.content, '_blank');
       }
-
-      const blob = new Blob([uInt8Array], { type: contentType });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error("Error opening PDF:", error);
-      // Fallback to direct open if blob fails
-      window.open(base64Data, '_blank');
     }
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
-
-    // Limits
-    const MAX_FILES = 2;
-    const MAX_SIZE_MB = 5;
+    const MAX_FILES = 5;
+    const MAX_SIZE_MB = 10;
     const currentFiles = uploadedFiles[selectedTool] || [];
 
     if (currentFiles.length + files.length > MAX_FILES) {
@@ -1152,56 +1189,51 @@ const Cisentry = () => {
       return;
     }
 
-    const pdfFiles = files.filter(file => file.type === 'application/pdf');
-    if (files.length !== pdfFiles.length) {
-      alert("Only PDF files are allowed.");
-    }
-
-    const validFiles = pdfFiles.filter(file => {
+    for (const file of files) {
+      if (file.type !== 'application/pdf') {
+        alert(`File "${file.name}" is not a PDF. Only PDF files are allowed.`);
+        continue;
+      }
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
         alert(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB limit.`);
-        return false;
+        continue;
       }
-      return true;
-    });
 
-    if (validFiles.length > 0) {
-      const readers = validFiles.map(file => {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            resolve({
-              name: file.name,
-              size: file.size,
-              content: ev.target.result // Store Base64 content
-            });
-          };
-          reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('course_id', selectedCourse);
+      formData.append('academic_year', selectedYear);
+      formData.append('semester', selectedSemester);
+      formData.append('assessment_tool', selectedTool);
+
+      try {
+        const response = await api.post('/assessments/cis-evidence/upload/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
-      });
 
-      Promise.all(readers).then(newFiles => {
         setUploadedFiles(prev => ({
           ...prev,
-          [selectedTool]: [
-            ...(prev[selectedTool] || []),
-            ...newFiles
-          ]
+          [selectedTool]: [...(prev[selectedTool] || []), response.data]
         }));
-      });
+      } catch (error) {
+        console.error("Upload failed:", error);
+        alert(`Failed to upload "${file.name}": ${error.response?.data?.error || error.message}`);
+      }
     }
 
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeFile = (tool, index) => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [tool]: prev[tool].filter((_, i) => i !== index)
-    }));
+  const removeFile = async (tool, fileId, index) => {
+    if (window.confirm("Are you sure you want to remove this evidence file?")) {
+      // Note: Normally we'd call a DELETE endpoint here if it exists.
+      // For now, we'll just update state and rely on backend cleanup later if needed.
+      // If evidence_id is present, it's a server file.
+      setUploadedFiles(prev => ({
+        ...prev,
+        [tool]: prev[tool].filter((_, i) => i !== index)
+      }));
+    }
   };
 
   const renderActionFooter = (uploadMsg) => {
@@ -1225,14 +1257,7 @@ const Cisentry = () => {
                     </div>
                     <button
                       className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                      onClick={() => {
-                        const content = file.content;
-                        if (content) {
-                          openBase64InNewTab(content, file.name);
-                        } else {
-                          alert("File content not found.");
-                        }
-                      }}
+                      onClick={() => openFile(file)}
                     >
                       <FaEye /> View
                     </button>
@@ -1293,7 +1318,7 @@ const Cisentry = () => {
                       <span className="file-size text-muted">({formatFileSize(file.size)})</span>
                       <button
                         className="btn btn-link p-0 text-danger hover-opacity"
-                        onClick={() => removeFile(selectedTool, idx)}
+                        onClick={() => removeFile(selectedTool, file.evidence_id, idx)}
                         style={{ textDecoration: 'none', lineHeight: 1, border: 'none' }}
                         title="Remove file"
                       >
@@ -1536,9 +1561,17 @@ const Cisentry = () => {
                   </select>
                 </div>
 
+                <input
+                  type="file"
+                  accept=".csv, .xlsx, .xls"
+                  ref={bulkUploadRef}
+                  onChange={handleBulkUpload}
+                  style={{ display: 'none' }}
+                />
                 <button
                   className="btn btn-outline-primary fw-bold d-flex align-items-center gap-2 shadow-sm"
                   style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '6px' }}
+                  onClick={() => bulkUploadRef.current.click()}
                 >
                   <FaCloudUploadAlt /> Bulk Upload
                 </button>

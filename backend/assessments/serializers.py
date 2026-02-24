@@ -2,9 +2,18 @@ from rest_framework import serializers
 from .models import Assessment, AssessmentCOMapping, MarksEntry, CisEvidence
 
 class CisEvidenceSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    size = serializers.SerializerMethodField()
+
     class Meta:
         model = CisEvidence
-        fields = '__all__'
+        fields = ['evidence_id', 'course_id', 'academic_year', 'semester', 'assessment_tool', 'file', 'uploaded_by', 'uploaded_at', 'name', 'size']
+
+    def get_name(self, obj):
+        return obj.file.name.split('/')[-1] if obj.file else "Unnamed File"
+
+    def get_size(self, obj):
+        return obj.file.size if obj.file else 0
 
 class AssessmentSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source='course_id.course_name', read_only=True)

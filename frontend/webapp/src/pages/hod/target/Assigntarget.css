@@ -198,8 +198,19 @@
     background-color: #f8fafc;
 }
 
-.search-input-v2:focus {
-    background-color: #fff;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+
+.gap-high {
+    background-color: #fce4e4 !important;
+    /* Soft red */
+    color: #c62828 !important;
+    font-weight: bold;
+    border-color: #f8d7da !important;
+}
+
+.gap-low {
+    background-color: #e8f5e9 !important;
+    /* Soft green */
+    color: #2e7d32 !important;
+    font-weight: bold;
+    border-color: #c3e6cb !important;
 }

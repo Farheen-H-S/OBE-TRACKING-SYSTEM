@@ -10,6 +10,8 @@ from academics.models import Program, Batch, Course, CO
 from assessments.models import Assessment, MarksEntry
 from django.db import transaction
 
+import pandas as pd
+
 class BulkStudentUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
@@ -22,18 +24,31 @@ class BulkStudentUploadView(APIView):
             return Response({"error": "file, program_id, and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            decoded_file = file_obj.read().decode('utf-8')
-            io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
+            if file_obj.name.endswith('.csv'):
+                df = pd.read_csv(file_obj)
+            elif file_obj.name.endswith(('.xls', '.xlsx')):
+                df = pd.read_excel(file_obj)
+            else:
+                return Response({"error": "Unsupported file format. Please upload CSV or Excel."}, status=status.HTTP_400_BAD_REQUEST)
             
+            # Normalize column names to lowercase and strip whitespace
+            df.columns = [c.lower().strip() for c in df.columns]
+            
+            required_columns = ['roll_no', 'email', 'name']
+            missing = [col for col in required_columns if col not in df.columns]
+            if missing:
+                return Response({"error": f"Missing required columns: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
+
             students_created = 0
             student_role = UserRole.objects.filter(role_name='Student').first()
 
             with transaction.atomic():
-                for row in reader:
-                    username = row.get('roll_no')
-                    email = row.get('email')
-                    name = row.get('name')
+                for _, row in df.iterrows():
+                    username = str(row['roll_no']).strip()
+                    email = str(row['email']).strip()
+                    name = str(row['name']).strip()
+                    
+                    if not username or username == 'nan': continue
                     
                     user, _ = User.objects.get_or_create(
                         username=username,
@@ -73,16 +88,27 @@ class BulkMarksUploadView(APIView):
         set_by = request.user if request.user and not request.user.is_anonymous else User.objects.first()
 
         try:
-            decoded_file = file_obj.read().decode('utf-8')
-            io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
+            if file_obj.name.endswith('.csv'):
+                df = pd.read_csv(file_obj)
+            elif file_obj.name.endswith(('.xls', '.xlsx')):
+                df = pd.read_excel(file_obj)
+            else:
+                return Response({"error": "Unsupported file format. Please upload CSV or Excel."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Normalize column names
+            df.columns = [c.lower().strip() for c in df.columns]
+            
+            if 'roll_no' not in df.columns or 'marks' not in df.columns:
+                return Response({"error": "File must contain 'roll_no' and 'marks' columns"}, status=status.HTTP_400_BAD_REQUEST)
             
             marks_created = 0
 
             with transaction.atomic():
-                for row in reader:
-                    roll_no = row.get('roll_no')
-                    marks_obtained = row.get('marks')
+                for _, row in df.iterrows():
+                    roll_no = str(row['roll_no']).strip()
+                    marks_obtained = row['marks']
+                    
+                    if not roll_no or roll_no == 'nan': continue
                     
                     student = Student.objects.filter(roll_no=roll_no).first()
                     if student:
@@ -91,7 +117,7 @@ class BulkMarksUploadView(APIView):
                             student_id=student,
                             defaults={
                                 'marks_obtained': marks_obtained,
-                                'entered_by': set_by
+                                'user_id': set_by
                             }
                         )
                         marks_created += 1

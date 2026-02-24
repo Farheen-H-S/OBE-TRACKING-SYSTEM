@@ -327,6 +327,12 @@ const Assigntarget = () => {
 
 
 
+  const getGapClass = (gap) => {
+    if (gap === '-' || gap === '' || isNaN(parseFloat(gap))) return 'bg-light';
+    const gapVal = parseFloat(gap);
+    return gapVal > 0 ? 'gap-high' : 'gap-low';
+  };
+
   return (
 
     <div className="assign-target-container">
@@ -561,7 +567,7 @@ const Assigntarget = () => {
                         <td>
                           <input
                             type="text"
-                            className="form-control text-center metric-input bg-light"
+                            className={`form-control text-center metric-input ${getGapClass(course.gap)}`}
                             value={course.gap}
                             readOnly
                           />
@@ -610,7 +616,7 @@ const Assigntarget = () => {
                           <td>
                             <input
                               type="text"
-                              className="form-control text-center metric-input bg-light"
+                              className={`form-control text-center metric-input ${getGapClass(p.gap)}`}
                               value={p.gap}
                               readOnly
                             />
@@ -658,7 +664,7 @@ const Assigntarget = () => {
                           <td>
                             <input
                               type="text"
-                              className="form-control text-center metric-input bg-light"
+                              className={`form-control text-center metric-input ${getGapClass(p.gap)}`}
                               value={p.gap}
                               readOnly
                             />

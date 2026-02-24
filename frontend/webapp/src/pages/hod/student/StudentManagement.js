@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../utils/axios';
-import { BsPlusCircleFill, BsDashCircleFill, BsPencilFill, BsCheckCircleFill, BsXCircleFill } from "react-icons/bs";
+import { BsPlusCircleFill, BsDashCircleFill, BsPencilFill, BsCheckCircleFill, BsXCircleFill, BsCloudUploadFill } from "react-icons/bs";
 import { Table, Form, Button, Spinner, Alert } from 'react-bootstrap';
 import './StudentManagement.css';
 
 const StudentManagement = () => {
+    const bulkUploadRef = React.useRef(null);
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [programs, setPrograms] = useState([]);
@@ -109,6 +110,31 @@ const StudentManagement = () => {
         }
     };
 
+    const handleBulkUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('program_id', selectedProgram);
+        formData.append('batch_id', selectedBatch);
+
+        setLoading(true);
+        try {
+            await api.post('bulk_upload/students/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert("Students uploaded successfully!");
+            fetchStudents();
+        } catch (err) {
+            console.error("Bulk upload failed:", err);
+            alert("Bulk upload failed: " + (err.response?.data?.error || "Unknown error"));
+        } finally {
+            setLoading(false);
+            if (bulkUploadRef.current) bulkUploadRef.current.value = '';
+        }
+    };
+
     const handleBulkSave = async () => {
         setIsEditMode(false);
         // In a real app, you might want to send all changes at once.
@@ -124,6 +150,16 @@ const StudentManagement = () => {
                         <div className="d-flex justify-content-between align-items-center mb-4">
                             <h2 className="m-0 text-primary fw-bold">Student Management</h2>
                             <div className="d-flex gap-2">
+                                <input
+                                    type="file"
+                                    accept=".csv, .xlsx, .xls"
+                                    ref={bulkUploadRef}
+                                    onChange={handleBulkUpload}
+                                    style={{ display: 'none' }}
+                                />
+                                <Button variant="outline-success" onClick={() => bulkUploadRef.current.click()} className="d-flex align-items-center gap-2">
+                                    <BsCloudUploadFill /> Bulk Upload
+                                </Button>
                                 <Button variant={isEditMode ? "success" : "outline-primary"} onClick={() => isEditMode ? handleBulkSave() : setIsEditMode(true)}>
                                     {isEditMode ? <><BsCheckCircleFill /> Save Changes</> : <><BsPencilFill /> Edit Students</>}
                                 </Button>

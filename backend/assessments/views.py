@@ -78,6 +78,14 @@ class SaveAssessmentMarksView(APIView):
         marks = MarksEntry.objects.filter(assessment_id=assessment)
         co_mappings = AssessmentCOMapping.objects.filter(assessment_id=assessment)
         
+        # Fetch CIS Evidence
+        evidence = CisEvidence.objects.filter(
+            course_id=course_id,
+            academic_year=assessment.academic_year,
+            semester=assessment.semester,
+            assessment_tool=tool_name
+        )
+        
         return Response({
             "assessment_id": assessment.assessment_id,
             "max_marks": assessment.max_marks,
@@ -85,7 +93,8 @@ class SaveAssessmentMarksView(APIView):
             "marks_data": MarksEntrySerializer(marks, many=True).data,
             "co_mappings": [
                 {"co_id": m.co_id_id, "weight": m.co_weightage} for m in co_mappings
-            ]
+            ],
+            "evidence": CisEvidenceSerializer(evidence, many=True).data
         }, status=status.HTTP_200_OK)
 
     def post(self, request):
