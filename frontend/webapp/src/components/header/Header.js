@@ -163,40 +163,36 @@ const Header = ({ onToggleSidebar }) => {
 
           {/* Global Filters - Hidden for Admin */}
           {userRole !== 'admin' && (
-            <div className="header-filters d-none d-xl-flex align-items-center gap-2">
-              <div className="filter-item d-flex align-items-center bg-white rounded px-2" style={{ height: '38px', minWidth: '150px' }}>
-                <select
-                  className="form-select border-0 bg-transparent shadow-none p-0"
-                  style={{ fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
-                  value={selectedDept}
-                  onChange={(e) => setSelectedDept(e.target.value)}
-                  disabled={loadingFilters}
-                >
-                  <option value="">All Departments</option>
-                  {departments.map(dept => (
-                    <option key={dept.program_id} value={dept.program_id}>
-                      {dept.program_abbr || dept.program_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="header-filters d-none d-xl-flex align-items-center gap-3">
+              <select
+                className="header-select"
+                style={{ minWidth: '150px' }}
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                disabled={loadingFilters}
+              >
+                <option value="">All Departments</option>
+                {departments.map(dept => (
+                  <option key={dept.program_id} value={dept.program_id}>
+                    {dept.program_abbr || dept.program_name}
+                  </option>
+                ))}
+              </select>
 
-              <div className="filter-item d-flex align-items-center bg-white rounded px-2" style={{ height: '38px', minWidth: '100px' }}>
-                <select
-                  className="form-select border-0 bg-transparent shadow-none p-0"
-                  style={{ fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
-                  value={selectedScheme}
-                  onChange={(e) => setSelectedScheme(e.target.value)}
-                  disabled={loadingFilters}
-                >
-                  <option value="">All Schemes</option>
-                  {schemes.map(scheme => (
-                    <option key={scheme.scheme_id} value={scheme.scheme_id}>
-                      {scheme.scheme_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                className="header-select"
+                style={{ minWidth: '80px' }}
+                value={selectedScheme}
+                onChange={(e) => setSelectedScheme(e.target.value)}
+                disabled={loadingFilters}
+              >
+                <option value="">All Schemes</option>
+                {schemes.map(scheme => (
+                  <option key={scheme.scheme_id} value={scheme.scheme_id}>
+                    {scheme.scheme_name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
