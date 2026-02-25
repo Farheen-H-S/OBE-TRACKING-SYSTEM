@@ -96,7 +96,7 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
             <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
-            <Route path="/update-user/:id" element={<Layout><Updateuser /></Layout>} />
+            <Route path="/update-user" element={<Layout><Updateuser /></Layout>} />
             <Route path="/view-user" element={<Layout><Viewuser1 /></Layout>} />
             <Route path="/view-user2" element={<Layout><Viewuser2 /></Layout>} />
             <Route path="/academic-setup" element={<Layout><AcademicSetup /></Layout>} />

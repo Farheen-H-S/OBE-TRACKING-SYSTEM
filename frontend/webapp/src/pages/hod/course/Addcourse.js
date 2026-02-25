@@ -29,6 +29,7 @@ const Addcourse = () => {
         class: '',
         semester: '',
         faculty: '',
+        batches: [],  // Multiple batches can study this course
         assessmentTools: {
             'FA-TH': { selected: false, maxMarks: 20, type: 'Internal' },
             'FA-PR': { selected: false, maxMarks: 30, type: 'Internal' },
@@ -38,6 +39,17 @@ const Addcourse = () => {
         },
         courseOutcomes: [{ no: 'CO1', text: '' }]
     });
+
+    const handleBatchToggle = (batch) => {
+        setFormData(prev => {
+            const current = prev.batches || [];
+            const exists = current.includes(batch);
+            return {
+                ...prev,
+                batches: exists ? current.filter(b => b !== batch) : [...current, batch]
+            };
+        });
+    };
 
     const loadCourseData = async (data) => {
         setIsViewMode(true);
@@ -304,8 +316,8 @@ const Addcourse = () => {
         <div className="add-course-container">
             <div className="main-content d-flex">
                 <div className="content-area p-4 w-100 bg-light overflow-auto">
-                    {/* Filter Section (Before Course Details Card) */}
-                    <div className="filter-row-v2 mb-4 p-3 bg-white rounded border shadow-sm">
+                    {/* Filter Section — hidden in view mode */}
+                    {!isViewMode && <div className="filter-row-v2 mb-4 p-3 bg-white rounded border shadow-sm">
                         {/* Search Bar */}
                         <div className="row mb-3">
                             <div className="col-12 position-relative">
@@ -394,7 +406,7 @@ const Addcourse = () => {
                                 </select>
                             </div>
                         </div>
-                    </div>
+                    </div>}
 
                     <div className="card shadow-sm border-0 p-4" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
@@ -505,6 +517,30 @@ const Addcourse = () => {
                                             <option key={sem} value={sem}>{sem}</option>
                                         ))}
                                     </select>
+                                </div>
+
+                                {/* Batch Assignment — clickable pill badges */}
+                                <div className="col-12 mt-2">
+                                    <label className="form-label fw-bold">Applicable Batches</label>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        {years.map(y => {
+                                            const isSelected = (formData.batches || []).includes(y);
+                                            return (
+                                                <div
+                                                    key={y}
+                                                    className={`badge rounded-pill px-3 py-2 ${isSelected ? 'bg-primary text-white' : 'bg-light text-dark border'}`}
+                                                    style={{ cursor: isViewMode ? 'default' : 'pointer', fontSize: '0.85rem' }}
+                                                    onClick={() => !isViewMode && handleBatchToggle(y)}
+                                                >
+                                                    {isSelected && <span className="me-1">✓</span>}
+                                                    {y}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {!isViewMode && (formData.batches || []).length === 0 && (
+                                        <small className="text-muted mt-1 d-block">Click to select batches that study this course</small>
+                                    )}
                                 </div>
 
                                 <div className="col-md-6">

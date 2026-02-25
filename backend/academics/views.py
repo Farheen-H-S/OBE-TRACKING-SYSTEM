@@ -55,6 +55,20 @@ class AcademicSetupAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def patch(self, request):
+        """Partial update — allows updating individual fields like curriculum_link."""
+        setup = AcademicSetup.objects.first()
+        if not setup:
+            return Response({"error": "Academic setup not configured yet."}, status=status.HTTP_404_NOT_FOUND)
+
+        old_value = AcademicSetupSerializer(setup).data
+        serializer = AcademicSetupSerializer(setup, data=request.data, partial=True)
+        if serializer.is_valid():
+            setup = serializer.save()
+            log_action(request.user, 'UPDATE', 'AcademicSetup', setup.pk, old_value=old_value, new_value=serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class SchemeListAPIView(APIView):
     """GET all schemes (active only by default), POST to create."""
     def get(self, request):

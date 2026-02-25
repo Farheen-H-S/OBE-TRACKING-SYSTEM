@@ -9,12 +9,19 @@ const Cescreate = () => {
     const {
         selectedDept: selectedProgram, setSelectedDept: setSelectedProgram,
         selectedScheme, setSelectedScheme,
+        selectedBatch, setSelectedBatch,
         selectedYear, setSelectedYear,
         selectedClass, setSelectedClass,
         selectedSemester, setSelectedSemester,
         selectedDivision, setSelectedDivision,
         departments: programs, schemes
     } = useFilters();
+
+    // Dynamic years list
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
 
     // Academic state
     const [academicYear, setAcademicYear] = useState('');
@@ -39,6 +46,16 @@ const Cescreate = () => {
     useEffect(() => {
         fetchInitialData();
     }, []);
+
+    // Smart semester options based on class
+    const semesterOptions = (() => {
+        switch (selectedClass) {
+            case 'FY': return ['1', '2'];
+            case 'SY': return ['3', '4'];
+            case 'TY': return ['5', '6'];
+            default: return ['1', '2', '3', '4', '5', '6'];
+        }
+    })();
 
     // Auto-update semester when class changes
     useEffect(() => {
@@ -466,33 +483,24 @@ const Cescreate = () => {
                         </div>
                     )}
 
-                    <div className="filter-card p-4 border rounded mb-4">
+                    <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                         <div className="row g-3">
                             <div className="col-md">
-                                <label className="filter-label uppercase mb-2">DEPARTMENT</label>
-                                <select className="form-select" value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
-                                    <option value="All">All Departments</option>
-                                    {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_abbr || p.program_name}</option>)}
+                                <label className="filter-label">BATCH</label>
+                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="All">All</option>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>
                             <div className="col-md">
-                                <label className="filter-label uppercase mb-2">SCHEME</label>
-                                <select className="form-select" value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)}>
-                                    <option value="All">All Schemes</option>
-                                    {schemes.map(s => <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>)}
+                                <label className="filter-label">ACADEMIC YEAR</label>
+                                <select className="form-select filter-select" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>
                             <div className="col-md">
-                                <label className="filter-label uppercase mb-2">YEAR</label>
-                                <select className="form-select" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                                    <option value="2024 - 25">2024 - 25</option>
-                                    <option value="2025 - 26">2025 - 26</option>
-                                    <option value="2026 - 27">2026 - 27</option>
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="filter-label uppercase mb-2">CLASS</label>
-                                <select className="form-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+                                <label className="filter-label">CLASS</label>
+                                <select className="form-select filter-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
                                     <option value="All">All Classes</option>
                                     <option value="FY">FY</option>
                                     <option value="SY">SY</option>
@@ -500,17 +508,17 @@ const Cescreate = () => {
                                 </select>
                             </div>
                             <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="filter-label uppercase mb-2">DIV</label>
-                                <select className="form-select" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
+                                <label className="filter-label">DIV</label>
+                                <select className="form-select filter-select" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
                                     <option value="All">All</option>
                                     {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
-                            <div className="col-md">
-                                <label className="filter-label uppercase mb-2">SEMESTER</label>
-                                <select className="form-select" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
-                                    <option value="All">All Semesters</option>
-                                    {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}
+                            <div className="col-md" style={{ maxWidth: '100px' }}>
+                                <label className="filter-label">SEM</label>
+                                <select className="form-select filter-select" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
+                                    <option value="All">All</option>
+                                    {semesterOptions.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>

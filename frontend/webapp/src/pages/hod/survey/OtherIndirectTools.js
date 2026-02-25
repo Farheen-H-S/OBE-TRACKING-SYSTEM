@@ -57,9 +57,14 @@ const OtherIndirectTools = () => {
         selectedClass, setSelectedClass,
         selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
         selectedDivision, setSelectedDivision,
-        programs,
-        years: academicYears
+        departments: programs
     } = useFilters();
+
+    // Generate academic years locally (FilterContext doesn't export years)
+    const academicYears = [];
+    for (let i = 2019; i <= 2030; i++) {
+        academicYears.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
 
     const [selectedTool, setSelectedTool] = useState(SURVEY_TOOLS[0]);
     const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);

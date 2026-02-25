@@ -234,7 +234,9 @@ const Assigntarget = () => {
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = (course.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.code || "").toLowerCase().includes(searchTerm.toLowerCase());
+      (course.code || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.abbr || "").toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesDept = !selectedDept || String(course.program_id) === String(selectedDept);
     const matchesScheme = !selectedScheme || String(course.scheme_id) === String(selectedScheme);

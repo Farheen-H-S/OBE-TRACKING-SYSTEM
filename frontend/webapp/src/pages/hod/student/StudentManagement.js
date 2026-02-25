@@ -167,6 +167,10 @@ const StudentManagement = () => {
         }
     };
 
+    const handleBulkSave = () => {
+        setIsEditMode(false);
+    };
+
     return (
         <div className="student-management-wrapper">
             <div className="d-flex">

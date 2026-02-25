@@ -60,7 +60,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const handleSaveLink = async () => {
         try {
-            const res = await api.post('/academics/academic-setup/', { curriculum_link: newLinkValue });
+            const res = await api.patch('/academics/academic-setup/', { curriculum_link: newLinkValue });
             setSyllabusLink(res.data.curriculum_link);
             setIsEditingLink(false);
             alert("Curriculum link updated globally!");
