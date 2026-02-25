@@ -11,11 +11,11 @@ const Addcourse = () => {
     const [formData, setFormData] = useState({
         courseId: '',
         courseCode: '',
-        course_name_suffix: '', // New field for the part after abbreviation
+        course_name_suffix: '',
         courseTitle: '',
         courseAbbr: '',
         scheme: '',
-        program_id: location.state?.initialFilters?.program_id || '',
+        program_id: '',
         class: '',
         semester: '',
         faculty: '',
@@ -26,8 +26,19 @@ const Addcourse = () => {
             'SA-TH': { selected: false, maxMarks: 70, type: 'External' },
             'SA-PR': { selected: false, maxMarks: 30, type: 'External' }
         },
-        courseOutcomes: [{ no: 'CO1', text: '' }] // Fallback default
+        courseOutcomes: [{ no: 'CO1', text: '' }]
     });
+
+    // Filters for "Details View" context
+    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
+    const [selectedYear, setSelectedYear] = useState('2025 - 26');
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSem, setSelectedSem] = useState('');
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
 
     const [faculties, setFaculties] = useState([]);
     const [programs, setPrograms] = useState([]);
@@ -265,6 +276,38 @@ const Addcourse = () => {
         <div className="add-course-container">
             <div className="main-content d-flex">
                 <div className="content-area p-4 w-100 bg-light overflow-auto">
+                    {/* Filter Section (Before Course Details Card) */}
+                    <div className="filter-row-v2 mb-4 p-3 bg-white rounded border shadow-sm">
+                        <div className="row g-3">
+                            <div className="col-md">
+                                <label className="filter-label">BATCH</label>
+                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">ACADEMIC YEAR</label>
+                                <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">CLASS</label>
+                                <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                                    <option value="">Select Class</option>
+                                    {['FY', 'SY', 'TY'].map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">SEM</label>
+                                <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
+                                    <option value="">Select Sem</option>
+                                    {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="card shadow-sm border-0 p-4" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                             <h3 className="fw-bold mb-0" style={{ color: '#1a237e' }}>
@@ -285,36 +328,7 @@ const Addcourse = () => {
 
                         <form onSubmit={handleSave}>
                             <div className="row g-4">
-                                <div className="col-md-6">
-                                    <label className="form-label fw-bold">Department</label>
-                                    <select
-                                        className="form-select"
-                                        name="program_id"
-                                        value={formData.program_id}
-                                        onChange={handleChange}
-                                        disabled={isViewMode}
-                                    >
-                                        <option value="">Select Department</option>
-                                        {programs.map(prog => (
-                                            <option key={prog.program_id} value={prog.program_id}>{prog.program_name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label fw-bold">Scheme</label>
-                                    <select
-                                        className="form-select"
-                                        name="scheme"
-                                        value={formData.scheme}
-                                        onChange={handleChange}
-                                        disabled={isViewMode}
-                                    >
-                                        <option value="">Select Scheme</option>
-                                        {schemes.map(sch => (
-                                            <option key={sch.scheme_id} value={sch.scheme_id}>{sch.scheme_name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {/* Department and Scheme removed from form as they are global */}
 
                                 <div className="col-md-4">
                                     <label className="form-label fw-bold">Course Code</label>

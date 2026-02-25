@@ -1,6 +1,6 @@
 from academics.models import CO, PO, PSO, COPOMapping, COPSOMapping, COTarget, POTarget, PSOTarget, Course
 from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
-from indirect_attainment.models import IndirectAttainment
+from indirect_attainment.models import CourseIndirectAttainment, ActivityIndirectAttainment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse
 from .models import COAttainment, POAttainment, PSOAttainment
 from django.db.models import Avg

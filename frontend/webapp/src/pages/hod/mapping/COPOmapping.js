@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Form, Row, Col, Card } from 'react-bootstrap';
 import api from '../../../utils/axios';
 import './COPOmapping.css';
-import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
 
 const COPOmapping = () => {
     // Data states
@@ -17,12 +16,13 @@ const COPOmapping = () => {
     const [isEditing, setIsEditing] = useState(false);
 
     // Filter states
-    const [selectedProgram, setSelectedProgram] = useState('');
-    const [selectedScheme, setSelectedScheme] = useState('');
-    const [selectedYear, setSelectedYear] = useState('2025-26');
-    const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedDivision, setSelectedDivision] = useState('A');
-    const [selectedSemester, setSelectedSemester] = useState(() => getDefaultSemester('FY', getCachedSemesterType()));
+    const { selectedDept, selectedScheme } = JSON.parse(localStorage.getItem('academicSetup') || '{}');
+    const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [existingCoursesAll, setExistingCoursesAll] = useState([]);
@@ -41,18 +41,10 @@ const COPOmapping = () => {
             setPrograms(progRes.data);
             setSchemes(schemeRes.data);
             if (setupRes.data) {
-                setSelectedYear(setupRes.data.academic_year);
-                setSelectedScheme(setupRes.data.scheme_id);
+                const ay = setupRes.data.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+                setSelectedIntroYear(ay);
                 localStorage.setItem('academicSetup', JSON.stringify(setupRes.data));
-                setSelectedSemester(getDefaultSemester('FY', setupRes.data.semester_type || 'Odd'));
             }
-
-            // Set default program based on user dept
-            const user = JSON.parse(localStorage.getItem('user'));
-            const userDept = user?.department_id || user?.department;
-            const matched = progRes.data.find(p => p.program_id === parseInt(userDept));
-            if (matched) setSelectedProgram(matched.program_id);
-            else if (progRes.data.length > 0) setSelectedProgram(progRes.data[0].program_id);
 
             setLoading(false);
 
@@ -66,42 +58,18 @@ const COPOmapping = () => {
     };
 
     useEffect(() => {
-        if (selectedProgram) {
-            fetchCourses();
-        }
-    }, [selectedProgram, selectedSemester, selectedClass, selectedDivision, selectedScheme, selectedYear]);
+        fetchCourses();
+    }, [selectedIntroYear]);
 
-    // Auto-update semester when class changes based on admin semester_type
-    useEffect(() => {
-        const semType = getCachedSemesterType();
-        setSelectedSemester(getDefaultSemester(selectedClass, semType));
-    }, [selectedClass]);
-
-    const getSemesterOptions = () => {
-        if (selectedClass === 'FY') return ['1', '2'];
-        if (selectedClass === 'SY') return ['3', '4'];
-        if (selectedClass === 'TY') return ['5', '6'];
-        return [];
-    };
-
-    const handleClassChange = (newClass) => {
-        setSelectedClass(newClass);
-        const sems = newClass === 'FY' ? ['1', '2'] : newClass === 'SY' ? ['3', '4'] : ['5', '6'];
-        if (!sems.includes(selectedSemester)) {
-            setSelectedSemester(sems[0]);
-        }
-    };
 
     const fetchCourses = async () => {
         try {
+            const setup = JSON.parse(localStorage.getItem('academicSetup') || '{}');
             const response = await api.get('/academics/courses/', {
                 params: {
-                    program_id: selectedProgram,
-                    semester: selectedSemester,
-                    class_year: selectedClass,
-                    division: selectedDivision,
-                    scheme_id: selectedScheme,
-                    academic_year: selectedYear
+                    program_id: setup.program_id,
+                    scheme_id: setup.scheme_id,
+                    intro_year: selectedIntroYear
                 }
             });
             setCourses(response.data);
@@ -128,11 +96,6 @@ const COPOmapping = () => {
         const course = existingCoursesAll.find(c => c.course_id === parseInt(courseId));
         if (!course) return;
 
-        // Auto-sync filters to match the selected course
-        if (course.program_id !== selectedProgram) setSelectedProgram(course.program_id);
-        if (course.scheme_id !== selectedScheme) setSelectedScheme(course.scheme_id);
-        if (course.class_year !== selectedClass) setSelectedClass(course.class_year);
-        if (course.semester.toString() !== selectedSemester) setSelectedSemester(course.semester.toString());
         setSelectedCourse(course);
         setIsEditing(false);
 
@@ -271,75 +234,15 @@ const COPOmapping = () => {
                         {/* Filter Section */}
                         <Card className="border-0 bg-light mb-4 p-3 shadow-sm rounded">
                             <Row className="g-3 align-items-end">
-                                <Col md={6} lg={4}>
-                                    <span className="filter-label">Department</span>
+                                <Col md={4}>
+                                    <span className="filter-label">YEAR OF INTRODUCTION</span>
                                     <Form.Select
                                         className="filter-select"
-                                        value={selectedProgram}
-                                        onChange={(e) => setSelectedProgram(e.target.value)}
+                                        value={selectedIntroYear}
+                                        onChange={(e) => setSelectedIntroYear(e.target.value)}
                                     >
-                                        <option value="">Select Department</option>
-                                        {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_name}</option>)}
+                                        {years.map(y => <option key={y} value={y}>{y}</option>)}
                                     </Form.Select>
-                                </Col>
-                                <Col md={3} lg={2}>
-                                    <span className="filter-label">Scheme</span>
-                                    <Form.Select
-                                        className="filter-select"
-                                        value={selectedScheme}
-                                        onChange={(e) => setSelectedScheme(e.target.value)}
-                                    >
-                                        <option value="">Select Scheme</option>
-                                        {schemes.map(s => <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>)}
-                                    </Form.Select>
-                                </Col>
-                                <Col md={3} lg={2}>
-                                    <span className="filter-label">Year</span>
-                                    <Form.Select
-                                        className="filter-select"
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
-                                    >
-                                        <option value="2024-25">2024 - 25</option>
-                                        <option value="2025-26">2025 - 26</option>
-                                    </Form.Select>
-                                </Col>
-                                <Col md={4} lg={2}>
-                                    <span className="filter-label">Class</span>
-                                    <Form.Select
-                                        className="filter-select"
-                                        value={selectedClass}
-                                        onChange={(e) => handleClassChange(e.target.value)}
-                                    >
-                                        <option value="FY">FY - {selectedDivision}</option>
-                                        <option value="SY">SY - {selectedDivision}</option>
-                                        <option value="TY">TY - {selectedDivision}</option>
-                                    </Form.Select>
-                                </Col>
-                                <Col md={2} lg={1}>
-                                    <span className="filter-label">Div</span>
-                                    <Form.Select
-                                        className="filter-select"
-                                        value={selectedDivision}
-                                        onChange={(e) => setSelectedDivision(e.target.value)}
-                                    >
-                                        {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
-                                    </Form.Select>
-                                </Col>
-                                <Col md={4} lg={1}>
-                                    <span className="filter-label">Semester</span>
-                                    <Form.Select
-                                        className="filter-select"
-                                        value={selectedSemester}
-                                        onChange={(e) => setSelectedSemester(e.target.value)}
-                                    >
-                                        {getSemesterOptions().map(sem => (
-                                            <option key={sem} value={sem}>{sem}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Col>
-                                <Col md={12} lg={3}>
-                                    {/* Spacer for layout consistency */}
                                 </Col>
                             </Row>
 

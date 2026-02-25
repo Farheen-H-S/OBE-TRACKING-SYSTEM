@@ -28,16 +28,21 @@ const getAttainmentLevel = (avg) => {
     return ATTAINMENT_LEVELS[4];
 };
 
-const years = ['2024 - 25', '2025 - 26', '2026 - 27'];
 const BATCHES = ['FY', 'SY', 'TY'];
-const DIVS = ['A', 'B', 'C', 'D'];
 
 export default function IndirectAttainment() {
     const [departments, setDepartments] = useState([]);
     const [selectedDept, setSelectedDept] = useState('');
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
+
     const [selectedYear, setSelectedYear] = useState('2025 - 26');
+    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
     const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedDiv, setSelectedDiv] = useState('A');
+    const [selectedSem, setSelectedSem] = useState('1');
 
     // Survey rows derived from localStorage
     const [rows, setRows] = useState([]);
@@ -49,7 +54,7 @@ export default function IndirectAttainment() {
     const [modalStmts, setModalStmts] = useState([]);
 
     useEffect(() => { fetchDepts(); }, []);
-    useEffect(() => { if (selectedDept) buildRows(); }, [selectedDept, selectedYear, selectedClass, selectedDiv]);
+    useEffect(() => { if (selectedDept) buildRows(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
 
     const fetchDepts = async () => {
         try {
@@ -57,6 +62,14 @@ export default function IndirectAttainment() {
             setDepartments(res.data || []);
             const user = JSON.parse(localStorage.getItem('user') || 'null');
             const dept = user?.department || user?.department_id;
+
+            const setupKey = 'academicSetup';
+            const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
+            if (setup.academic_year) {
+                const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+                setSelectedYear(ay);
+            }
+
             if (dept) {
                 const found = (res.data || []).find(d => String(d.program_id) === String(dept));
                 setSelectedDept(found ? String(found.program_id) : String(res.data[0]?.program_id || ''));
@@ -68,7 +81,7 @@ export default function IndirectAttainment() {
 
     const buildRows = () => {
         const built = SURVEY_TOOLS.map(tool => {
-            const key = `oit_responses_oit_survey_${tool.id}_${selectedDept}_${selectedYear.replace(/\s/g, '')}_${selectedClass}_${selectedDiv}`;
+            const key = `oit_responses_oit_survey_${tool.id}_${selectedDept}_${selectedYear.replace(/\s/g, '')}_${selectedClass}_${selectedSem}`;
             const responses = JSON.parse(localStorage.getItem(key) || '[]');
             return { tool, responses, count: responses.length };
         });
@@ -127,6 +140,24 @@ export default function IndirectAttainment() {
         return <span className={`badge bg-${cls}`}>{mean.toFixed(2)} {al ? `— L${al.level} ${al.label}` : ''}</span>;
     };
 
+    const handleGenerateReport = async () => {
+        try {
+            const response = await api.get(`/attainment/indirect-report/?batch_id=${selectedBatch}&program_id=${selectedDept}`, {
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Indirect_Attainment_Report_${selectedBatch}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error('Report generation failed:', err);
+            alert('Failed to generate report.');
+        }
+    };
+
     return (
         <div className="indir-wrapper">
             <div className="indir-card">
@@ -135,10 +166,9 @@ export default function IndirectAttainment() {
                 <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                     <div className="row g-3">
                         <div className="col-md">
-                            <label className="filter-label">DEPARTMENT</label>
-                            <select className="form-select filter-select" value={selectedDept} onChange={e => setSelectedDept(e.target.value)}>
-                                <option value="">Select Department</option>
-                                {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_name}</option>)}
+                            <label className="filter-label">BATCH</label>
+                            <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                {years.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
                         <div className="col-md">
@@ -147,22 +177,27 @@ export default function IndirectAttainment() {
                                 {years.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
-                        <div className="col-md">
-                            <label className="filter-label">BATCH</label>
+                        <div className="col-md" style={{ maxWidth: 100 }}>
+                            <label className="filter-label">CLASS</label>
                             <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
                                 {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                         </div>
-                        <div className="col-md" style={{ maxWidth: 110 }}>
-                            <label className="filter-label">DIV</label>
-                            <select className="form-select filter-select" value={selectedDiv} onChange={e => setSelectedDiv(e.target.value)}>
-                                {DIVS.map(d => <option key={d} value={d}>{d}</option>)}
+                        <div className="col-md" style={{ maxWidth: 100 }}>
+                            <label className="filter-label">SEM</label>
+                            <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
+                                {['1', '2', '3', '4', '5', '6'].map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <h2 className="indir-title mb-4">Report : Indirect Attainment</h2>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h2 className="indir-title mb-0">Report : Indirect Attainment</h2>
+                    <Button variant="success" onClick={handleGenerateReport} className="d-flex align-items-center gap-2">
+                        <BsFileEarmarkExcelFill size={18} /> Download Overall Report
+                    </Button>
+                </div>
 
                 {/* Survey tools table */}
                 <div className="table-responsive">
@@ -226,7 +261,7 @@ export default function IndirectAttainment() {
                     <Modal.Title className="text-primary fw-bold">
                         Indirect Attainment: {modalTool?.label}
                         <div className="small text-muted fw-normal">
-                            {selectedClass} – Div {selectedDiv} &nbsp;|&nbsp; {selectedYear}
+                            {selectedClass} &nbsp;|&nbsp; {selectedYear}
                         </div>
                     </Modal.Title>
                 </Modal.Header>
@@ -316,10 +351,10 @@ export default function IndirectAttainment() {
                     <Button
                         variant="success"
                         className="d-flex align-items-center gap-2"
-                        disabled
-                        title="Backend report generation coming soon"
+                        onClick={handleGenerateReport}
+                        title="Download compiled Excel report"
                     >
-                        <BsFileEarmarkExcelFill size={16} /> Generate Report
+                        <BsFileEarmarkExcelFill size={16} /> Compiled Report
                     </Button>
                 </Modal.Footer>
             </Modal>

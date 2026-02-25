@@ -20,6 +20,15 @@ class SurveyMaster(models.Model):
         blank=True,
         db_column='course_id'
     )
+    program_id = models.ForeignKey(
+        'academics.Program',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='program_id'
+    )
+    activity_type = models.CharField(max_length=50, null=True, blank=True)
+    activity_title = models.CharField(max_length=200, null=True, blank=True)
     is_anonymous = models.BooleanField(default=False)
     status = models.CharField(max_length=20, default='DRAFT') # DRAFT, APPROVED, CLOSED
     expires_at = models.DateTimeField(null=True, blank=True)
@@ -57,6 +66,13 @@ class SurveyQuestion(models.Model):
         blank=True,
         db_column='po_id'
     )
+    pso_id = models.ForeignKey(
+        'academics.PSO',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='pso_id'
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -90,6 +106,8 @@ class SurveyResponse(models.Model):
         blank=True,
         db_column='user_id'
     )
+    respondent_name = models.CharField(max_length=200, null=True, blank=True)
+    enrollment_no = models.CharField(max_length=20, null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

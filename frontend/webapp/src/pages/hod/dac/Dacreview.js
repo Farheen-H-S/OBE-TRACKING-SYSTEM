@@ -12,16 +12,18 @@ const Dacreview = () => {
 
     // Filter states
     const [filters, setFilters] = useState({
-        program: '',
-        batch: '',
+        batch: '2025 - 26',
+        academicYear: '2025 - 26',
         class: '',
         semester: ''
     });
 
-    // Mock data for batches, classes, and semesters
-    const batches = ['2022-26', '2023-27', '2024-28', '2025-29'];
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
     const classes = ['FY', 'SY', 'TY', 'Final Year'];
-    const semesters = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6', 'Sem 7', 'Sem 8'];
+    const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
     useEffect(() => {
         fetchPrograms();
@@ -32,8 +34,20 @@ const Dacreview = () => {
         try {
             const res = await api.get('/academics/programs/');
             setPrograms(res.data);
+
+            const setupKey = 'academicSetup';
+            const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
+            let ay = '2025 - 26';
+            if (setup.academic_year) {
+                ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+            }
+
             if (res.data.length > 0 && !filters.program) {
-                setFilters(prev => ({ ...prev, program: res.data[0].program_id.toString() }));
+                setFilters(prev => ({
+                    ...prev,
+                    program: res.data[0].program_id.toString(),
+                    academicYear: ay,
+                }));
             }
         } catch (err) {
             console.error("Error fetching programs:", err);
@@ -96,6 +110,7 @@ const Dacreview = () => {
         return (
             (!filters.program || report.filters.program === filters.program) &&
             (!filters.batch || report.filters.batch === filters.batch) &&
+            (!filters.academicYear || report.filters.academicYear === filters.academicYear) &&
             (!filters.class || report.filters.class === filters.class) &&
             (!filters.semester || report.filters.semester === filters.semester)
         );
@@ -129,22 +144,8 @@ const Dacreview = () => {
                     {/* Filters Section */}
                     <div className="filters-grid mb-4 p-3 bg-light rounded shadow-sm">
                         <div className="row g-3">
-                            <div className="col-md-3">
-                                <label className="form-label small fw-bold">Program</label>
-                                <select
-                                    className="form-select form-select-sm"
-                                    name="program"
-                                    value={filters.program}
-                                    onChange={handleFilterChange}
-                                >
-                                    <option value="">All Programs</option>
-                                    {programs.map(p => (
-                                        <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="col-md-3">
-                                <label className="form-label small fw-bold">Batch</label>
+                            <div className="col-md">
+                                <label className="form-label small fw-bold text-uppercase">Batch</label>
                                 <select
                                     className="form-select form-select-sm"
                                     name="batch"
@@ -152,30 +153,42 @@ const Dacreview = () => {
                                     onChange={handleFilterChange}
                                 >
                                     <option value="">All Batches</option>
-                                    {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>
-                            <div className="col-md-3">
-                                <label className="form-label small fw-bold">Class</label>
+                            <div className="col-md">
+                                <label className="form-label small fw-bold text-uppercase">Academic Year</label>
+                                <select
+                                    className="form-select form-select-sm"
+                                    name="academicYear"
+                                    value={filters.academicYear}
+                                    onChange={handleFilterChange}
+                                >
+                                    <option value="">All Years</option>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md" style={{ maxWidth: '100px' }}>
+                                <label className="form-label small fw-bold text-uppercase">Class</label>
                                 <select
                                     className="form-select form-select-sm"
                                     name="class"
                                     value={filters.class}
                                     onChange={handleFilterChange}
                                 >
-                                    <option value="">All Classes</option>
+                                    <option value="">All</option>
                                     {classes.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
-                            <div className="col-md-3">
-                                <label className="form-label small fw-bold">Semester</label>
+                            <div className="col-md" style={{ maxWidth: '100px' }}>
+                                <label className="form-label small fw-bold text-uppercase">Sem</label>
                                 <select
                                     className="form-select form-select-sm"
                                     name="semester"
                                     value={filters.semester}
                                     onChange={handleFilterChange}
                                 >
-                                    <option value="">All Semesters</option>
+                                    <option value="">All</option>
                                     {semesters.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
@@ -208,7 +221,7 @@ const Dacreview = () => {
                                             <td>
                                                 <div className="small text-muted">
                                                     <div>{getProgramName(file.filters.program)}</div>
-                                                    <div>{file.filters.batch} | {file.filters.class} | {file.filters.semester}</div>
+                                                    <div>{file.filters.introYear} | {file.filters.class} | {file.filters.semester}</div>
                                                 </div>
                                             </td>
                                             <td className="text-secondary small">{file.date}</td>

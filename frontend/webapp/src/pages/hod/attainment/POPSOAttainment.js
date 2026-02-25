@@ -7,7 +7,6 @@ import { Modal, Button } from 'react-bootstrap';
 
 const years = ['2024 - 25', '2025 - 26', '2026 - 27'];
 const BATCHES = ['FY', 'SY', 'TY'];
-const DIVS = ['A', 'B', 'C', 'D'];
 
 const STATUS_COLOR = (achieved, target) => {
     if (achieved === null || achieved === undefined) return '#9e9e9e';
@@ -19,9 +18,16 @@ const GAP_COLOR = (gap) => parseFloat(gap) <= 0 ? '#388e3c' : '#d32f2f';
 export default function POPSOAttainment() {
     const [departments, setDepartments] = useState([]);
     const [selectedDept, setSelectedDept] = useState('');
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
+
     const [selectedYear, setSelectedYear] = useState('2025 - 26');
+    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
     const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedDiv, setSelectedDiv] = useState('A');
+    const [selectedSem, setSelectedSem] = useState('');
 
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -33,7 +39,7 @@ export default function POPSOAttainment() {
     const [downloading, setDownloading] = useState(false);
 
     useEffect(() => { fetchDepts(); }, []);
-    useEffect(() => { if (selectedDept) fetchData(); }, [selectedDept, selectedYear]);
+    useEffect(() => { if (selectedDept) fetchData(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
 
     const fetchDepts = async () => {
         try {
@@ -41,6 +47,14 @@ export default function POPSOAttainment() {
             setDepartments(res.data || []);
             const user = JSON.parse(localStorage.getItem('user') || 'null');
             const dept = user?.department || user?.department_id;
+
+            const setupKey = 'academicSetup';
+            const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
+            if (setup.academic_year) {
+                const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+                setSelectedYear(ay);
+            }
+
             if (dept) {
                 const found = (res.data || []).find(d => String(d.program_id) === String(dept));
                 const deptId = found ? String(found.program_id) : String(res.data[0]?.program_id || '');
@@ -172,10 +186,9 @@ export default function POPSOAttainment() {
                 <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                     <div className="row g-3">
                         <div className="col-md">
-                            <label className="filter-label">DEPARTMENT</label>
-                            <select className="form-select filter-select" value={selectedDept} onChange={e => setSelectedDept(e.target.value)}>
-                                <option value="">Select Department</option>
-                                {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_name}</option>)}
+                            <label className="filter-label">BATCH</label>
+                            <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                {years.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
                         <div className="col-md">
@@ -184,16 +197,17 @@ export default function POPSOAttainment() {
                                 {years.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
-                        <div className="col-md">
-                            <label className="filter-label">BATCH</label>
+                        <div className="col-md" style={{ maxWidth: 100 }}>
+                            <label className="filter-label">CLASS</label>
                             <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
                                 {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                         </div>
-                        <div className="col-md" style={{ maxWidth: 110 }}>
-                            <label className="filter-label">DIV</label>
-                            <select className="form-select filter-select" value={selectedDiv} onChange={e => setSelectedDiv(e.target.value)}>
-                                {DIVS.map(d => <option key={d} value={d}>{d}</option>)}
+                        <div className="col-md" style={{ maxWidth: 100 }}>
+                            <label className="filter-label">SEM</label>
+                            <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
+                                <option value="">All</option>
+                                {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
                     </div>
@@ -203,7 +217,7 @@ export default function POPSOAttainment() {
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 className="ppo-title mb-0">PO &amp; PSO Attainment</h2>
-                        <p className="text-muted small mb-0">{selectedClass} – Div {selectedDiv} &nbsp;|&nbsp; {selectedYear}</p>
+                        <p className="text-muted small mb-0">{selectedClass} &nbsp;|&nbsp; {selectedYear}</p>
                     </div>
                     <button
                         className="btn btn-success d-flex align-items-center gap-2"
@@ -317,7 +331,7 @@ export default function POPSOAttainment() {
                 </Modal.Header>
                 <Modal.Body>
                     <div className="ppo-report-preview p-3">
-                        <h6 className="fw-bold mb-1">{selectedClass} – Division {selectedDiv} &nbsp;|&nbsp; Academic Year: {selectedYear}</h6>
+                        <h6 className="fw-bold mb-1">{selectedClass} &nbsp;|&nbsp; Academic Year: {selectedYear}</h6>
                         <hr />
                         <table className="table table-bordered table-sm text-center mt-3" style={{ fontSize: '.82rem' }}>
                             <thead style={{ background: '#1a237e', color: '#fff' }}>

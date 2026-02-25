@@ -7,6 +7,18 @@ const Reportverifiy = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
 
+    const [selectedYear, setSelectedYear] = useState('2025 - 26');
+    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSem, setSelectedSem] = useState('');
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
+    const classes = ['FY', 'SY', 'TY'];
+    const semesters = ['1', '2', '3', '4', '5', '6'];
+
     useEffect(() => {
         loadReports();
     }, []);
@@ -62,7 +74,14 @@ const Reportverifiy = () => {
         const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             r.submittedBy.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = filterType === 'All' || r.type === filterType;
-        return matchesSearch && matchesType;
+
+        // Match additional filters if report has them (DAC reports have them)
+        const matchesYear = !selectedYear || !r.filters?.academicYear || r.filters.academicYear === selectedYear;
+        const matchesBatch = !selectedBatch || !r.filters?.batch || r.filters.batch === selectedBatch;
+        const matchesClass = !selectedClass || !r.filters?.class || r.filters.class === selectedClass;
+        const matchesSem = !selectedSem || !r.filters?.semester || String(r.filters.semester) === String(selectedSem);
+
+        return matchesSearch && matchesType && matchesYear && matchesBatch && matchesClass && matchesSem;
     });
 
     return (
@@ -71,29 +90,62 @@ const Reportverifiy = () => {
                 <div className="reportverifiy-card">
                     <h2 className="rv-title">Report Verification & Approval</h2>
 
-                    <div className="rv-controls mb-4 w-100 d-flex justify-content-between gap-3">
-                        <div className="search-box flex-grow-1 position-relative">
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                    <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
+                        <div className="row g-3">
+                            <div className="col-md">
+                                <label className="filter-label">TYPE</label>
+                                <select
+                                    className="form-select filter-select"
+                                    value={filterType}
+                                    onChange={(e) => setFilterType(e.target.value)}
+                                >
+                                    <option value="All">All Types</option>
+                                    <option value="DAC Report">DAC Reports</option>
+                                    <option value="Direct Attainment">Direct Attainment</option>
+                                    <option value="Indirect Attainment">Indirect Attainment</option>
+                                    <option value="PO/PSO Attainment">PO/PSO Attainment</option>
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">BATCH</label>
+                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="">All Batches</option>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">ACADEMIC YEAR</label>
+                                <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                                    <option value="">All Years</option>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md" style={{ maxWidth: '100px' }}>
+                                <label className="filter-label">CLASS</label>
+                                <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                                    <option value="">All</option>
+                                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md" style={{ maxWidth: '100px' }}>
+                                <label className="filter-label">SEM</label>
+                                <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
+                                    <option value="">All</option>
+                                    {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
                         </div>
-                        <div className="filter-box d-flex align-items-center gap-2">
-                            <select
-                                className="form-select"
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                                style={{ width: '200px' }}
-                            >
-                                <option value="All">All Types</option>
-                                <option value="DAC Report">DAC Reports</option>
-                                <option value="Direct Attainment">Direct Attainment</option>
-                                <option value="Indirect Attainment">Indirect Attainment</option>
-                                <option value="PO/PSO Attainment">PO/PSO Attainment</option>
-                            </select>
+
+                        <div className="mt-3">
+                            <div className="search-box position-relative">
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Search by name or faculty..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 

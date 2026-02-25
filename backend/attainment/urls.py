@@ -1,9 +1,8 @@
 from django.urls import path
 from .views import (
     CalculateAttainmentView, COAttainmentView, POAttainmentView, 
-    CalculateAttainmentView, COAttainmentView, POAttainmentView, 
     PSOAttainmentView, CreateSnapshotView, SnapshotHistoryView,
-    BatchEvaluationReportView
+    BatchEvaluationReportView, IndirectAttainmentReportView
 )
 
 urlpatterns = [
@@ -14,4 +13,5 @@ urlpatterns = [
     path('snapshot/', CreateSnapshotView.as_view(), name='create-snapshot'),
     path('snapshot/history/', SnapshotHistoryView.as_view(), name='snapshot-history'),
     path('batch-report/', BatchEvaluationReportView.as_view(), name='batch-evaluation-report'),
+    path('indirect-report/', IndirectAttainmentReportView.as_view(), name='indirect-attainment-report'),
 ]

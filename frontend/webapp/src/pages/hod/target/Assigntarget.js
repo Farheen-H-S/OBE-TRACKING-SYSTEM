@@ -18,12 +18,17 @@ const Assigntarget = () => {
   // New Filter States
   const [departments, setDepartments] = useState([]);
   const [schemes, setSchemes] = useState([]);
-  const [years, setYears] = useState(['2024 - 25', '2025 - 26', '2026 - 27']); // Match screenshot format
+
+  const years = [];
+  for (let i = 2019; i <= 2030; i++) {
+    years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+  }
+
   const [selectedDept, setSelectedDept] = useState('');
   const [selectedScheme, setSelectedScheme] = useState('');
   const [selectedYear, setSelectedYear] = useState('2025 - 26');
+  const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedDivision, setSelectedDivision] = useState('A');
   const [selectedSem, setSelectedSem] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -32,7 +37,6 @@ const Assigntarget = () => {
   // getSemesterOptions replaced by semesterUtils
   const [semesterOptions, setSemesterOptions] = useState(['1', '2', '3', '4', '5', '6']);
 
-  // Auto-update semester when class changes based on admin semester_type
   useEffect(() => {
     if (selectedClass) {
       const semType = getCachedSemesterType();
@@ -82,7 +86,11 @@ const Assigntarget = () => {
       // Default to "All Schemes" initially to show more courses
       setSelectedScheme('');
 
-      setSelectedYear('2025 - 26');
+      const currYear = new Date().getFullYear();
+      const currMonth = new Date().getMonth();
+      const ay = currMonth < 5 ? `${currYear - 1} - ${currYear.toString().slice(-2)}` : `${currYear} - ${(currYear + 1).toString().slice(-2)}`;
+
+      setSelectedYear(ay);
       setSelectedClass('');
       setSemesterOptions([]);
       setSelectedSem('');
@@ -334,241 +342,244 @@ const Assigntarget = () => {
   };
 
   return (
-
     <div className="assign-target-container">
-      <div className="d-flex w-100">
-        <div className="content-area p-4 w-100 bg-light">
-          <div className="card shadow-sm border-0 p-4">
+      <Header />
+      <div className="d-flex w-100 h-100 overflow-hidden">
+        <HodSide />
+        <div className="content-area p-4 w-100 bg-light overflow-y-auto">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2 className="fw-bold m-0" style={{ color: '#1a237e' }}>Target Management</h2>
 
+            <div className="d-flex gap-3 align-items-center">
+              <button
+                className="attainment-toggle-btn"
+                onClick={() => setShowAttainmentTables(!showAttainmentTables)}
+              >
+                {showAttainmentTables ? 'Hide' : 'Show'} Attainment Levels
+              </button>
+
+              <div className="toggle-container-v2">
+                <button
+                  className={`toggle-btn-v2 ${viewMode === 'course' ? 'active' : ''}`}
+                  onClick={() => setViewMode('course')}
+                >
+                  Course
+                </button>
+                <button
+                  className={`toggle-btn-v2 ${viewMode === 'program' ? 'active' : ''}`}
+                  onClick={() => setViewMode('program')}
+                >
+                  Program
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="card shadow-sm border-0 p-4 mb-4">
             {/* Filter Section */}
-            <div className="filter-row-v2 mb-4 p-3 bg-light rounded shadow-none border">
+            <div className="filter-row-v2 mb-3 p-3 bg-light rounded border">
               <div className="row g-3">
                 <div className="col-md">
-                  <label className="filter-label">DEPARTMENT</label>
+                  <label className="filter-label">BATCH</label>
                   <select
                     className="form-select filter-select"
-                    value={selectedDept}
-                    onChange={(e) => setSelectedDept(e.target.value)}
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
                   >
-                    <option value="">Select Department</option>
-                    {departments.map(d => (
-                      <option key={d.program_id} value={d.program_id}>{d.program_name}</option>
-                    ))}
+                    {years.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
-                <div className="col-md">
-                  <label className="filter-label">SCHEME</label>
-                  <select
-                    className="form-select filter-select"
-                    value={selectedScheme}
-                    onChange={(e) => setSelectedScheme(e.target.value)}
-                  >
-                    <option value="">Select Scheme</option>
-                    {schemes.map(s => (
-                      <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md">
-                  <label className="filter-label">YEAR</label>
-                  <select
-                    className="form-select filter-select"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                  >
-                    {years.map(y => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md">
-                  <label className="filter-label">CLASS</label>
-                  <select
-                    className="form-select filter-select"
-                    value={selectedClass}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setSelectedClass(val);
-                      const semType = getCachedSemesterType();
-                      const defaultSem = getDefaultSemester(val, semType);
-                      setSelectedSem(defaultSem);
-                    }}
-                  >
-                    <option value="">Select Class</option>
-                    {CLASS_OPTIONS.map(c => (
-                      <option key={c} value={c}>{c} - {selectedDivision}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md" style={{ maxWidth: '100px' }}>
-                  <label className="filter-label">DIV</label>
-                  <select
-                    className="form-select filter-select"
-                    value={selectedDivision}
-                    onChange={(e) => setSelectedDivision(e.target.value)}
-                  >
-                    {['A', 'B', 'C', 'D'].map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md">
-                  <label className="filter-label">SEMESTER</label>
-                  <select
-                    className="form-select filter-select"
-                    value={selectedSem}
-                    onChange={(e) => setSelectedSem(e.target.value)}
-                    disabled={!selectedClass}
-                  >
-                    <option value="">Select Sem</option>
-                    {semesterOptions.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              {/* Search Bar inside filter box */}
-              <div className="mt-3">
-                <input
-                  type="text"
-                  className="form-control search-input-v2"
-                  placeholder="Search course..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: '100%', borderRadius: '8px' }}
-                />
+                {viewMode === 'course' && (
+                  <>
+                    <div className="col-md">
+                      <label className="filter-label">ACADEMIC YEAR</label>
+                      <select
+                        className="form-select filter-select"
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                      >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-md" style={{ maxWidth: '100px' }}>
+                      <label className="filter-label">CLASS</label>
+                      <select
+                        className="form-select filter-select"
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        {CLASS_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-md" style={{ maxWidth: '100px' }}>
+                      <label className="filter-label">SEM</label>
+                      <select
+                        className="form-select filter-select"
+                        value={selectedSem}
+                        onChange={(e) => setSelectedSem(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        {semesterOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h2 className="fw-bold m-0" style={{ color: '#1a237e' }}>Target Management</h2>
+            {/* Search Bar */}
+            <div className="mb-0">
+              <input
+                type="text"
+                className="form-control search-input-v2"
+                placeholder="Search course..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: '100%', borderRadius: '8px' }}
+              />
+            </div>
+          </div>
 
-              <div className="d-flex gap-3 align-items-center">
-                <button
-                  className="attainment-toggle-btn"
-                  onClick={() => setShowAttainmentTables(!showAttainmentTables)}
-                >
-                  {showAttainmentTables ? 'Hide' : 'Show'} Attainment Levels
-                </button>
-
-                {/* Toggle Button Group */}
-                <div className="toggle-container-v2">
-                  <button
-                    className={`toggle-btn-v2 ${viewMode === 'course' ? 'active' : ''}`}
-                    onClick={() => setViewMode('course')}
-                  >
-                    Course
-                  </button>
-                  <button
-                    className={`toggle-btn-v2 ${viewMode === 'program' ? 'active' : ''}`}
-                    onClick={() => setViewMode('program')}
-                  >
-                    Program
-                  </button>
+          {showAttainmentTables && (
+            <div className="attainment-tables-wrapper mb-4">
+              <div className="attainment-level-grid">
+                <div>
+                  <h6 className="fw-bold mb-2" style={{ color: '#1a237e' }}>COURSE: % of Students → Attainment Level</h6>
+                  <table className="table table-bordered attainment-info-table">
+                    <thead>
+                      <tr><th>% of Students</th><th>Level</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>&gt; 80</td><td>3</td></tr>
+                      <tr><td>76 - 80</td><td>2.75</td></tr>
+                      <tr><td>71 - 75</td><td>2.5</td></tr>
+                      <tr><td>66 - 70</td><td>2.25</td></tr>
+                      <tr><td>61 - 65</td><td>2.0</td></tr>
+                      <tr><td>56 - 60</td><td>1.75</td></tr>
+                      <tr><td>51 - 55</td><td>1.5</td></tr>
+                      <tr><td>46 - 50</td><td>1.25</td></tr>
+                      <tr><td>20 - 45</td><td>1</td></tr>
+                      <tr><td>&lt; 20</td><td>0</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <h6 className="fw-bold mb-2" style={{ color: '#1a237e' }}>PROGRAM: Score Range → Level</h6>
+                  <table className="table table-bordered attainment-info-table">
+                    <thead>
+                      <tr><th>Score Range</th><th>Level</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>2.50 to 3</td><td>Very High (3)</td></tr>
+                      <tr><td>2.00 to 2.49</td><td>High (2.5)</td></tr>
+                      <tr><td>1.50 to 1.99</td><td>Medium (2)</td></tr>
+                      <tr><td>1.00 to 1.49</td><td>Low (1.5)</td></tr>
+                      <tr><td>&lt; 1</td><td>Very Low (1)</td></tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
+          )}
 
-            {showAttainmentTables && (
-              <div className="attainment-tables-wrapper">
-                <div className="attainment-level-grid">
-                  {/* Course Attainment Table */}
-                  <div>
-                    <h6 className="fw-bold mb-2" style={{ color: '#1a237e' }}>COURSE: % of Students → Attainment Level</h6>
-                    <table className="table table-bordered attainment-info-table">
-                      <thead>
-                        <tr>
-                          <th>% of Students</th>
-                          <th>Attainment Level</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr><td>Greater than 80</td><td>3</td></tr>
-                        <tr><td>76 to 80</td><td>2.75</td></tr>
-                        <tr><td>71 to 75</td><td>2.5</td></tr>
-                        <tr><td>66 to 70</td><td>2.25</td></tr>
-                        <tr><td>61 to 65</td><td>2.0</td></tr>
-                        <tr><td>56 to 60</td><td>1.75</td></tr>
-                        <tr><td>51 to 55</td><td>1.5</td></tr>
-                        <tr><td>46 to 50</td><td>1.25</td></tr>
-                        <tr><td>20 to 45</td><td>1</td></tr>
-                        <tr><td>Less than 20</td><td>0</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Program Attainment Table */}
-                  <div>
-                    <h6 className="fw-bold mb-2" style={{ color: '#1a237e' }}>PROGRAM: Score Range → Level</h6>
-                    <table className="table table-bordered attainment-info-table">
-                      <thead>
-                        <tr>
-                          <th>Score Range</th>
-                          <th>Level</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr><td>2.50 to 3</td><td>Very High (3)</td></tr>
-                        <tr><td>2.00 to 2.49</td><td>High (2.5)</td></tr>
-                        <tr><td>1.50 to 1.99</td><td>Medium (2)</td></tr>
-                        <tr><td>1.00 to 1.49</td><td>Low (1.5)</td></tr>
-                        <tr><td>Less than 1</td><td>Very Low (1)</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {loading ? (
-              <div className="text-center py-5">Loading data...</div>
-            ) : viewMode === 'course' ? (
-              <div className="table-responsive">
+          {loading ? (
+            <div className="text-center py-5">Loading data...</div>
+          ) : viewMode === 'course' ? (
+            <div className="table-responsive">
+              <table className="table table-bordered align-middle target-table-refined">
+                <thead>
+                  <tr>
+                    <th>COURSE CODE</th>
+                    <th>COURSE NAME</th>
+                    <th>COURSE TITLE</th>
+                    <th>ABBR.</th>
+                    <th>SCHEME</th>
+                    <th>TARGET LEVEL</th>
+                    <th>ACHIEVED LEVEL</th>
+                    <th>GAP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCourses.map((course) => (
+                    <tr key={course.id}>
+                      <td className="fw-bold">{course.code}</td>
+                      <td>{course.name}</td>
+                      <td>{course.title}</td>
+                      <td>{course.abbr}</td>
+                      <td>{course.scheme}</td>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control text-center metric-input"
+                          value={course.targetLevel}
+                          readOnly={!isEditing}
+                          onChange={(e) => handleCourseMetricChange(course.id, 'targetLevel', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control text-center metric-input bg-light"
+                          value={course.achievedLevel}
+                          readOnly
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className={`form-control text-center metric-input ${getGapClass(course.gap)}`}
+                          value={course.gap}
+                          readOnly
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="program-view-container">
+              <h5 className="fw-bold mb-3 text-secondary">Program Outcomes (POs)</h5>
+              <div className="table-responsive mb-5">
                 <table className="table table-bordered align-middle target-table-refined">
                   <thead>
                     <tr>
-                      <th>COURSE CODE</th>
-                      <th>COURSE NAME</th>
-                      <th>COURSE TITLE</th>
-                      <th>ABBR.</th>
-                      <th>SCHEME</th>
-                      <th>TARGET LEVEL</th>
-                      <th>ACHIEVED LEVEL</th>
-                      <th>GAP</th>
+                      <th style={{ width: '10%' }}>PO NUM</th>
+                      <th style={{ width: '40%' }}>PO STATEMENT</th>
+                      <th style={{ width: '15%' }}>TARGET LEVEL</th>
+                      <th style={{ width: '15%' }}>ACHIEVED LEVEL</th>
+                      <th style={{ width: '15%' }}>GAP</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCourses.map((course, index) => (
-                      <tr key={course.id}>
-
-                        <td className="fw-bold">{course.code}</td>
-                        <td>{course.name}</td>
-                        <td>{course.title}</td>
-                        <td>{course.abbr}</td>
-                        <td>{course.scheme}</td>
+                    {pos.map((p) => (
+                      <tr key={p.po_id}>
+                        <td className="fw-bold text-center">{p.po_number}</td>
+                        <td className="text-wrap-cell">{p.description}</td>
                         <td>
                           <input
                             type="text"
                             className="form-control text-center metric-input"
-                            value={course.targetLevel}
+                            value={p.targetLevel}
                             readOnly={!isEditing}
-                            onChange={(e) => handleCourseMetricChange(course.id, 'targetLevel', e.target.value)}
+                            onChange={(e) => handlePOMetricChange(p.po_id, 'targetLevel', e.target.value, 'po')}
                           />
                         </td>
                         <td>
                           <input
                             type="text"
                             className="form-control text-center metric-input bg-light"
-                            value={course.achievedLevel}
+                            value={p.achievedLevel}
                             readOnly
                           />
                         </td>
                         <td>
                           <input
                             type="text"
-                            className={`form-control text-center metric-input ${getGapClass(course.gap)}`}
-                            value={course.gap}
+                            className={`form-control text-center metric-input ${getGapClass(p.gap)}`}
+                            value={p.gap}
                             readOnly
                           />
                         </td>
@@ -577,122 +588,72 @@ const Assigntarget = () => {
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <div className="program-view-container">
-                <h5 className="fw-bold mb-3 text-secondary">Program Outcomes (POs)</h5>
-                <div className="table-responsive mb-5">
-                  <table className="table table-bordered align-middle target-table-refined">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '10%' }}>PO NUM</th>
-                        <th style={{ width: '40%' }}>PO STATEMENT</th>
-                        <th style={{ width: '15%' }}>TARGET LEVEL</th>
-                        <th style={{ width: '15%' }}>ACHIEVED LEVEL</th>
-                        <th style={{ width: '15%' }}>GAP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pos.map((p, index) => (
-                        <tr key={p.po_id}>
-                          <td className="fw-bold text-center">{p.po_number}</td>
-                          <td className="text-wrap-cell">{p.description}</td>
-                          <td>
-                            <input
-                              type="text"
-                              className="form-control text-center metric-input"
-                              value={p.targetLevel}
-                              readOnly={!isEditing}
-                              onChange={(e) => handlePOMetricChange(p.po_id, 'targetLevel', e.target.value, 'po')}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="text"
-                              className="form-control text-center metric-input bg-light"
-                              value={p.achievedLevel}
-                              readOnly
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="text"
-                              className={`form-control text-center metric-input ${getGapClass(p.gap)}`}
-                              value={p.gap}
-                              readOnly
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
 
-                <h5 className="fw-bold mb-3 text-secondary">Program Specific Outcomes (PSOs)</h5>
-                <div className="table-responsive">
-                  <table className="table table-bordered align-middle target-table-refined">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '10%' }}>PSO NUM</th>
-                        <th style={{ width: '40%' }}>PSO STATEMENT</th>
-                        <th style={{ width: '15%' }}>TARGET LEVEL</th>
-                        <th style={{ width: '15%' }}>ACHIEVED LEVEL</th>
-                        <th style={{ width: '15%' }}>GAP</th>
+              <h5 className="fw-bold mb-3 text-secondary">Program Specific Outcomes (PSOs)</h5>
+              <div className="table-responsive">
+                <table className="table table-bordered align-middle target-table-refined">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '10%' }}>PSO NUM</th>
+                      <th style={{ width: '40%' }}>PSO STATEMENT</th>
+                      <th style={{ width: '15%' }}>TARGET LEVEL</th>
+                      <th style={{ width: '15%' }}>ACHIEVED LEVEL</th>
+                      <th style={{ width: '15%' }}>GAP</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {psos.map((p) => (
+                      <tr key={p.pso_id}>
+                        <td className="fw-bold text-center">{p.pso_number}</td>
+                        <td className="text-wrap-cell">{p.description}</td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-control text-center metric-input"
+                            value={p.targetLevel}
+                            readOnly={!isEditing}
+                            onChange={(e) => handlePOMetricChange(p.pso_id, 'targetLevel', e.target.value, 'pso')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="form-control text-center metric-input bg-light"
+                            value={p.achievedLevel}
+                            readOnly
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className={`form-control text-center metric-input ${getGapClass(p.gap)}`}
+                            value={p.gap}
+                            readOnly
+                          />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {psos.map((p, index) => (
-                        <tr key={p.pso_id}>
-                          <td className="fw-bold text-center">{p.pso_number}</td>
-                          <td className="text-wrap-cell">{p.description}</td>
-                          <td>
-                            <input
-                              type="text"
-                              className="form-control text-center metric-input"
-                              value={p.targetLevel}
-                              readOnly={!isEditing}
-                              onChange={(e) => handlePOMetricChange(p.pso_id, 'targetLevel', e.target.value, 'pso')}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="text"
-                              className="form-control text-center metric-input bg-light"
-                              value={p.achievedLevel}
-                              readOnly
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="text"
-                              className={`form-control text-center metric-input ${getGapClass(p.gap)}`}
-                              value={p.gap}
-                              readOnly
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-
-            <div className="text-center mt-4 d-flex justify-content-center gap-3">
-              {!isEditing ? (
-                <button className="btn btn-primary px-5 py-2 fw-bold" onClick={() => setIsEditing(true)}>
-                  Edit Metrics
-                </button>
-              ) : (
-                <>
-                  <button className="btn btn-outline-secondary px-5 py-2 fw-bold" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </button>
-                  <button className="btn btn-primary px-5 py-2 fw-bold" onClick={handleSave}>
-                    Save All Metrics
-                  </button>
-                </>
-              )}
             </div>
+          )}
+
+          <div className="text-center mt-4 d-flex justify-content-center gap-3">
+            {!isEditing ? (
+              <button className="btn btn-primary px-5 py-2 fw-bold shadow-sm" onClick={() => setIsEditing(true)}>
+                Edit Metrics
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-outline-secondary px-5 py-2 fw-bold shadow-sm" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </button>
+                <button className="btn btn-primary px-5 py-2 fw-bold shadow-sm" onClick={handleSave}>
+                  Save All Metrics
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

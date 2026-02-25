@@ -21,9 +21,17 @@ const TOOL_NAMES = {
 
 const Backtracking = () => {
   const [departments, setDepartments] = useState([]);
-  const [years] = useState(['2024 - 25', '2025 - 26', '2026 - 27']);
+
+  const years = [];
+  for (let i = 2019; i <= 2030; i++) {
+    years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+  }
+
   const [selectedDept, setSelectedDept] = useState('');
   const [selectedYear, setSelectedYear] = useState('2025 - 26');
+  const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSem, setSelectedSem] = useState('');
 
   const [tableData, setTableData] = useState([]);
   const [summary, setSummary] = useState({ achieved: 0, target: 0, gap: 0 });
@@ -36,7 +44,7 @@ const Backtracking = () => {
   const [drillLoading, setDrillLoading] = useState(false);
 
   useEffect(() => { fetchInitialFilters(); }, []);
-  useEffect(() => { if (selectedDept && selectedYear) fetchData(); }, [selectedDept, selectedYear]);
+  useEffect(() => { if (selectedDept) fetchData(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
 
   /* ── Initial filter load ── */
   const fetchInitialFilters = async () => {
@@ -45,6 +53,14 @@ const Backtracking = () => {
       setDepartments(res.data);
       const user = JSON.parse(localStorage.getItem('user'));
       const userDeptVal = user?.department || user?.department_id;
+
+      const setupKey = 'academicSetup';
+      const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
+      if (setup.academic_year) {
+        const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+        setSelectedYear(ay);
+      }
+
       let foundId = '';
       if (userDeptVal) {
         const dept = res.data.find(d =>
@@ -188,29 +204,50 @@ const Backtracking = () => {
           </p>
 
           {/* ── Filters ── */}
-          <div className="row mb-4 g-3">
-            <div className="col-md-4">
-              <label className="fw-bold small text-muted mb-1 text-uppercase">Department</label>
-              <Form.Select
-                value={selectedDept}
-                onChange={e => setSelectedDept(e.target.value)}
-                className="shadow-none border-secondary-subtle"
-              >
-                <option value="">Select Department</option>
-                {departments.map(d => (
-                  <option key={d.program_id} value={d.program_id}>{d.program_name}</option>
-                ))}
-              </Form.Select>
-            </div>
-            <div className="col-md-3">
-              <label className="fw-bold small text-muted mb-1 text-uppercase">Academic Year</label>
-              <Form.Select
-                value={selectedYear}
-                onChange={e => setSelectedYear(e.target.value)}
-                className="shadow-none border-secondary-subtle"
-              >
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
-              </Form.Select>
+          <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
+            <div className="row g-3">
+              <div className="col-md">
+                <label className="filter-label">BATCH</label>
+                <Form.Select
+                  value={selectedBatch}
+                  onChange={e => setSelectedBatch(e.target.value)}
+                  className="filter-select"
+                >
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </Form.Select>
+              </div>
+              <div className="col-md">
+                <label className="filter-label">ACADEMIC YEAR</label>
+                <Form.Select
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(e.target.value)}
+                  className="filter-select"
+                >
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </Form.Select>
+              </div>
+              <div className="col-md" style={{ maxWidth: '100px' }}>
+                <label className="filter-label">CLASS</label>
+                <Form.Select
+                  value={selectedClass}
+                  onChange={e => setSelectedClass(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All</option>
+                  {['FY', 'SY', 'TY'].map(c => <option key={c} value={c}>{c}</option>)}
+                </Form.Select>
+              </div>
+              <div className="col-md" style={{ maxWidth: '100px' }}>
+                <label className="filter-label">SEM</label>
+                <Form.Select
+                  value={selectedSem}
+                  onChange={e => setSelectedSem(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All</option>
+                  {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}</option>)}
+                </Form.Select>
+              </div>
             </div>
           </div>
 

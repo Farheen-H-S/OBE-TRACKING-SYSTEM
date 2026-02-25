@@ -19,18 +19,40 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { selectedDept, setSelectedDept, selectedScheme, setSelectedScheme, departments, schemes } = useFilters();
-    const [selectedYear, setSelectedYear] = useState('2025-26');
+    // Global filters are still used for API calls but not shown in UI
+    const { selectedDept, selectedScheme, departments, schemes } = useFilters();
+
+    const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
+
+    useEffect(() => {
+        const setupKey = 'academicSetup';
+        const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
+        if (setup.academic_year) {
+            const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+            setSelectedIntroYear(ay);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
+                setLoading(true);
                 const user = JSON.parse(localStorage.getItem('user'));
-                const userDept = user?.department || user?.department_id;
                 const userId = user?.user_id || user?.id;
 
+                const params = {
+                    program_id: selectedDept,
+                    scheme_id: selectedScheme,
+                    intro_year: selectedIntroYear
+                };
+
                 const [courseRes] = await Promise.all([
-                    api.get('/academics/courses/')
+                    api.get('/academics/courses/', { params })
                 ]);
 
                 let fetchedCourses = courseRes.data;
@@ -46,7 +68,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
             }
         };
         fetchInitialData();
-    }, [isMyCourses]);
+    }, [isMyCourses, selectedDept, selectedScheme, selectedIntroYear]);
 
     const filteredCourses = courses.filter(course => {
         const matchesSearch = (course.course_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,46 +103,17 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                     </div>
 
                     {/* Filter Section */}
-                    <div className="filter-row-v1 mb-4">
+                    <div className="filter-row-v1 mb-4" style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
                         <div className="filter-group-v1">
-                            <label>DEPARTMENT</label>
+                            <label>YEAR OF INTRODUCTION</label>
                             <select
                                 className="filter-select-v1"
-                                value={selectedDept}
-                                onChange={(e) => setSelectedDept(e.target.value)}
-                                disabled={isMyCourses}
+                                value={selectedIntroYear}
+                                onChange={(e) => setSelectedIntroYear(e.target.value)}
                             >
-                                <option value="">All Departments</option>
-                                {departments.map(p => (
-                                    <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
+                                {years.map(y => (
+                                    <option key={y} value={y}>{y}</option>
                                 ))}
-                            </select>
-                        </div>
-                        {!isMyCourses && (
-                            <div className="filter-group-v1">
-                                <label>SCHEME</label>
-                                <select
-                                    className="filter-select-v1"
-                                    value={selectedScheme}
-                                    onChange={(e) => setSelectedScheme(e.target.value)}
-                                >
-                                    <option value="">All Schemes</option>
-                                    {schemes.map(s => (
-                                        <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                        <div className="filter-group-v1">
-                            <label>YEAR</label>
-                            <select
-                                className="filter-select-v1"
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(e.target.value)}
-                            >
-                                <option value="2023-24">2023 - 24</option>
-                                <option value="2024-25">2024 - 25</option>
-                                <option value="2025-26">2025 - 26</option>
                             </select>
                         </div>
                     </div>
@@ -142,9 +135,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                                     onClick={() => navigate('/add-course', {
                                         state: {
                                             initialFilters: {
-                                                program_id: selectedDept,
-                                                scheme: selectedScheme,
-                                                academic_year: selectedYear
+                                                intro_year: selectedIntroYear
                                             }
                                         }
                                     })}

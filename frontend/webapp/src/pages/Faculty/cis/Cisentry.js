@@ -21,11 +21,18 @@ const Cisentry = () => {
   const [studentsLoading, setStudentsLoading] = useState(false);
 
   // Selection state
-  const [selectedYear, setSelectedYear] = useState('2025-26');
+  const [selectedYear, setSelectedYear] = useState('2025 - 26');
+  const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
+  const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
   const [assessmentTools, setAssessmentTools] = useState({});
   const [selectedClass, setSelectedClass] = useState('FY');
   const [selectedDivision, setSelectedDivision] = useState('A');
   const [selectedSemester, setSelectedSemester] = useState(() => getDefaultSemester('FY', getCachedSemesterType()));
+
+  const years = [];
+  for (let i = 2019; i <= 2030; i++) {
+    years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+  }
   const [selectedCourse, setSelectedCourse] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [allCourses, setAllCourses] = useState([]);
@@ -184,8 +191,10 @@ const Cisentry = () => {
       setAllCourses(allCourseRes.data);
 
       if (setupRes.data) {
-        setAcademicYear(setupRes.data.academic_year);
-        setSelectedYear(setupRes.data.academic_year);
+        const ay = setupRes.data.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+        setAcademicYear(ay);
+        setSelectedYear(ay);
+        setSelectedIntroYear(ay);
         // setSelectedScheme(setupRes.data.scheme_id); // Removed to avoid overriding global filter
 
         // Cache globally so other components can use semester_type
@@ -234,7 +243,7 @@ const Cisentry = () => {
       };
       loadInitialData();
     }
-  }, [selectedProgram, selectedScheme, selectedClass, selectedSemester, selectedDivision]);
+  }, [selectedProgram, selectedScheme, selectedClass, selectedSemester, selectedDivision, selectedIntroYear, selectedBatch, selectedYear]);
 
   // Auto-update semester when class changes based on admin semester_type
   useEffect(() => {
@@ -1348,55 +1357,49 @@ const Cisentry = () => {
       <div className="bg-white p-4 rounded shadow-sm mb-4">
         <div className="filters-section bg-light p-3 rounded shadow-sm" style={{ border: '1px solid #adcaf8' }}>
           <div className="row g-3 mb-3 text-start">
-            <div className="col-md-3">
-              <label className="form-label fw-bold small text-muted text-uppercase mb-1" style={{ letterSpacing: '0.5px' }}>Department</label>
-              <select className="form-select border-primary-subtle" value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
-                {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_name}</option>)}
-              </select>
-            </div>
-            <div className="col-md-3">
-              <label className="form-label fw-bold small text-muted text-uppercase mb-1" style={{ letterSpacing: '0.5px' }}>Scheme</label>
-              <select className="form-select border-primary-subtle" value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)}>
-                {schemes.map(s => <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>)}
-              </select>
-            </div>
-            <div className="col-md-2">
-              <label className="form-label fw-bold small text-muted text-uppercase mb-1" style={{ letterSpacing: '0.5px' }}>Year</label>
-              <select className="form-select border-primary-subtle" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                <option value={academicYear}>{academicYear}</option>
-                <option value="2024-25">2024-25</option>
-                <option value="2023-24">2023-24</option>
-              </select>
-            </div>
-            <div className="col-md-2">
-              <label className="form-label fw-bold small text-muted text-uppercase mb-1" style={{ letterSpacing: '0.5px' }}>Class</label>
-              <select
-                className="form-select border-primary-subtle"
-                value={selectedClass}
-                onChange={(e) => {
-                  const newClass = e.target.value;
-                  setSelectedClass(newClass);
-                  if (newClass === 'FY') setSelectedSemester('1');
-                  else if (newClass === 'SY') setSelectedSemester('3');
-                  else if (newClass === 'TY') setSelectedSemester('5');
-                }}
-              >
-                <option value="FY">FY - {selectedDivision}</option>
-                <option value="SY">SY - {selectedDivision}</option>
-                <option value="TY">TY - {selectedDivision}</option>
-              </select>
-            </div>
-            <div className="col-md-1">
-              <label className="form-label fw-bold small text-muted text-uppercase mb-1" style={{ letterSpacing: '0.5px' }}>Div</label>
-              <select className="form-select border-primary-subtle" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
-                {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div className="col-md-2">
-              <label className="form-label fw-bold small text-muted text-uppercase mb-1" style={{ letterSpacing: '0.5px' }}>Semester</label>
-              <select className="form-select border-primary-subtle" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
-                {getSemesterOptions().map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+            <div className="row g-3 mb-3 text-start">
+              <div className="col-md-2" style={{ width: '180px' }}>
+                <label className="filter-label">YEAR OF INTRODUCTION</label>
+                <select className="form-select border-primary-subtle" value={selectedIntroYear} onChange={(e) => setSelectedIntroYear(e.target.value)}>
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="col-md-2" style={{ width: '150px' }}>
+                <label className="filter-label">BATCH</label>
+                <select className="form-select border-primary-subtle" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)}>
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="col-md-2" style={{ width: '150px' }}>
+                <label className="filter-label">ACADEMIC YEAR</label>
+                <select className="form-select border-primary-subtle" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="col-md-2" style={{ width: '100px' }}>
+                <label className="filter-label">CLASS</label>
+                <select
+                  className="form-select border-primary-subtle"
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                >
+                  <option value="FY">FY</option>
+                  <option value="SY">SY</option>
+                  <option value="TY">TY</option>
+                </select>
+              </div>
+              <div className="col-md-1" style={{ width: '80px' }}>
+                <label className="filter-label">DIV</label>
+                <select className="form-select border-primary-subtle" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
+                  {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="col-md-2" style={{ width: '100px' }}>
+                <label className="filter-label">SEM</label>
+                <select className="form-select border-primary-subtle" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
+                  {getSemesterOptions().map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 

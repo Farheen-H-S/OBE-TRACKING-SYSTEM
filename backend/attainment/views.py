@@ -14,7 +14,9 @@ from .serializers import (
 
 from .attainment_service import AttainmentService
 from .report_service import ReportService
+from .indirect_report_service import IndirectReportService
 from django.http import HttpResponse
+import traceback
 
 class CalculateAttainmentView(APIView):
     permission_classes = [AllowAny]
@@ -129,3 +131,25 @@ class BatchEvaluationReportView(APIView):
             return response
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class IndirectAttainmentReportView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request):
+        program_id = request.query_params.get('program_id')
+        batch_id = request.query_params.get('batch_id')
+        
+        if not program_id or not batch_id:
+            return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            excel_data = IndirectReportService.generate_indirect_attainment_report(program_id, batch_id)
+            response = HttpResponse(
+                excel_data.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename=Indirect_Attainment_Report_{batch_id}.xlsx'
+            return response
+        except Exception as e:
+            traceback.print_exc()
+            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

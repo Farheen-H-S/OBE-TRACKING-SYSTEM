@@ -27,6 +27,7 @@ const OITWelcome = () => {
     const classYear = searchParams.get('class') || '';
     const division = searchParams.get('div') || '';
     const year = searchParams.get('year') || '';
+    const type = searchParams.get('type') || '';
     const activityType = searchParams.get('activity_type') || '';
     const activityTitle = searchParams.get('activity_title') || '';
 
@@ -60,9 +61,9 @@ const OITWelcome = () => {
         );
     }
 
-    const toolLabel = TOOL_LABELS[survey] || 'Indirect Survey';
-    const isActivity = survey === 'co-curricular' || survey === 'resource-person';
-    const isRP = survey === 'resource-person';
+    const toolLabel = TOOL_LABELS[type] || 'Indirect Survey';
+    const isActivity = type === 'co-curricular' || type === 'resource-person';
+    const isRP = type === 'resource-person';
     const respondent = JSON.parse(localStorage.getItem('oit_respondent') || '{}');
 
     return (

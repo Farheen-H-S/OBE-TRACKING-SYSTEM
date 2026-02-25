@@ -29,7 +29,9 @@ class SubmitSurveyResponseView(APIView):
         
         response = SurveyResponse.objects.create(
             survey_id=survey,
-            student_id=student
+            student_id=student,
+            respondent_name=request.data.get('respondent_name'),
+            enrollment_no=request.data.get('enrollment_no')
         )
         
         for ans in answers:
@@ -58,6 +60,7 @@ class SurveyStatsView(APIView):
     def get(self, request, survey_id):
         survey = get_object_or_404(SurveyMaster, pk=survey_id)
         course = survey.course_id
+        program = survey.program_id or (course.program_id if course else None)
         
         from users.models import Student
         
@@ -66,11 +69,19 @@ class SurveyStatsView(APIView):
         responder_ids = [r.student_id_id for r in responses if r.student_id_id]
         
         # 2. Get students expected based on current program and semester
-        expected_students_ids = list(Student.objects.filter(
-            program_id=course.program_id,
-            semester=course.semester,
-            is_active=True
-        ).values_list('student_id', flat=True))
+        expected_students_ids = []
+        if program and (course and course.semester):
+            expected_students_ids = list(Student.objects.filter(
+                program_id=program,
+                semester=course.semester,
+                is_active=True
+            ).values_list('student_id', flat=True))
+        elif program:
+             # For program-level surveys (Alumni, Exit)
+             expected_students_ids = list(Student.objects.filter(
+                program_id=program,
+                is_active=True
+            ).values_list('student_id', flat=True))
         
         # 3. Combine both lists
         all_student_ids = list(set(responder_ids) | set(expected_students_ids))
@@ -101,6 +112,7 @@ class SurveyStatsView(APIView):
                 'enrollment': student.enrollment_no,
                 'roll_no': student.roll_no,
                 'name': student.name,
+                'respondent_name': res.respondent_name if res else None,
                 'answers': answers_map
             })
             

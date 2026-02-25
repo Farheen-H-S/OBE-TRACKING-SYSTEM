@@ -53,17 +53,32 @@ const OITQuestion = () => {
 
     const fetchStatements = async () => {
         try {
-            const [poRes, psoRes] = await Promise.allSettled([
-                api.get(`/academics/pos/?program_id=${programId}`),
-                api.get(`/academics/psos/?program_id=${programId}`),
-            ]);
-            const pos = poRes.status === 'fulfilled' ? (Array.isArray(poRes.value.data) ? poRes.value.data : []) : [];
-            const psos = psoRes.status === 'fulfilled' ? (Array.isArray(psoRes.value.data) ? psoRes.value.data : []) : [];
-            const combined = [
-                ...pos.map((p, i) => ({ type: 'PO', id: `po_${i}`, number: p.po_number || `PO ${i + 1}`, description: p.description })),
-                ...psos.map((p, i) => ({ type: 'PSO', id: `pso_${i}`, number: p.pso_number || `PSO ${i + 1}`, description: p.description })),
-            ];
-            setStatements(combined);
+            // Check if survey is a numeric ID (backend-managed)
+            const isBackendSurvey = !isNaN(survey) && survey !== '';
+
+            if (isBackendSurvey) {
+                const res = await api.get(`/surveys/surveys/${survey}/`);
+                const backendQuestions = res.data.questions.map(q => ({
+                    type: q.po_id ? 'PO' : 'PSO',
+                    id: q.question_id,
+                    number: q.po_id ? q.po_id.po_number : q.pso_id.pso_number,
+                    description: q.question_text
+                }));
+                setStatements(backendQuestions);
+            } else {
+                // Legacy / fallback: fetch all POS/PSOS
+                const [poRes, psoRes] = await Promise.allSettled([
+                    api.get(`/academics/pos/?program_id=${programId}`),
+                    api.get(`/academics/psos/?program_id=${programId}`),
+                ]);
+                const pos = poRes.status === 'fulfilled' ? (Array.isArray(poRes.value.data) ? poRes.value.data : []) : [];
+                const psos = psoRes.status === 'fulfilled' ? (Array.isArray(psoRes.value.data) ? psoRes.value.data : []) : [];
+                const combined = [
+                    ...pos.map((p, i) => ({ type: 'PO', id: `po_${i}`, number: p.po_number || `PO ${i + 1}`, description: p.description })),
+                    ...psos.map((p, i) => ({ type: 'PSO', id: `pso_${i}`, number: p.pso_number || `PSO ${i + 1}`, description: p.description })),
+                ];
+                setStatements(combined);
+            }
         } catch (err) {
             console.error('OITQuestion fetch error:', err);
         } finally {
@@ -108,10 +123,25 @@ const OITQuestion = () => {
                     submittedAt: new Date().toISOString(),
                 };
 
-                // Storage key matches what the HOD stats table reads
+                // Submit to backend
+                const backendPayload = {
+                    survey_id: survey,
+                    answers: Object.entries(answers).map(([qid, val]) => ({
+                        question_id: qid.includes('_') ? null : qid, // Current frontend uses 'po_i' as id, need to handle this
+                        po_number: qid.startsWith('po_') ? statements.find(s => s.id === qid)?.number : null,
+                        pso_number: qid.startsWith('pso_') ? statements.find(s => s.id === qid)?.number : null,
+                        answer_value: val
+                    })),
+                    respondent_name: isRP ? respondent.name : (respondent.respondentName || respondent.name),
+                    enrollment_no: respondent.enrollment || '',
+                    type: respondent.type || 'student'
+                };
+
+                await api.post('/surveys/submit-response/', backendPayload);
+
+                // For backward compatibility/stats view if needed in temporary transition
                 const storageKey = `oit_responses_oit_survey_${survey}_${programId}_${year.replace(/\s/g, '')}_${classYear}_${division}`;
                 const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                // Deduplicate: one response per respondent identifier
                 const deduped = existing.filter(r => r.respondent !== response.respondent);
                 deduped.push(response);
                 localStorage.setItem(storageKey, JSON.stringify(deduped));

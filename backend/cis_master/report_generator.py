@@ -9,7 +9,7 @@ from django.db.models import Avg
 from academics.models import Course, CO, COPOMapping, COPSOMapping, PO, PSO, AcademicSetup, COTarget
 from attainment.models import COAttainment, POAttainment
 from attainment.attainment_service import AttainmentService
-from indirect_attainment.models import IndirectAttainment
+from indirect_attainment.models import CourseIndirectAttainment, ActivityIndirectAttainment
 from assessments.models import Assessment, MarksEntry
 from users.models import Student, FacultyCourseAssignment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse, SurveyAnswer

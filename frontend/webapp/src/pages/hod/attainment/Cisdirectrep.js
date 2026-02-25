@@ -10,15 +10,22 @@ import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '.
 export default function Cisdirectrep() {
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState('');
-    const [selectedYear, setSelectedYear] = React.useState(`${new Date().getFullYear() - (new Date().getMonth() < 5 ? 1 : 0)} - ${new Date().getFullYear() - (new Date().getMonth() < 5 ? 0 : -1)}`);
     const [generatingCourseId, setGeneratingCourseId] = React.useState(null);
 
     // Filter States
     const [departments, setDepartments] = React.useState([]);
     const [schemes, setSchemes] = React.useState([]);
-    const [years] = React.useState(['2024 - 25', '2025 - 26', '2026 - 27']);
+
+    const years = [];
+    for (let i = 2019; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
+
     const [selectedDept, setSelectedDept] = React.useState('');
     const [selectedScheme, setSelectedScheme] = React.useState('');
+    const [selectedYear, setSelectedYear] = React.useState('2025 - 26');
+    const [selectedIntroYear, setSelectedIntroYear] = React.useState('2025 - 26');
+    const [selectedBatch, setSelectedBatch] = React.useState('2025 - 26');
     const [selectedClass, setSelectedClass] = React.useState('');
     const [selectedDivision, setSelectedDivision] = React.useState('A');
     const [selectedSem, setSelectedSem] = React.useState(() => getDefaultSemester('', getCachedSemesterType()));
@@ -56,7 +63,7 @@ export default function Cisdirectrep() {
 
     React.useEffect(() => {
         fetchCourses();
-    }, [selectedDept, selectedScheme, selectedYear, selectedClass, selectedDivision, selectedSem]);
+    }, [selectedDept, selectedScheme, selectedIntroYear, selectedBatch, selectedYear, selectedClass, selectedDivision, selectedSem]);
 
     const fetchInitialFilters = async () => {
         try {
@@ -87,7 +94,9 @@ export default function Cisdirectrep() {
             const currYear = new Date().getFullYear();
             const currMonth = new Date().getMonth(); // 0-indexed
             const academicYearStr = currMonth < 5 ? `${currYear - 1} - ${currYear}` : `${currYear} - ${currYear + 1}`;
-            setSelectedYear(academicYearStr);
+            const formattedYear = academicYearStr.replace(/(\d{4})-(\d{2})/, "$1 - $2");
+            setSelectedYear(formattedYear);
+            setSelectedIntroYear(formattedYear);
         } catch (err) {
             console.error("Error fetching filters:", err);
         }
@@ -189,33 +198,31 @@ export default function Cisdirectrep() {
                         <div className="filter-row-v2 mb-4 p-3 bg-light rounded shadow-none border">
                             <div className="row g-3">
                                 <div className="col-md">
-                                    <label className="filter-label">DEPARTMENT</label>
+                                    <label className="filter-label">YEAR OF INTRODUCTION</label>
                                     <select
                                         className="form-select filter-select"
-                                        value={selectedDept}
-                                        onChange={(e) => setSelectedDept(e.target.value)}
+                                        value={selectedIntroYear}
+                                        onChange={(e) => setSelectedIntroYear(e.target.value)}
                                     >
-                                        <option value="">Select Department</option>
-                                        {departments.map(d => (
-                                            <option key={d.program_id} value={d.program_id}>{d.program_name}</option>
+                                        {years.map(y => (
+                                            <option key={y} value={y}>{y}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="col-md">
-                                    <label className="filter-label">SCHEME</label>
+                                    <label className="filter-label">BATCH</label>
                                     <select
                                         className="form-select filter-select"
-                                        value={selectedScheme}
-                                        onChange={(e) => setSelectedScheme(e.target.value)}
+                                        value={selectedBatch}
+                                        onChange={(e) => setSelectedBatch(e.target.value)}
                                     >
-                                        <option value="">Select Scheme</option>
-                                        {schemes.map(s => (
-                                            <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
+                                        {years.map(y => (
+                                            <option key={y} value={y}>{y}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="col-md">
-                                    <label className="filter-label">YEAR</label>
+                                    <label className="filter-label">ACADEMIC YEAR</label>
                                     <select
                                         className="form-select filter-select"
                                         value={selectedYear}
@@ -226,7 +233,7 @@ export default function Cisdirectrep() {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="col-md">
+                                <div className="col-md" style={{ maxWidth: '120px' }}>
                                     <label className="filter-label">CLASS</label>
                                     <select
                                         className="form-select filter-select"
@@ -241,11 +248,11 @@ export default function Cisdirectrep() {
                                     >
                                         <option value="">Select Class</option>
                                         {CLASS_OPTIONS.map(c => (
-                                            <option key={c} value={c}>{c} - {selectedDivision}</option>
+                                            <option key={c} value={c}>{c}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div className="col-md" style={{ maxWidth: '100px' }}>
+                                <div className="col-md" style={{ maxWidth: '80px' }}>
                                     <label className="filter-label">DIV</label>
                                     <select
                                         className="form-select filter-select"
@@ -257,15 +264,15 @@ export default function Cisdirectrep() {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="col-md">
-                                    <label className="filter-label">SEMESTER</label>
+                                <div className="col-md" style={{ maxWidth: '100px' }}>
+                                    <label className="filter-label">SEM</label>
                                     <select
                                         className="form-select filter-select"
                                         value={selectedSem}
                                         onChange={(e) => setSelectedSem(e.target.value)}
                                         disabled={!selectedClass}
                                     >
-                                        <option value="">Select Sem</option>
+                                        <option value="">All Sems</option>
                                         {semesterOptions.map(s => (
                                             <option key={s} value={s}>{s}</option>
                                         ))}

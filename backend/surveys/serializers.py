@@ -4,6 +4,8 @@ from .models import SurveyMaster, SurveyQuestion, SurveyResponse, SurveyAnswer
 
 class SurveyQuestionSerializer(serializers.ModelSerializer):
     co_number = serializers.CharField(source='co_id.co_number', read_only=True)
+    po_number = serializers.CharField(source='po_id.po_number', read_only=True)
+    pso_number = serializers.CharField(source='pso_id.pso_number', read_only=True)
     
     class Meta:
         model = SurveyQuestion
@@ -30,6 +32,7 @@ class SurveyMasterSerializer(serializers.ModelSerializer):
                 question_text=q_data.get('question_text'),
                 co_id_id=q_data.get('co_id'),
                 po_id_id=q_data.get('po_id'),
+                pso_id_id=q_data.get('pso_id'),
                 is_active=q_data.get('is_active', True)
             )
         return survey
@@ -38,7 +41,10 @@ class SurveyMasterSerializer(serializers.ModelSerializer):
 class SurveyResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = SurveyResponse
-        fields = '__all__'
+        fields = [
+            'response_id', 'survey_id', 'student_id', 'user_id', 
+            'respondent_name', 'submitted_at'
+        ]
         read_only_fields = ('response_id', 'submitted_at')
 
 

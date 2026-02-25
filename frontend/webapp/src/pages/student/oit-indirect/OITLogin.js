@@ -26,12 +26,13 @@ const OITLogin = () => {
     const activityType = searchParams.get('activity_type') || '';
     const activityTitle = searchParams.get('activity_title') || '';
 
-    const isRP = survey === 'resource-person';
-    const isAlumni = survey === 'alumni';
-    const toolLabel = TOOL_LABELS[survey] || 'Indirect Survey';
+    const type = searchParams.get('type') || '';
+    const isRP = type === 'resource-person';
+    const isAlumni = type === 'alumni';
+    const toolLabel = TOOL_LABELS[type] || 'Indirect Survey';
 
     const buildWelcomeParams = () => {
-        const params = new URLSearchParams({ survey, program: programId, class: classYear, div: division, year });
+        const params = new URLSearchParams({ survey, type, program: programId, class: classYear, div: division, year });
         if (activityType) params.set('activity_type', activityType);
         if (activityTitle) params.set('activity_title', activityTitle);
         return params.toString();
