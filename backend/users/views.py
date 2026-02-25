@@ -304,8 +304,10 @@ class StudentListCreateAPIView(APIView):
         semester = request.query_params.get('semester')
         class_year = request.query_params.get('class_year')
         division = request.query_params.get('division')
+        academic_year = request.query_params.get('academic_year')
         
-        queryset = Student.objects.filter(is_active=True).order_by('roll_no')
+        from django.db.models.functions import Length
+        queryset = Student.objects.filter(is_active=True).order_by(Length('roll_no'), 'roll_no')
         
         if program_id:
             queryset = queryset.filter(program_id=program_id)
@@ -317,6 +319,8 @@ class StudentListCreateAPIView(APIView):
             queryset = queryset.filter(class_year=class_year)
         if division:
             queryset = queryset.filter(division=division)
+        if academic_year:
+            queryset = queryset.filter(academic_year=academic_year)
             
         serializer = StudentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

@@ -198,6 +198,7 @@ class AcademicSetup(models.Model):
     academic_year = models.CharField(max_length=15, help_text="Example: 2025 - 26")
     scheme_id = models.ForeignKey(Scheme, on_delete=models.CASCADE, db_column='scheme_id')
     semester_type = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
+    curriculum_link = models.URLField(max_length=500, default="https://econtent.msbte.edu.in/curriculum_search/")
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):

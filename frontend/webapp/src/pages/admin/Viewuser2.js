@@ -204,7 +204,12 @@ const Viewuser2 = () => {
                     )}
                 </>
             ) : (
-                <div className="text-center py-5 text-danger">User not found.</div>
+                <div className="text-center py-5">
+                    <div className="text-danger mb-4 fst-italic">User not found or you don't have permission to view this profile.</div>
+                    <button onClick={() => navigate('/dashboard')} className="btn btn-primary px-4 fw-bold shadow-sm">
+                        Back to Dashboard
+                    </button>
+                </div>
             )}
         </div>
     );

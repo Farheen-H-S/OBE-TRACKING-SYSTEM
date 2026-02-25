@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../utils/axios';
+import { getLoggedInUser } from '../../../utils/auth';
 import { useFilters } from '../../../context/FilterContext';
 import './Viewcourse1.css';
 
 const Viewcourse1 = ({ isMyCourses = false }) => {
     const navigate = useNavigate();
-    const syllabusLink = "https://econtent.msbte.edu.in/curriculum_search/";
-
+    const [syllabusLink, setSyllabusLink] = useState("https://econtent.msbte.edu.in/curriculum_search/");
+    const [isEditingLink, setIsEditingLink] = useState(false);
+    const [newLinkValue, setNewLinkValue] = useState("");
     const [searchTerm, setSearchTerm] = useState('');
     const [copySuccess, setCopySuccess] = useState('');
 
@@ -19,8 +21,11 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
-    // Global filters are still used for API calls but not shown in UI
-    const { selectedDept, selectedScheme, departments, schemes } = useFilters();
+    const {
+        selectedDept, selectedScheme,
+        selectedYear, setSelectedYear,
+        departments, schemes
+    } = useFilters();
 
     const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
 
@@ -29,31 +34,55 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
         years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
     }
 
+    const user = getLoggedInUser();
+    const userRole = (user?.role || user?.role_name || "").toLowerCase();
+    const isAuthorizedToEdit = ['hod', 'coordinator', 'admin'].includes(userRole);
+
     useEffect(() => {
-        const setupKey = 'academicSetup';
-        const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
-        if (setup.academic_year) {
-            const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
-            setSelectedIntroYear(ay);
-        }
+        fetchAcademicSetup();
     }, []);
+
+    const fetchAcademicSetup = async () => {
+        try {
+            const res = await api.get('/academics/academic-setup/');
+            if (res.data && res.data.curriculum_link) {
+                setSyllabusLink(res.data.curriculum_link);
+            }
+        } catch (err) {
+            console.error("Error fetching academic setup:", err);
+        }
+    };
+
+    const handleEditLink = () => {
+        setNewLinkValue(syllabusLink);
+        setIsEditingLink(true);
+    };
+
+    const handleSaveLink = async () => {
+        try {
+            const res = await api.post('/academics/academic-setup/', { curriculum_link: newLinkValue });
+            setSyllabusLink(res.data.curriculum_link);
+            setIsEditingLink(false);
+            alert("Curriculum link updated globally!");
+        } catch (err) {
+            console.error("Error updating curriculum link:", err);
+            alert("Failed to update curriculum link.");
+        }
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 setLoading(true);
-                const user = JSON.parse(localStorage.getItem('user'));
                 const userId = user?.user_id || user?.id;
 
                 const params = {
-                    program_id: selectedDept,
-                    scheme_id: selectedScheme,
+                    program_id: selectedDept === 'All' ? '' : selectedDept,
+                    scheme_id: selectedScheme === 'All' ? '' : selectedScheme,
                     intro_year: selectedIntroYear
                 };
 
-                const [courseRes] = await Promise.all([
-                    api.get('/academics/courses/', { params })
-                ]);
+                const courseRes = await api.get('/academics/courses/', { params });
 
                 let fetchedCourses = courseRes.data;
                 if (isMyCourses && userId) {
@@ -71,14 +100,14 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
     }, [isMyCourses, selectedDept, selectedScheme, selectedIntroYear]);
 
     const filteredCourses = courses.filter(course => {
-        const matchesSearch = (course.course_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (course.course_code || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (course.course_title || "").toLowerCase().includes(searchTerm.toLowerCase());
+        const term = searchTerm.toLowerCase();
+        const matchesSearch =
+            (course.course_name || "").toLowerCase().includes(term) ||
+            (course.course_code || "").toLowerCase().includes(term) ||
+            (course.course_abbr || "").toLowerCase().includes(term) ||
+            (course.course_title || "").toLowerCase().includes(term);
 
-        const matchesDept = !selectedDept || course.program_id === parseInt(selectedDept);
-        const matchesScheme = !selectedScheme || course.scheme_id === parseInt(selectedScheme);
-
-        return matchesSearch && matchesDept && matchesScheme;
+        return matchesSearch;
     });
 
     return (
@@ -88,17 +117,44 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
                     {/* Syllabus Link Section */}
                     <div className="syllabus-header-v1 mb-4">
-                        <p className="syllabus-title-v1">MSBTE Syllabus Curriculum Search</p>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <p className="syllabus-title-v1 mb-0">MSBTE Syllabus Curriculum Search</p>
+                            {isAuthorizedToEdit && !isEditingLink && (
+                                <button className="btn btn-sm btn-link text-primary p-0" onClick={handleEditLink}>
+                                    Edit Link
+                                </button>
+                            )}
+                        </div>
                         <div className="syllabus-link-group-v1">
-                            <input
-                                type="text"
-                                className="syllabus-input-v1"
-                                value={syllabusLink}
-                                readOnly
-                            />
-                            <button className="syllabus-copy-btn-v1" onClick={copyToClipboard}>
-                                {copySuccess || "Copy"}
-                            </button>
+                            {isEditingLink ? (
+                                <>
+                                    <input
+                                        type="text"
+                                        className="syllabus-input-v1 flex-grow-1"
+                                        value={newLinkValue}
+                                        onChange={(e) => setNewLinkValue(e.target.value)}
+                                        placeholder="Enter curriculum search URL..."
+                                    />
+                                    <button className="syllabus-copy-btn-v1 px-3 bg-success" onClick={handleSaveLink}>
+                                        Save
+                                    </button>
+                                    <button className="syllabus-copy-btn-v1 px-3 bg-secondary" onClick={() => setIsEditingLink(false)}>
+                                        Cancel
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <input
+                                        type="text"
+                                        className="syllabus-input-v1"
+                                        value={syllabusLink}
+                                        readOnly
+                                    />
+                                    <button className="syllabus-copy-btn-v1" onClick={copyToClipboard}>
+                                        {copySuccess || "Copy"}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 

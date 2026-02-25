@@ -320,13 +320,15 @@ const Updateuser = () => {
             <h3 className="mb-4 text-primary fw-bold">User updated successfully!</h3>
             <button
               onClick={() => {
-                const userId = new URLSearchParams(location.search).get('id');
+                const queryId = new URLSearchParams(location.search).get('id');
+                const targetId = queryId || formData.user_id;
                 const currentUser = getLoggedInUser();
-                // If it was the current user, reload to sync UI
-                if (currentUser && String(currentUser.user_id) === String(userId)) {
-                  window.location.href = `/view-user2?id=${userId}`;
+
+                // If it was the current user, or profile, reload to sync UI
+                if (targetId === 'profile' || (currentUser && String(currentUser.user_id) === String(targetId))) {
+                  window.location.href = `/view-user2${targetId !== 'profile' ? `?id=${targetId}` : ''}`;
                 } else {
-                  navigate(`/view-user2?id=${userId}`);
+                  navigate(`/view-user2${targetId ? `?id=${targetId}` : ''}`);
                 }
               }}
               className="btn btn-primary px-4 py-2"

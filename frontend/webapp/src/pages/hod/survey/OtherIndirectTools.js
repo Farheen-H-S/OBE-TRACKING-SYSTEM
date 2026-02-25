@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './OtherIndirectTools.css';
 import api from '../../../utils/axios';
 import { FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { useFilters } from '../../../context/FilterContext';
 
 const SURVEY_TOOLS = [
     { id: 'co-curricular', label: 'Co-curricular / Extra Curricular Activity Feedback', hasActivity: true },
@@ -49,25 +50,22 @@ const getSurveyInquiry = (stmt) => {
 };
 
 const OtherIndirectTools = () => {
-    const [programs, setPrograms] = useState([]);
-    const [selectedProgram, setSelectedProgram] = useState('');
-    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
-    const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedDivision, setSel] = useState('A');
-    const [selectedSem, setSelectedSem] = useState('1');
-    const [academicYear, setAcademicYear] = useState('');
+    const {
+        selectedDept: selectedProgram, setSelectedDept: setSelectedProgram,
+        selectedBatch, setSelectedBatch,
+        selectedYear, setSelectedYear,
+        selectedClass, setSelectedClass,
+        selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
+        selectedDivision, setSelectedDivision,
+        programs,
+        years: academicYears
+    } = useFilters();
 
     const [selectedTool, setSelectedTool] = useState(SURVEY_TOOLS[0]);
     const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
     // User types only the suffix; full title = `${activityType} — ${activityDetail}`
     const [activityDetail, setActivityDetail] = useState('');
     const [calcDuration, setCalcDuration] = useState('48');
-
-    const academicYears = [];
-    for (let i = 2019; i <= 2030; i++) {
-        academicYears.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
 
     const [pos, setPos] = useState([]);
     const [psos, setPsos] = useState([]);
@@ -88,8 +86,7 @@ const OtherIndirectTools = () => {
         : '';
 
     // ── Lifecycle ────────────────────────────────────────────────────────
-    useEffect(() => { fetchInitialData(); }, []);
-    useEffect(() => { if (selectedProgram) fetchStatements(); }, [selectedProgram]);
+    useEffect(() => { if (selectedProgram && selectedProgram !== 'All') fetchStatements(); }, [selectedProgram]);
     useEffect(() => {
         const saved = localStorage.getItem(surveyKey);
         setSurveyState(saved ? JSON.parse(saved) : null);
@@ -107,32 +104,8 @@ const OtherIndirectTools = () => {
         return () => clearInterval(timer);
     }, [surveyState]);
 
-    // ── API ──────────────────────────────────────────────────────────────
-    const fetchInitialData = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            const userDept = user?.department || user?.department_id;
-            const [progRes, setupRes] = await Promise.allSettled([
-                api.get('academics/programs/'),
-                api.get('academics/academic-setup/'),
-            ]);
-            if (progRes.status === 'fulfilled') {
-                const data = (progRes.value.data || []).filter(p => p.program_name && !p.program_name.toLowerCase().includes('test'));
-                setPrograms(data);
-                if (userDept) {
-                    const m = data.find(p => String(p.program_id) === String(userDept));
-                    setSelectedProgram(m ? String(m.program_id) : String(data[0]?.program_id || ''));
-                } else if (data.length) setSelectedProgram(String(data[0].program_id));
-            }
-            if (setupRes.status === 'fulfilled' && setupRes.value.data?.academic_year) {
-                const yr = setupRes.value.data.academic_year;
-                setAcademicYear(yr);
-                setSelectedYear(yr.includes(' - ') ? yr : yr.replace('-', ' - '));
-            }
-        } catch (e) { console.error('OIT init error:', e); }
-    };
-
     const fetchStatements = async () => {
+        if (!selectedProgram || selectedProgram === 'All') return;
         setLoadingStmts(true);
         try {
             const [poRes, psoRes] = await Promise.allSettled([
@@ -390,188 +363,194 @@ const OtherIndirectTools = () => {
                         </div>
                     )}
 
-                    {/* ── Filters ── */}
-                    <div className="oit-filters-section bg-white border rounded p-4 shadow-sm mb-4">
-                        <div className="filter-group mb-4">
-                            <div className="row g-3 align-items-end">
-                                <div className="col-md">
-                                    <label className="filter-label mb-2">BATCH</label>
-                                    <select className="form-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                        {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
-                                    </select>
-                                </div>
-                                <div className="col-md">
-                                    <label className="filter-label mb-2">ACADEMIC YEAR</label>
-                                    <select className="form-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                                        {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
-                                    </select>
-                                </div>
-                                <div className="col-md">
-                                    <label className="filter-label mb-2">CLASS</label>
-                                    <select className="form-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                        <option value="FY">FY</option>
-                                        <option value="SY">SY</option>
-                                        <option value="TY">TY</option>
-                                    </select>
-                                </div>
-                                <div className="col-md" style={{ maxWidth: 80 }}>
-                                    <label className="filter-label mb-2">SEM</label>
-                                    <select className="form-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                        {['1', '2', '3', '4', '5', '6'].map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Tool selector */}
-                            <div className="mt-4">
-                                <label className="filter-label mb-2">SURVEY TOOL</label>
-                                <div className="oit-tool-grid">
-                                    {SURVEY_TOOLS.map(tool => (
-                                        <button
-                                            key={tool.id}
-                                            className={`oit-tool-btn ${selectedTool.id === tool.id ? 'active' : ''}`}
-                                            onClick={() => { setSelectedTool(tool); setActivityDetail(''); setActivityType(ACTIVITY_TYPES[0]); setShowStats(false); }}
-                                        >
-                                            {tool.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Activity metadata — Co-curricular AND Resource Person */}
-                            {selectedTool.hasActivity && (
-                                <div className="mt-3 p-3 bg-light rounded border">
-                                    <label className="filter-label mb-2 d-block">ACTIVITY DETAILS</label>
-                                    <div className="row g-2">
-                                        <div className="col-md-4">
-                                            <select
-                                                className="form-select form-select-sm"
-                                                value={activityType}
-                                                onChange={e => setActivityType(e.target.value)}
-                                            >
-                                                {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-8">
-                                            {/* Input group — activity type auto-prepended */}
-                                            <div className="input-group input-group-sm">
-                                                <span className="input-group-text oit-type-prefix fw-semibold">
-                                                    {activityType} —
-                                                </span>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    placeholder={
-                                                        activityType === 'Industry Visit' ? 'company / organisation name'
-                                                            : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
-                                                                : 'program name / topic'
-                                                    }
-                                                    value={activityDetail}
-                                                    onChange={e => setActivityDetail(e.target.value)}
-                                                />
-                                            </div>
-                                            {activityDetail && (
-                                                <small className="text-success fw-semibold mt-1 d-block">
-                                                    Title: <em>{computedTitle}</em>
-                                                </small>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ── Question-set card ── */}
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h5 className="fw-bold text-dark mb-0">PO / PSO Question Set</h5>
-                                {computedTitle && surveyState?.status === 'APPROVED' && (
-                                    <small className="text-muted">{computedTitle}</small>
-                                )}
-                            </div>
-                            <span className={`status-badge-compact ${surveyState?.status === 'APPROVED' ? 'approved' : surveyState?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
-                                {surveyState?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
-                                {surveyState?.status || 'DRAFT'}
-                            </span>
-                        </div>
-
-                        <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
-                            {loadingStmts ? (
-                                <div className="text-center py-4"><div className="spinner-border text-primary" /></div>
-                            ) : allStatements.length === 0 ? (
-                                <div className="text-center py-4 text-muted">
-                                    <FaExclamationCircle size={28} className="mb-2" />
-                                    <p className="mb-0">No PO / PSO statements found for the selected department.</p>
-                                    <small>Go to <strong>PEO / PO / PSO → Define</strong> to add statements first.</small>
-                                </div>
-                            ) : (
-                                <>
-                                    <h6 className="oit-section-label">Program Outcomes (PO)</h6>
-                                    {pos.map((p, i) => (
-                                        <div key={i} className="oit-question-item d-flex gap-3 mb-2">
-                                            <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
-                                            <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description })}</span>
-                                        </div>
-                                    ))}
-                                    {psos.length > 0 && (
-                                        <>
-                                            <h6 className="oit-section-label mt-4">Program Specific Outcomes (PSO)</h6>
-                                            {psos.map((p, i) => (
-                                                <div key={i} className="oit-question-item d-flex gap-3 mb-2">
-                                                    <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
-                                                    <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description })}</span>
-                                                </div>
-                                            ))}
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-                            {/* Action row */}
-                            <div className="action-row mt-4 pt-3 border-top d-flex align-items-center gap-3 flex-wrap">
-                                {(surveyState?.status === 'APPROVED' || surveyState?.status === 'CLOSED') && (
-                                    <button
-                                        className="btn btn-sm btn-info text-white"
-                                        onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
-                                    >
-                                        {showStats ? 'Show Questions' : 'Show Statistics'}
-                                    </button>
-                                )}
-                                <select
-                                    className="form-select form-select-sm w-auto"
-                                    value={surveyState?.duration || '7'}
-                                    onChange={e => setSurveyState(s => ({ ...(s || {}), duration: e.target.value }))}
-                                    disabled={surveyState?.status === 'APPROVED'}
-                                >
-                                    <option value="3">3 Days</option>
-                                    <option value="7">7 Days</option>
-                                    <option value="15">15 Days</option>
-                                    <option value="30">30 Days</option>
+                    {/* Filters */}
+                    <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
+                        <div className="row g-3">
+                            <div className="col-md">
+                                <label className="filter-label">DEPARTMENT</label>
+                                <select className="form-select filter-select" value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
+                                    <option value="All">All Departments</option>
+                                    {programs.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
                                 </select>
-                                <button
-                                    className={`btn btn-sm px-5 ${surveyState?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
-                                    onClick={handleApprove}
-                                    disabled={allStatements.length === 0 || !selectedProgram}
-                                >
-                                    {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
-                                </button>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">BATCH</label>
+                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="All">All</option>
+                                    {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">ACADEMIC YEAR</label>
+                                <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                                    <option value="All">All</option>
+                                    {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md">
+                                <label className="filter-label">CLASS</label>
+                                <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                                    <option value="All">All</option>
+                                    {['FY', 'SY', 'TY'].map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md" style={{ maxWidth: 80 }}>
+                                <label className="filter-label">SEM</label>
+                                <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
+                                    <option value="All">All</option>
+                                    {['1', '2', '3', '4', '5', '6'].map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
                             </div>
                         </div>
-
-                        {/* ── Attainment reference ── */}
-                        <div className="oit-legend-card border rounded p-3 mb-4">
-                            <h6 className="oit-section-label mb-3">PO / PSO Attainment Level Reference  <small className="text-muted fw-normal">(Rating scale: 0 – 3)</small></h6>
-                            <div className="d-flex flex-wrap gap-2">
-                                {ATTAINMENT_LEVELS.map(al => (
-                                    <span key={al.level} className={`attainment-badge al-${al.level}`}>
-                                        L{al.level} {al.label} (avg {al.min}–{al.max})
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {showStats && <StatsTable />}
                     </div>
+
+                    <div className="mt-4">
+                        <label className="filter-label mb-2">SURVEY TOOL</label>
+                        <div className="oit-tool-grid">
+                            {SURVEY_TOOLS.map(tool => (
+                                <button
+                                    key={tool.id}
+                                    className={`oit-tool-btn ${selectedTool.id === tool.id ? 'active' : ''}`}
+                                    onClick={() => { setSelectedTool(tool); setActivityDetail(''); setActivityType(ACTIVITY_TYPES[0]); setShowStats(false); }}
+                                >
+                                    {tool.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Activity metadata — Co-curricular AND Resource Person */}
+                    {selectedTool.hasActivity && (
+                        <div className="mt-3 p-3 bg-light rounded border">
+                            <label className="filter-label mb-2 d-block">ACTIVITY DETAILS</label>
+                            <div className="row g-2">
+                                <div className="col-md-4">
+                                    <select
+                                        className="form-select form-select-sm"
+                                        value={activityType}
+                                        onChange={e => setActivityType(e.target.value)}
+                                    >
+                                        {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-md-8">
+                                    {/* Input group — activity type auto-prepended */}
+                                    <div className="input-group input-group-sm">
+                                        <span className="input-group-text oit-type-prefix fw-semibold">
+                                            {activityType} —
+                                        </span>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder={
+                                                activityType === 'Industry Visit' ? 'company / organisation name'
+                                                    : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
+                                                        : 'program name / topic'
+                                            }
+                                            value={activityDetail}
+                                            onChange={e => setActivityDetail(e.target.value)}
+                                        />
+                                    </div>
+                                    {activityDetail && (
+                                        <small className="text-success fw-semibold mt-1 d-block">
+                                            Title: <em>{computedTitle}</em>
+                                        </small>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Question-set card ── */}
+                    <div className="d-flex justify-content-between align-items-center mb-3 mt-4">
+                        <div>
+                            <h5 className="fw-bold text-dark mb-0">PO / PSO Question Set</h5>
+                            {computedTitle && surveyState?.status === 'APPROVED' && (
+                                <small className="text-muted">{computedTitle}</small>
+                            )}
+                        </div>
+                        <span className={`status-badge-compact ${surveyState?.status === 'APPROVED' ? 'approved' : surveyState?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
+                            {surveyState?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
+                            {surveyState?.status || 'DRAFT'}
+                        </span>
+                    </div>
+
+                    <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
+                        {loadingStmts ? (
+                            <div className="text-center py-4"><div className="spinner-border text-primary" /></div>
+                        ) : allStatements.length === 0 ? (
+                            <div className="text-center py-4 text-muted">
+                                <FaExclamationCircle size={28} className="mb-2" />
+                                <p className="mb-0">No PO / PSO statements found for the selected department.</p>
+                                <small>Go to <strong>PEO / PO / PSO → Define</strong> to add statements first.</small>
+                            </div>
+                        ) : (
+                            <>
+                                <h6 className="oit-section-label">Program Outcomes (PO)</h6>
+                                {pos.map((p, i) => (
+                                    <div key={i} className="oit-question-item d-flex gap-3 mb-2">
+                                        <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
+                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description })}</span>
+                                    </div>
+                                ))}
+                                {psos.length > 0 && (
+                                    <>
+                                        <h6 className="oit-section-label mt-4">Program Specific Outcomes (PSO)</h6>
+                                        {psos.map((p, i) => (
+                                            <div key={i} className="oit-question-item d-flex gap-3 mb-2">
+                                                <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
+                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description })}</span>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        {/* Action row */}
+                        <div className="action-row mt-4 pt-3 border-top d-flex align-items-center gap-3 flex-wrap">
+                            {(surveyState?.status === 'APPROVED' || surveyState?.status === 'CLOSED') && (
+                                <button
+                                    className="btn btn-sm btn-info text-white"
+                                    onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
+                                >
+                                    {showStats ? 'Show Questions' : 'Show Statistics'}
+                                </button>
+                            )}
+                            <select
+                                className="form-select form-select-sm w-auto"
+                                value={surveyState?.duration || '7'}
+                                onChange={e => setSurveyState(s => ({ ...(s || {}), duration: e.target.value }))}
+                                disabled={surveyState?.status === 'APPROVED'}
+                            >
+                                <option value="3">3 Days</option>
+                                <option value="7">7 Days</option>
+                                <option value="15">15 Days</option>
+                                <option value="30">30 Days</option>
+                            </select>
+                            <button
+                                className={`btn btn-sm px-5 ${surveyState?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
+                                onClick={handleApprove}
+                                disabled={allStatements.length === 0 || !selectedProgram}
+                            >
+                                {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ── Attainment reference ── */}
+                    <div className="oit-legend-card border rounded p-3 mb-4">
+                        <h6 className="oit-section-label mb-3">PO / PSO Attainment Level Reference  <small className="text-muted fw-normal">(Rating scale: 0 – 3)</small></h6>
+                        <div className="d-flex flex-wrap gap-2">
+                            {ATTAINMENT_LEVELS.map(al => (
+                                <span key={al.level} className={`attainment-badge al-${al.level}`}>
+                                    L{al.level} {al.label} (avg {al.min}–{al.max})
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {showStats && <StatsTable />}
                 </div>
             </div>
         </div>

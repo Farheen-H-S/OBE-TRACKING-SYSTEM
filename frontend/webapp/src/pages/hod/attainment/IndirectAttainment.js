@@ -4,6 +4,7 @@ import './IndirectAttainment.css';
 import { Modal, Button, Table } from 'react-bootstrap';
 import { BsEyeFill, BsFileEarmarkExcelFill } from 'react-icons/bs';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { useFilters } from '../../../context/FilterContext';
 
 const SURVEY_TOOLS = [
     { id: 'co-curricular', label: 'Co-curricular / Extra Curricular Activity Feedback', short: 'Co-curricular' },
@@ -28,21 +29,16 @@ const getAttainmentLevel = (avg) => {
     return ATTAINMENT_LEVELS[4];
 };
 
-const BATCHES = ['FY', 'SY', 'TY'];
-
 export default function IndirectAttainment() {
-    const [departments, setDepartments] = useState([]);
-    const [selectedDept, setSelectedDept] = useState('');
-
-    const years = [];
-    for (let i = 2019; i <= 2030; i++) {
-        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
-
-    const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedSem, setSelectedSem] = useState('1');
+    const {
+        selectedDept, setSelectedDept,
+        selectedBatch, setSelectedBatch,
+        selectedYear, setSelectedYear,
+        selectedClass, setSelectedClass,
+        selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
+        programs: departments,
+        years
+    } = useFilters();
 
     // Survey rows derived from localStorage
     const [rows, setRows] = useState([]);
@@ -53,31 +49,7 @@ export default function IndirectAttainment() {
     const [modalRows, setModalRows] = useState([]);
     const [modalStmts, setModalStmts] = useState([]);
 
-    useEffect(() => { fetchDepts(); }, []);
     useEffect(() => { if (selectedDept) buildRows(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
-
-    const fetchDepts = async () => {
-        try {
-            const res = await api.get('/academics/programs/');
-            setDepartments(res.data || []);
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            const dept = user?.department || user?.department_id;
-
-            const setupKey = 'academicSetup';
-            const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
-            if (setup.academic_year) {
-                const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
-                setSelectedYear(ay);
-            }
-
-            if (dept) {
-                const found = (res.data || []).find(d => String(d.program_id) === String(dept));
-                setSelectedDept(found ? String(found.program_id) : String(res.data[0]?.program_id || ''));
-            } else if (res.data?.length) {
-                setSelectedDept(String(res.data[0].program_id));
-            }
-        } catch (e) { console.error(e); }
-    };
 
     const buildRows = () => {
         const built = SURVEY_TOOLS.map(tool => {
@@ -166,6 +138,12 @@ export default function IndirectAttainment() {
                 <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                     <div className="row g-3">
                         <div className="col-md">
+                            <label className="filter-label">DEPARTMENT</label>
+                            <select className="form-select filter-select" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
+                                {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
+                            </select>
+                        </div>
+                        <div className="col-md">
                             <label className="filter-label">BATCH</label>
                             <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
                                 {years.map(y => <option key={y} value={y}>{y}</option>)}
@@ -180,12 +158,14 @@ export default function IndirectAttainment() {
                         <div className="col-md" style={{ maxWidth: 100 }}>
                             <label className="filter-label">CLASS</label>
                             <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                                <option value="All">All</option>
+                                {['FY', 'SY', 'TY'].map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                         </div>
                         <div className="col-md" style={{ maxWidth: 100 }}>
                             <label className="filter-label">SEM</label>
                             <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
+                                <option value="All">All</option>
                                 {['1', '2', '3', '4', '5', '6'].map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>

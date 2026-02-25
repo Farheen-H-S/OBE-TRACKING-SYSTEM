@@ -16,6 +16,8 @@ urlpatterns = [
     path('api/surveys/', include('surveys.urls')),
     path('api/teaching_plan/', include('teaching_plan.urls')),
     path('api/audit/', include('audit.urls')),
+    path('api/bulk_upload/', include('bulk_upload.urls')),
+    path('api/notifications/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:

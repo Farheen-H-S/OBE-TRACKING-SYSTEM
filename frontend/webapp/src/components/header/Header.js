@@ -37,11 +37,17 @@ const Header = ({ onToggleSidebar }) => {
     { name: "Academic Setup", path: "/academic-setup", category: "Admin", keywords: ["defaults", "configuration", "semester", "year"], allowedRoles: ["Admin"] },
     { name: "Department Management", path: "/academic-setup", category: "Admin", keywords: ["department", "management", "programs", "manage departments", "add department", "academic setup"], allowedRoles: ["Admin"] },
     { name: "System Activity Log", path: "/activity-log", category: "Admin", keywords: ["activity", "history", "logs", "audit"], allowedRoles: ["Admin"] },
-    { name: "PO Statement", path: "/po-statement", category: "Academics", keywords: ["outcome"], allowedRoles: ["HOD", "Faculty"] },
-    { name: "PSO Statement", path: "/pso-statement", category: "Academics", keywords: ["specific outcome"], allowedRoles: ["HOD", "Faculty"] },
-    { name: "Stress Create", path: "/stress-create", category: "HOD", keywords: ["survey", "test"], allowedRoles: ["HOD"] },
+    { name: "PO Statement", path: "/po-statement", category: "Academics", keywords: ["outcome"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
+    { name: "PSO Statement", path: "/pso-statement", category: "Academics", keywords: ["specific outcome"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
+    { name: "Course Exit Survey", path: "/stress-create", category: "HOD", keywords: ["survey", "test", "ces", "course exit"], allowedRoles: ["HOD", "Coordinator"] },
+    { name: "Target Management", path: "/target-management", category: "Assessment", keywords: ["target", "setting", "goal"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
+    { name: "Indirect Attainment", path: "/indirect-attainment", category: "Reports", keywords: ["indirect", "attainment", "surveys", "report"], allowedRoles: ["HOD", "Coordinator"] },
+    { name: "PO & PSO Attainment", path: "/po-pso-attainment", category: "Reports", keywords: ["po", "pso", "attainment", "report"], allowedRoles: ["HOD", "Coordinator"] },
+    { name: "Extra-Curricular Tools", path: "/other-indirect-tools", category: "Surveys", keywords: ["expert lecture", "visit", "workshop", "extra-curricular", "feedback"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
+    { name: "Course Management", path: "/course-management", category: "Academics", keywords: ["courses", "view course", "edit course"], allowedRoles: ["Admin", "HOD", "Coordinator", "Faculty"] },
     { name: "Profile", path: "/profile", category: "User", keywords: ["settings", "account", "me"], allowedRoles: ["Admin", "HOD", "Faculty", "Staff", "Auditor", "Coordinator"] },
-    { name: "Marks Entry", path: "/marks-entry", category: "Assessment", keywords: ["cis", "entry"], allowedRoles: ["Faculty", "HOD", "Coordinator"] },];
+    { name: "Marks Entry", path: "/marks-entry", category: "Assessment", keywords: ["cis", "entry"], allowedRoles: ["Faculty", "HOD", "Coordinator"] },
+  ];
 
   const filteredItems = searchItems
     .filter(item => item.allowedRoles.some(role => role.toLowerCase() === userRole))

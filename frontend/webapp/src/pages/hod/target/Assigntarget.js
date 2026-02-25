@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../../../components/header/Header';
-import HodSide from '../../../components/sidebar/HodSide';
 import api from '../../../utils/axios';
 import './Assigntarget.css';
 import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
@@ -343,9 +341,7 @@ const Assigntarget = () => {
 
   return (
     <div className="assign-target-container">
-      <Header />
       <div className="d-flex w-100 h-100 overflow-hidden">
-        <HodSide />
         <div className="content-area p-4 w-100 bg-light overflow-y-auto">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h2 className="fw-bold m-0" style={{ color: '#1a237e' }}>Target Management</h2>

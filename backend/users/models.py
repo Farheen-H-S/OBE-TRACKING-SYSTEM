@@ -82,6 +82,15 @@ class Student(models.Model):
     class_year = models.CharField(max_length=20)
     division = models.CharField(max_length=10)
     semester = models.IntegerField()
+    user_id = models.OneToOneField(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='student_profile',
+        null=True,
+        blank=True,
+        db_column='user_id'
+    )
+    academic_year = models.CharField(max_length=15, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

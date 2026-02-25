@@ -2,12 +2,22 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../../utils/axios";
 import "./Addcourse.css";
+import { useFilters } from "../../../context/FilterContext";
 
 const Addcourse = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const {
+        selectedBatch, setSelectedBatch,
+        selectedYear, setSelectedYear,
+        selectedClass: filterClass, setSelectedClass: setFilterClass,
+        selectedSemester: filterSem, setSelectedSemester: setFilterSem,
+    } = useFilters();
 
     const [isViewMode, setIsViewMode] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearchResults, setShowSearchResults] = useState(false);
+
     const [formData, setFormData] = useState({
         courseId: '',
         courseCode: '',
@@ -29,11 +39,29 @@ const Addcourse = () => {
         courseOutcomes: [{ no: 'CO1', text: '' }]
     });
 
-    // Filters for "Details View" context
-    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
-    const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('');
-    const [selectedSem, setSelectedSem] = useState('');
+    const loadCourseData = async (data) => {
+        setIsViewMode(true);
+        try {
+            const coRes = await api.get(`/academics/courses/${data.course_id}/cos/`);
+            const cos = coRes.data.length > 0 ? coRes.data.map(c => ({ no: c.co_number, text: c.description, co_id: c.co_id })) : [{ no: 'CO1', text: '' }];
+            setFormData({
+                courseId: data.course_id,
+                courseCode: data.course_code,
+                courseTitle: data.course_title,
+                courseAbbr: data.course_abbr,
+                scheme: data.scheme_id,
+                program_id: data.program_id,
+                class: data.class_year,
+                semester: data.semester,
+                faculty: data.faculty_assigned || '',
+                assessmentTools: data.assessment_tools || formData.assessmentTools,
+                courseOutcomes: cos,
+                course_name_suffix: data.course_name ? (data.course_abbr ? data.course_name.replace(`${data.course_abbr}-`, '') : data.course_name) : ''
+            });
+        } catch (err) {
+            console.error("Error loading course data:", err);
+        }
+    };
 
     const years = [];
     for (let i = 2019; i <= 2030; i++) {
@@ -278,6 +306,66 @@ const Addcourse = () => {
                 <div className="content-area p-4 w-100 bg-light overflow-auto">
                     {/* Filter Section (Before Course Details Card) */}
                     <div className="filter-row-v2 mb-4 p-3 bg-white rounded border shadow-sm">
+                        {/* Search Bar */}
+                        <div className="row mb-3">
+                            <div className="col-12 position-relative">
+                                <label className="filter-label">SEARCH FOR EXISTING COURSE</label>
+                                <div className="input-group">
+                                    <span className="input-group-text bg-white border-end-0"><i className="bi bi-search"></i></span>
+                                    <input
+                                        type="text"
+                                        className="form-control border-start-0 ps-0 shadow-none"
+                                        placeholder="Search by code, name, title or abbreviation..."
+                                        value={searchTerm}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value);
+                                            setShowSearchResults(true);
+                                        }}
+                                        onFocus={() => setShowSearchResults(true)}
+                                    />
+                                </div>
+                                {showSearchResults && searchTerm && (
+                                    <div className="search-results-dropdown shadow position-absolute bg-white rounded mt-1 w-100" style={{ zIndex: 1100, maxHeight: '300px', overflowY: 'auto', border: '1px solid #dee2e6' }}>
+                                        {existingCourses
+                                            .filter(c => {
+                                                const t = searchTerm.toLowerCase();
+                                                return (c.course_name || "").toLowerCase().includes(t) ||
+                                                    (c.course_code || "").toLowerCase().includes(t) ||
+                                                    (c.course_abbr || "").toLowerCase().includes(t) ||
+                                                    (c.course_title || "").toLowerCase().includes(t);
+                                            })
+                                            .slice(0, 15)
+                                            .map(c => (
+                                                <div
+                                                    key={c.course_id}
+                                                    className="p-3 border-bottom search-result-item-v2 cursor-pointer hover-bg-light"
+                                                    onClick={() => {
+                                                        loadCourseData(c);
+                                                        setSearchTerm('');
+                                                        setShowSearchResults(false);
+                                                    }}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    <div className="fw-bold text-primary">{c.course_code} - {c.course_abbr || '---'}</div>
+                                                    <div className="small text-dark fw-semibold">{c.course_name}</div>
+                                                    <div className="small text-muted italic" style={{ fontSize: '0.75rem' }}>{c.course_title}</div>
+                                                </div>
+                                            ))
+                                        }
+                                        {existingCourses.filter(c => {
+                                            const t = searchTerm.toLowerCase();
+                                            return (c.course_name || "").toLowerCase().includes(t) ||
+                                                (c.course_code || "").toLowerCase().includes(t) ||
+                                                (c.course_abbr || "").toLowerCase().includes(t) ||
+                                                (c.course_title || "").toLowerCase().includes(t);
+                                        }).length === 0 && (
+                                                <div className="p-3 text-center text-muted">No courses found</div>
+                                            )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="row g-3">
                             <div className="col-md">
                                 <label className="filter-label">BATCH</label>
@@ -293,16 +381,16 @@ const Addcourse = () => {
                             </div>
                             <div className="col-md">
                                 <label className="filter-label">CLASS</label>
-                                <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                    <option value="">Select Class</option>
+                                <select className="form-select filter-select" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+                                    <option value="All">All Classes</option>
                                     {['FY', 'SY', 'TY'].map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div className="col-md">
                                 <label className="filter-label">SEM</label>
-                                <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                    <option value="">Select Sem</option>
-                                    {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}</option>)}
+                                <select className="form-select filter-select" value={filterSem} onChange={e => setFilterSem(e.target.value)}>
+                                    <option value="All">All Semesters</option>
+                                    {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s.toString()}>{s}</option>)}
                                 </select>
                             </div>
                         </div>

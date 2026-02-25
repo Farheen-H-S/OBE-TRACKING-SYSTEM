@@ -3,22 +3,25 @@ import './Cescreate.css';
 import api from '../../../utils/axios';
 import { FaCopy, FaCheckCircle, FaExclamationCircle, FaSearch, FaFilter, FaEdit, FaCheck } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
+import { useFilters } from '../../../context/FilterContext';
 
 const Cescreate = () => {
+    const {
+        selectedDept: selectedProgram, setSelectedDept: setSelectedProgram,
+        selectedScheme, setSelectedScheme,
+        selectedYear, setSelectedYear,
+        selectedClass, setSelectedClass,
+        selectedSemester, setSelectedSemester,
+        selectedDivision, setSelectedDivision,
+        departments: programs, schemes
+    } = useFilters();
+
     // Academic state
-    const [programs, setPrograms] = useState([]);
-    const [schemes, setSchemes] = useState([]);
     const [academicYear, setAcademicYear] = useState('');
     const [courses, setCourses] = useState([]);
     const [coursesLoading, setCoursesLoading] = useState(false);
 
-    // Filter state
-    const [selectedProgram, setSelectedProgram] = useState('');
-    const [selectedScheme, setSelectedScheme] = useState('');
-    const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedDivision, setSelectedDivision] = useState('A');
-    const [selectedSemester, setSelectedSemester] = useState(() => getDefaultSemester('FY', getCachedSemesterType()));
+    // Search state
     const [searchTerm, setSearchTerm] = useState('');
 
     // Survey states
@@ -72,50 +75,16 @@ const Cescreate = () => {
 
     const fetchInitialData = async () => {
         try {
-            const userStr = localStorage.getItem('user');
-            let user = null;
-            try {
-                user = userStr ? JSON.parse(userStr) : null;
-            } catch (e) {
-                console.error("Invalid user data in localStorage");
-            }
-
-            const userDept = user?.department || user?.department_id;
-
-            // Use relative paths without leading slash to ensure alignment with baseURL
-            const [progRes, schemeRes, setupRes, surveyRes] = await Promise.allSettled([
-                api.get('academics/programs/'),
-                api.get('academics/schemes/list/'),
+            const [setupRes, surveyRes] = await Promise.allSettled([
                 api.get('academics/academic-setup/'),
                 api.get('surveys/')
             ]);
-
-            if (progRes.status === 'fulfilled') {
-                const data = Array.isArray(progRes.value.data) ? progRes.value.data : [];
-                const filteredProgs = data.filter(p => p.program_name && !p.program_name.toLowerCase().includes('test'));
-                setPrograms(filteredProgs);
-                if (userDept) setSelectedProgram(userDept.toString());
-                else if (filteredProgs.length > 0) setSelectedProgram(filteredProgs[0].program_id.toString());
-            }
-
-            if (schemeRes.status === 'fulfilled') {
-                const data = Array.isArray(schemeRes.value.data) ? schemeRes.value.data : [];
-                const filteredSchemes = data.filter(s => s.scheme_name && !s.scheme_name.toLowerCase().includes('test'));
-                setSchemes(filteredSchemes);
-                if (filteredSchemes.length > 0) setSelectedScheme(filteredSchemes[0].scheme_id.toString());
-            }
 
             if (setupRes.status === 'fulfilled' && setupRes.value.data) {
                 const setup = setupRes.value.data;
                 if (setup.academic_year) {
                     setAcademicYear(setup.academic_year);
-                    // Match the dropdown format if possible
-                    const yearVal = setup.academic_year.includes('-') && !setup.academic_year.includes(' - ')
-                        ? setup.academic_year.replace('-', ' - ')
-                        : setup.academic_year;
-                    setSelectedYear(yearVal);
                 }
-                if (setup.scheme_id) setSelectedScheme(setup.scheme_id.toString());
             }
 
             if (surveyRes.status === 'fulfilled') {
@@ -143,39 +112,20 @@ const Cescreate = () => {
     };
 
     useEffect(() => {
-        if (selectedProgram && selectedScheme) {
-            fetchCourses();
-        }
-    }, [selectedProgram, selectedScheme, selectedClass, selectedSemester]);
-
-    // Smart semester logic
-    const getSemestersForClass = (className) => {
-        switch (className) {
-            case 'FY': return [1, 2];
-            case 'SY': return [3, 4];
-            case 'TY': return [5, 6];
-            default: return [1, 2];
-        }
-    };
-
-    const handleClassChange = (e) => {
-        const newClass = e.target.value;
-        setSelectedClass(newClass);
-        const validSems = getSemestersForClass(newClass);
-        setSelectedSemester(validSems[0].toString());
-    };
+        fetchCourses();
+    }, [selectedProgram, selectedScheme, selectedClass, selectedSemester, selectedYear, selectedDivision]);
 
     const fetchCourses = async () => {
         setCoursesLoading(true);
         try {
             const params = {
-                program_id: selectedProgram,
-                scheme_id: selectedScheme,
-                class_year: selectedClass,
-                semester: selectedSemester
+                program_id: selectedProgram === 'All' ? '' : selectedProgram,
+                scheme_id: selectedScheme === 'All' ? '' : selectedScheme,
+                class_year: selectedClass === 'All' ? '' : selectedClass,
+                semester: selectedSemester === 'All' ? '' : selectedSemester,
+                academic_year: selectedYear
             };
             const response = await api.get('academics/courses/', { params });
-            // Show all courses for the HOD to manage
             setCourses(response.data);
 
             response.data.forEach(course => {
@@ -477,10 +427,13 @@ const Cescreate = () => {
         );
     };
 
-    const filteredCourses = courses.filter(c =>
-        c.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.course_code.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCourses = courses.filter(c => {
+        const term = searchTerm.toLowerCase();
+        return (c.course_name || "").toLowerCase().includes(term) ||
+            (c.course_code || "").toLowerCase().includes(term) ||
+            (c.course_title || "").toLowerCase().includes(term) ||
+            (c.course_abbr || "").toLowerCase().includes(term);
+    });
 
     return (
         <div className="cescreate-wrapper">
@@ -518,14 +471,14 @@ const Cescreate = () => {
                             <div className="col-md">
                                 <label className="filter-label uppercase mb-2">DEPARTMENT</label>
                                 <select className="form-select" value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
-                                    <option value="">Select Department</option>
-                                    {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_name}</option>)}
+                                    <option value="All">All Departments</option>
+                                    {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_abbr || p.program_name}</option>)}
                                 </select>
                             </div>
                             <div className="col-md">
                                 <label className="filter-label uppercase mb-2">SCHEME</label>
                                 <select className="form-select" value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)}>
-                                    <option value="">Select Scheme</option>
+                                    <option value="All">All Schemes</option>
                                     {schemes.map(s => <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>)}
                                 </select>
                             </div>
@@ -534,26 +487,30 @@ const Cescreate = () => {
                                 <select className="form-select" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                                     <option value="2024 - 25">2024 - 25</option>
                                     <option value="2025 - 26">2025 - 26</option>
+                                    <option value="2026 - 27">2026 - 27</option>
                                 </select>
                             </div>
                             <div className="col-md">
                                 <label className="filter-label uppercase mb-2">CLASS</label>
-                                <select className="form-select" value={selectedClass} onChange={handleClassChange}>
-                                    <option value="FY">FY - {selectedDivision}</option>
-                                    <option value="SY">SY - {selectedDivision}</option>
-                                    <option value="TY">TY - {selectedDivision}</option>
+                                <select className="form-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+                                    <option value="All">All Classes</option>
+                                    <option value="FY">FY</option>
+                                    <option value="SY">SY</option>
+                                    <option value="TY">TY</option>
                                 </select>
                             </div>
                             <div className="col-md" style={{ maxWidth: '100px' }}>
                                 <label className="filter-label uppercase mb-2">DIV</label>
                                 <select className="form-select" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
+                                    <option value="All">All</option>
                                     {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
                             <div className="col-md">
                                 <label className="filter-label uppercase mb-2">SEMESTER</label>
                                 <select className="form-select" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
-                                    {getSemestersForClass(selectedClass).map(s => <option key={s} value={s}>{s}</option>)}
+                                    <option value="All">All Semesters</option>
+                                    {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -561,7 +518,7 @@ const Cescreate = () => {
                             <input
                                 type="text"
                                 className="form-control search-input-pill"
-                                placeholder="Search course by name or code..."
+                                placeholder="Search course by code, name, title or abbreviation..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />

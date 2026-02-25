@@ -263,14 +263,18 @@ const COPOmapping = () => {
                                             }}
                                         />
                                         {searchTerm && (
-                                            <div className="search-results-overlay shadow-sm">
+                                            <div className="search-results-overlay shadow-sm" style={{ maxHeight: '300px', overflowY: 'auto', zIndex: 1000 }}>
                                                 {existingCoursesAll
-                                                    .filter(c =>
-                                                        (c.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                            c.course_code.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                                        !['TEST101', 'CS101'].includes(c.course_code)
-                                                    )
-                                                    .slice(0, 10)
+                                                    .filter(c => {
+                                                        const term = searchTerm.toLowerCase();
+                                                        return (
+                                                            (c.course_name || "").toLowerCase().includes(term) ||
+                                                            (c.course_code || "").toLowerCase().includes(term) ||
+                                                            (c.course_title || "").toLowerCase().includes(term) ||
+                                                            (c.course_abbr || "").toLowerCase().includes(term)
+                                                        ) && !['TEST101', 'CS101'].includes(c.course_code);
+                                                    })
+                                                    .slice(0, 15)
                                                     .map(c => (
                                                         <div
                                                             key={c.course_id}
@@ -280,7 +284,9 @@ const COPOmapping = () => {
                                                                 setSearchTerm('');
                                                             }}
                                                         >
-                                                            <span className="fw-bold">{c.course_code}</span> - {c.course_name}
+                                                            <div className="fw-bold">{c.course_code} - {c.course_abbr || '---'}</div>
+                                                            <div className="small text-muted">{c.course_name}</div>
+                                                            <div className="small text-muted italic" style={{ fontSize: '0.75rem' }}>{c.course_title}</div>
                                                         </div>
                                                     ))}
                                             </div>

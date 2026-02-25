@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'teaching_plan',
     'audit',
     'bulk_upload',
+    'notification',
 ]
 
 MIDDLEWARE = [
@@ -164,3 +165,13 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
+
+# Email Configuration (Google SMTP)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+# USER ACTION REQUIRED: Set your Gmail and App Password here
+EMAIL_HOST_USER = 'your-email@gmail.com'
+EMAIL_HOST_PASSWORD = 'your-app-password'
+DEFAULT_FROM_EMAIL = f'OBE Tracking System <{EMAIL_HOST_USER}>'

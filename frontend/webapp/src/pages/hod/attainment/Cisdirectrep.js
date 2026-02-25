@@ -7,29 +7,26 @@ import './Cisdirectrep.css';
 import { Modal, Button, Table, Form, Alert } from 'react-bootstrap';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '../../../utils/semesterUtils';
 
+import { useFilters } from '../../../context/FilterContext';
+
 export default function Cisdirectrep() {
+    const {
+        selectedDept, setSelectedDept,
+        selectedScheme, setSelectedScheme,
+        selectedYear, setSelectedYear,
+        selectedIntroYear, setSelectedIntroYear,
+        selectedBatch, setSelectedBatch,
+        selectedClass, setSelectedClass,
+        selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
+        selectedDivision, setSelectedDivision,
+        programs: departments,
+        schemes,
+        years
+    } = useFilters();
+
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState('');
     const [generatingCourseId, setGeneratingCourseId] = React.useState(null);
-
-    // Filter States
-    const [departments, setDepartments] = React.useState([]);
-    const [schemes, setSchemes] = React.useState([]);
-
-    const years = [];
-    for (let i = 2019; i <= 2030; i++) {
-        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
-
-    const [selectedDept, setSelectedDept] = React.useState('');
-    const [selectedScheme, setSelectedScheme] = React.useState('');
-    const [selectedYear, setSelectedYear] = React.useState('2025 - 26');
-    const [selectedIntroYear, setSelectedIntroYear] = React.useState('2025 - 26');
-    const [selectedBatch, setSelectedBatch] = React.useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = React.useState('');
-    const [selectedDivision, setSelectedDivision] = React.useState('A');
-    const [selectedSem, setSelectedSem] = React.useState(() => getDefaultSemester('', getCachedSemesterType()));
-    const [searchTerm, setSearchTerm] = React.useState('');
 
     // Preview Modal States
     const [showPreview, setShowPreview] = React.useState(false);
@@ -38,77 +35,40 @@ export default function Cisdirectrep() {
     const [previewCourse, setPreviewCourse] = React.useState(null);
     const [atrInputs, setAtrInputs] = React.useState({}); // {co_id: text}
     const [atrSaving, setAtrSaving] = React.useState(false);
+    const [searchTerm, setSearchTerm] = React.useState('');
 
     const CLASS_OPTIONS = ['FY', 'SY', 'TY'];
+    const [semesterOptions, setSemesterOptions] = React.useState(() => getSemesterOptions(selectedClass || ''));
 
-    // Replace local getSemesterOptions with the global utility;
-    // getSemesterOptions now comes from semesterUtils
-
-    const [semesterOptions, setSemesterOptions] = React.useState(() => getSemesterOptions(''));
-
-    // Auto-update semester when class changes based on admin's semester_type
+    // Auto-update semester when class changes
     React.useEffect(() => {
-        if (selectedClass) {
+        if (selectedClass && selectedClass !== 'All') {
             const semType = getCachedSemesterType();
-            setSelectedSem(getDefaultSemester(selectedClass, semType));
-            setSemesterOptions(getSemesterOptions(selectedClass));
+            // Only update if current semester is not valid for new class
+            const options = getSemesterOptions(selectedClass);
+            setSemesterOptions(options);
+            if (!options.includes(parseInt(selectedSem))) {
+                setSelectedSem(getDefaultSemester(selectedClass, semType));
+            }
         } else {
             setSemesterOptions(getSemesterOptions(''));
         }
     }, [selectedClass]);
 
     React.useEffect(() => {
-        fetchInitialFilters();
-    }, []);
-
-    React.useEffect(() => {
-        fetchCourses();
-    }, [selectedDept, selectedScheme, selectedIntroYear, selectedBatch, selectedYear, selectedClass, selectedDivision, selectedSem]);
-
-    const fetchInitialFilters = async () => {
-        try {
-            const [deptRes, schemeRes] = await Promise.all([
-                api.get('/academics/programs/'),
-                api.get('/academics/schemes/list/')
-            ]);
-            setDepartments(deptRes.data);
-            setSchemes(schemeRes.data);
-
-            const user = JSON.parse(localStorage.getItem('user'));
-            const userDeptValue = user?.department || user?.department_id;
-
-            let foundDeptId = '';
-            if (userDeptValue) {
-                const dept = deptRes.data.find(d =>
-                    String(d.program_id) === String(userDeptValue) ||
-                    d.program_name === userDeptValue
-                );
-                if (dept) foundDeptId = dept.program_id;
-            }
-
-            if (foundDeptId) setSelectedDept(foundDeptId);
-            else if (deptRes.data.length > 0) setSelectedDept(deptRes.data[0].program_id);
-
-            if (schemeRes.data.length > 0) setSelectedScheme(schemeRes.data[0].scheme_id);
-
-            const currYear = new Date().getFullYear();
-            const currMonth = new Date().getMonth(); // 0-indexed
-            const academicYearStr = currMonth < 5 ? `${currYear - 1} - ${currYear}` : `${currYear} - ${currYear + 1}`;
-            const formattedYear = academicYearStr.replace(/(\d{4})-(\d{2})/, "$1 - $2");
-            setSelectedYear(formattedYear);
-            setSelectedIntroYear(formattedYear);
-        } catch (err) {
-            console.error("Error fetching filters:", err);
+        if (selectedDept && selectedScheme) {
+            fetchCourses();
         }
-    };
+    }, [selectedDept, selectedScheme, selectedIntroYear, selectedBatch, selectedYear, selectedClass, selectedDivision, selectedSem]);
 
     const fetchCourses = async () => {
         try {
             const params = {
-                program_id: selectedDept,
-                scheme_id: selectedScheme,
-                semester: selectedSem,
-                class_year: selectedClass || undefined
+                program_id: selectedDept !== 'All' ? selectedDept : undefined,
+                scheme_id: selectedScheme !== 'All' ? selectedScheme : undefined,
+                semester: selectedSem !== 'All' ? selectedSem : undefined,
+                intro_year: selectedIntroYear !== 'All' ? selectedIntroYear : undefined,
+                class_year: (selectedClass && selectedClass !== 'All') ? selectedClass : undefined
             };
             const res = await api.get('/academics/courses/', { params });
             setCourses(res.data);
@@ -117,10 +77,13 @@ export default function Cisdirectrep() {
         }
     };
 
-    const filteredCoursesDropdown = courses.filter(course =>
-        (course.course_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (course.course_code || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCoursesDropdown = courses.filter(course => {
+        const term = searchTerm.toLowerCase();
+        return (course.course_name || "").toLowerCase().includes(term) ||
+            (course.course_code || "").toLowerCase().includes(term) ||
+            (course.course_title || "").toLowerCase().includes(term) ||
+            (course.course_abbr || "").toLowerCase().includes(term);
+    });
 
     const handleViewAttainment = async (course) => {
         try {
@@ -198,12 +161,27 @@ export default function Cisdirectrep() {
                         <div className="filter-row-v2 mb-4 p-3 bg-light rounded shadow-none border">
                             <div className="row g-3">
                                 <div className="col-md">
-                                    <label className="filter-label">YEAR OF INTRODUCTION</label>
+                                    <label className="filter-label">DEPARTMENT</label>
+                                    <select className="form-select filter-select" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
+                                        <option value="All">All Departments</option>
+                                        {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-md">
+                                    <label className="filter-label">SCHEME</label>
+                                    <select className="form-select filter-select" value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)}>
+                                        <option value="All">All Schemes</option>
+                                        {schemes.map(s => <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-md">
+                                    <label className="filter-label">YEAR OF INTRO</label>
                                     <select
                                         className="form-select filter-select"
                                         value={selectedIntroYear}
                                         onChange={(e) => setSelectedIntroYear(e.target.value)}
                                     >
+                                        <option value="All">All</option>
                                         {years.map(y => (
                                             <option key={y} value={y}>{y}</option>
                                         ))}
@@ -216,6 +194,7 @@ export default function Cisdirectrep() {
                                         value={selectedBatch}
                                         onChange={(e) => setSelectedBatch(e.target.value)}
                                     >
+                                        <option value="All">All</option>
                                         {years.map(y => (
                                             <option key={y} value={y}>{y}</option>
                                         ))}
@@ -228,6 +207,7 @@ export default function Cisdirectrep() {
                                         value={selectedYear}
                                         onChange={(e) => setSelectedYear(e.target.value)}
                                     >
+                                        <option value="All">All</option>
                                         {years.map(y => (
                                             <option key={y} value={y}>{y}</option>
                                         ))}
@@ -238,15 +218,9 @@ export default function Cisdirectrep() {
                                     <select
                                         className="form-select filter-select"
                                         value={selectedClass}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setSelectedClass(val);
-                                            const semType = getCachedSemesterType();
-                                            const defaultSem = getDefaultSemester(val, semType);
-                                            setSelectedSem(defaultSem);
-                                        }}
+                                        onChange={(e) => setSelectedClass(e.target.value)}
                                     >
-                                        <option value="">Select Class</option>
+                                        <option value="All">All</option>
                                         {CLASS_OPTIONS.map(c => (
                                             <option key={c} value={c}>{c}</option>
                                         ))}
@@ -259,6 +233,7 @@ export default function Cisdirectrep() {
                                         value={selectedDivision}
                                         onChange={(e) => setSelectedDivision(e.target.value)}
                                     >
+                                        <option value="All">All</option>
                                         {['A', 'B', 'C', 'D'].map(d => (
                                             <option key={d} value={d}>{d}</option>
                                         ))}
@@ -270,11 +245,10 @@ export default function Cisdirectrep() {
                                         className="form-select filter-select"
                                         value={selectedSem}
                                         onChange={(e) => setSelectedSem(e.target.value)}
-                                        disabled={!selectedClass}
                                     >
-                                        <option value="">All Sems</option>
+                                        <option value="All">All</option>
                                         {semesterOptions.map(s => (
-                                            <option key={s} value={s}>{s}</option>
+                                            <option key={s} value={s.toString()}>{s}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -283,7 +257,7 @@ export default function Cisdirectrep() {
                                 <input
                                     type="text"
                                     className="form-control search-input-v2"
-                                    placeholder="Search course by name or code..."
+                                    placeholder="Search course by code, name, title or abbreviation..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     style={{ width: '100%', borderRadius: '8px' }}

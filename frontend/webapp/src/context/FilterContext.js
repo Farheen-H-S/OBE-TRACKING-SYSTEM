@@ -7,6 +7,11 @@ const FilterContext = createContext();
 export const FilterProvider = ({ children }) => {
     const [selectedDept, setSelectedDept] = useState('');
     const [selectedScheme, setSelectedScheme] = useState('');
+    const [selectedBatch, setSelectedBatch] = useState('All');
+    const [selectedYear, setSelectedYear] = useState('2025 - 26');
+    const [selectedClass, setSelectedClass] = useState('All');
+    const [selectedSemester, setSelectedSemester] = useState('All');
+    const [selectedDivision, setSelectedDivision] = useState('All');
     const [departments, setDepartments] = useState([]);
     const [schemes, setSchemes] = useState([]);
     const [loadingFilters, setLoadingFilters] = useState(true);
@@ -14,13 +19,19 @@ export const FilterProvider = ({ children }) => {
     useEffect(() => {
         const fetchFilters = async () => {
             try {
-                const [deptRes, schemeRes] = await Promise.all([
+                const [deptRes, schemeRes, setupRes] = await Promise.all([
                     api.get('/academics/programs/'),
-                    api.get('/academics/schemes/list/')
+                    api.get('/academics/schemes/list/'),
+                    api.get('/academics/academic-setup/').catch(() => null)
                 ]);
 
                 setDepartments(deptRes.data);
                 setSchemes(schemeRes.data);
+
+                if (setupRes && setupRes.data) {
+                    const ay = setupRes.data.academic_year;
+                    if (ay) setSelectedYear(ay);
+                }
 
                 // Set default department from user
                 const user = getLoggedInUser();
@@ -48,10 +59,13 @@ export const FilterProvider = ({ children }) => {
 
     return (
         <FilterContext.Provider value={{
-            selectedDept,
-            setSelectedDept,
-            selectedScheme,
-            setSelectedScheme,
+            selectedDept, setSelectedDept,
+            selectedScheme, setSelectedScheme,
+            selectedBatch, setSelectedBatch,
+            selectedYear, setSelectedYear,
+            selectedClass, setSelectedClass,
+            selectedSemester, setSelectedSemester,
+            selectedDivision, setSelectedDivision,
             departments,
             schemes,
             loadingFilters
