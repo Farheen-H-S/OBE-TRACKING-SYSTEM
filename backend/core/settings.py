@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'teaching_plan',
     'audit',
     'bulk_upload',
-    'notification',
+    'notifications',
 ]
 
 MIDDLEWARE = [
