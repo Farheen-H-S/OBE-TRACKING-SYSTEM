@@ -3,14 +3,16 @@ import './Cisentry.css';
 // import { students } from '../../../data/studentData'; // REMOVED
 import { sampleCourses, sampleCOs } from '../../../data/sampleData';
 import api from '../../../utils/axios';
+import { useFilters } from '../../../context/FilterContext';
 import { FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus, FaEye, FaPaperclip, FaEdit } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions as computeSemesterOptions } from '../../../utils/semesterUtils';
 
 const Cisentry = () => {
+  // Global Filters from Context
+  const { selectedDept: selectedProgram, setSelectedDept: setSelectedProgram, selectedScheme, setSelectedScheme, departments: programs, schemes } = useFilters();
+
   // State for dynamic data
-  const [programs, setPrograms] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [schemes, setSchemes] = useState([]);
   const [academicYear, setAcademicYear] = useState('');
   const [courseOutcomes, setCourseOutcomes] = useState([]);
   const [coCount, setCoCount] = useState(0);
@@ -19,8 +21,6 @@ const Cisentry = () => {
   const [studentsLoading, setStudentsLoading] = useState(false);
 
   // Selection state
-  const [selectedProgram, setSelectedProgram] = useState('');
-  const [selectedScheme, setSelectedScheme] = useState('');
   const [selectedYear, setSelectedYear] = useState('2025-26');
   const [assessmentTools, setAssessmentTools] = useState({});
   const [selectedClass, setSelectedClass] = useState('FY');
@@ -176,24 +176,22 @@ const Cisentry = () => {
 
   const fetchAcademicData = async () => {
     try {
-      const [progRes, schemeRes, setupRes, allCourseRes] = await Promise.all([
-        api.get('/academics/programs/'),
-        api.get('/academics/schemes/list/'),
+      const [setupRes, allCourseRes, progRes] = await Promise.all([
         api.get('/academics/academic-setup/'),
-        api.get('/academics/courses/')
+        api.get('/academics/courses/'),
+        api.get('/academics/programs/')
       ]);
-      setPrograms(progRes.data);
-      setSchemes(schemeRes.data);
       setAllCourses(allCourseRes.data);
 
       if (setupRes.data) {
         setAcademicYear(setupRes.data.academic_year);
         setSelectedYear(setupRes.data.academic_year);
-        setSelectedScheme(setupRes.data.scheme_id);
+        // setSelectedScheme(setupRes.data.scheme_id); // Removed to avoid overriding global filter
+
         // Cache globally so other components can use semester_type
         localStorage.setItem('academicSetup', JSON.stringify(setupRes.data));
         // Set semester based on current class + admin's semester_type
-        setSelectedSemester(getDefaultSemester('FY', setupRes.data.semester_type || 'Odd'));
+        setSelectedSemester(getDefaultSemester(selectedClass, setupRes.data.semester_type || 'Odd'));
       }
       if (progRes.data.length > 0) {
         const user = JSON.parse(localStorage.getItem('user'));
@@ -1158,7 +1156,10 @@ const Cisentry = () => {
 
   const openFile = (file) => {
     if (file.file) { // Server URL
-      window.open(file.file, '_blank');
+      // Construct absolute URL: remove '/api/' from base URL and append file path
+      const baseUrl = api.defaults.baseURL.replace(/\/api\/$/, '');
+      const absoluteUrl = file.file.startsWith('http') ? file.file : `${baseUrl}${file.file}`;
+      window.open(absoluteUrl, '_blank');
     } else if (file.content) { // Fallback Base64 for legacy or unsaved
       try {
         const parts = file.content.split(';base64,');

@@ -157,9 +157,9 @@ const StudentManagement = () => {
                                     onChange={handleBulkUpload}
                                     style={{ display: 'none' }}
                                 />
-                                <Button variant="outline-success" onClick={() => bulkUploadRef.current.click()} className="d-flex align-items-center gap-2">
+                                {/* <Button variant="outline-success" onClick={() => bulkUploadRef.current.click()} className="d-flex align-items-center gap-2">
                                     <BsCloudUploadFill /> Bulk Upload
-                                </Button>
+                                </Button> */}
                                 <Button variant={isEditMode ? "success" : "outline-primary"} onClick={() => isEditMode ? handleBulkSave() : setIsEditMode(true)}>
                                     {isEditMode ? <><BsCheckCircleFill /> Save Changes</> : <><BsPencilFill /> Edit Students</>}
                                 </Button>

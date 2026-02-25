@@ -10,6 +10,27 @@ const RATING_SCALE = [
     { val: 0, label: 'Not Achieved' },
 ];
 
+const SURVEY_INQUIRY_MAPPING = {
+    'PO 1': 'Are you able to apply the knowledge of basic mathematics, science and engineering fundamentals to solve engineering problems?',
+    'PO 2': 'Can you identify and analyze engineering problems using mathematics and engineering sciences?',
+    'PO 3': 'Are you able to design solutions for engineering problems that meet specific needs?',
+    'PO 4': 'Can you use research-based knowledge and methods to investigate engineering problems?',
+    'PO 5': 'Are you able to use modern engineering tools and techniques for engineering activities?',
+    'PO 6': 'Do you understand the role of an engineer in society and the responsibilities towards it?',
+    'PO 7': 'Are you aware of the impact of engineering solutions on the environment and the need for sustainable development?',
+    'PO 8': 'Do you follow professional ethics and norms of engineering practice?',
+    'PO 9': 'Can you work effectively as an individual and as a member or leader in diverse teams?',
+    'PO 10': 'Are you able to communicate effectively on engineering activities?',
+    'PO 11': 'Do you understand engineering and management principles to manage projects?',
+    'PO 12': 'Do you recognize the need for life-long learning and have the ability to engage in it?',
+};
+
+const getSurveyInquiry = (stmt) => {
+    if (!stmt) return '';
+    const key = stmt.number;
+    return SURVEY_INQUIRY_MAPPING[key] || stmt.description || 'No description available.';
+};
+
 const OITQuestion = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -147,7 +168,7 @@ const OITQuestion = () => {
 
                 {/* Statement text */}
                 <p className="oitq-question mb-4 fw-semibold text-dark fs-5">
-                    {current.description}
+                    {getSurveyInquiry(current)}
                 </p>
 
                 {/* Rating options — same pill style as Co1 */}

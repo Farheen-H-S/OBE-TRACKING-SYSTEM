@@ -28,6 +28,9 @@ export default function POPSOAttainment() {
     const [summary, setSummary] = useState({ achieved: 0, target: 0, gap: 0 });
 
     const [showReport, setShowReport] = useState(false);
+    const [admissionBatches, setAdmissionBatches] = useState([]);
+    const [selectedBatchId, setSelectedBatchId] = useState('');
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => { fetchDepts(); }, []);
     useEffect(() => { if (selectedDept) fetchData(); }, [selectedDept, selectedYear]);
@@ -40,8 +43,23 @@ export default function POPSOAttainment() {
             const dept = user?.department || user?.department_id;
             if (dept) {
                 const found = (res.data || []).find(d => String(d.program_id) === String(dept));
-                setSelectedDept(found ? String(found.program_id) : String(res.data[0]?.program_id || ''));
-            } else if (res.data?.length) setSelectedDept(String(res.data[0].program_id));
+                const deptId = found ? String(found.program_id) : String(res.data[0]?.program_id || '');
+                setSelectedDept(deptId);
+                fetchBatches(deptId);
+            } else if (res.data?.length) {
+                const deptId = String(res.data[0].program_id);
+                setSelectedDept(deptId);
+                fetchBatches(deptId);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const fetchBatches = async (program_id) => {
+        if (!program_id) return;
+        try {
+            const res = await api.get('/academics/batches/list/', { params: { program_id } });
+            setAdmissionBatches(res.data || []);
+            if (res.data?.length) setSelectedBatchId(String(res.data[0].batch_id));
         } catch (e) { console.error(e); }
     };
 
@@ -324,14 +342,57 @@ export default function POPSOAttainment() {
                             </tbody>
                         </table>
                         <div className="mt-3 p-3 bg-light border rounded small text-muted">
-                            <strong>Note:</strong> Full Excel report generation is backend-dependent. Download will be available once the API endpoint is configured.
+                            <strong>Note:</strong> Full Excel report generation is cohort-wise. Please select the admission batch to generate the aggregate "Result of Evaluation" report.
+
+                            <div className="mt-2">
+                                <label className="fw-bold small mb-1">SELECT ADMISSION BATCH</label>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={selectedBatchId}
+                                    onChange={e => setSelectedBatchId(e.target.value)}
+                                >
+                                    <option value="">Select Batch</option>
+                                    {admissionBatches.map(b => (
+                                        <option key={b.batch_id} value={b.batch_id}>
+                                            Batch {b.batch_year} - {b.scheme_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </Modal.Body>
                 <Modal.Footer className="bg-light">
                     <Button variant="secondary" onClick={() => setShowReport(false)}>Close</Button>
-                    <Button variant="success" className="d-flex align-items-center gap-2" disabled title="Backend coming soon">
-                        <BsFileEarmarkExcelFill size={15} /> Download Excel
+                    <Button
+                        variant="success"
+                        className="d-flex align-items-center gap-2"
+                        onClick={async () => {
+                            if (!selectedBatchId) return alert('Please select a batch');
+                            setDownloading(true);
+                            try {
+                                const response = await api.get('/attainment/batch-report/', {
+                                    params: { program_id: selectedDept, batch_id: selectedBatchId },
+                                    responseType: 'blob'
+                                });
+                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.setAttribute('download', `Result_of_Evaluation_Batch_${selectedBatchId}.xlsx`);
+                                document.body.appendChild(link);
+                                link.click();
+                                window.URL.revokeObjectURL(url);
+                            } catch (e) {
+                                console.error(e);
+                                alert('Failed to generate report');
+                            } finally {
+                                setDownloading(false);
+                            }
+                        }}
+                        disabled={downloading || !selectedBatchId}
+                    >
+                        {downloading ? <div className="spinner-border spinner-border-sm" /> : <BsFileEarmarkExcelFill size={15} />}
+                        {downloading ? 'Generating...' : 'Download Excel'}
                     </Button>
                 </Modal.Footer>
             </Modal>

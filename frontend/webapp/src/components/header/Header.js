@@ -4,6 +4,8 @@ import { logowhite } from "../../assets/images";
 import { FaBell, FaSearch, FaBars, FaTimes, FaDownload } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { getLoggedInUser } from "../../utils/auth";
+import { useFilters } from "../../context/FilterContext";
+
 
 const Header = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
@@ -14,6 +16,13 @@ const Header = ({ onToggleSidebar }) => {
   const searchRef = useRef(null);
   const bellRef = useRef(null);
   const downloadRef = useRef(null);
+
+  const {
+    selectedDept, setSelectedDept,
+    selectedScheme, setSelectedScheme,
+    departments, schemes, loadingFilters
+  } = useFilters();
+
 
   const user = getLoggedInUser();
   const userRole = (user?.role || user?.role_name || "").toLowerCase();
@@ -32,7 +41,7 @@ const Header = ({ onToggleSidebar }) => {
     { name: "PSO Statement", path: "/pso-statement", category: "Academics", keywords: ["specific outcome"], allowedRoles: ["HOD", "Faculty"] },
     { name: "Stress Create", path: "/stress-create", category: "HOD", keywords: ["survey", "test"], allowedRoles: ["HOD"] },
     { name: "Profile", path: "/profile", category: "User", keywords: ["settings", "account", "me"], allowedRoles: ["Admin", "HOD", "Faculty", "Staff", "Auditor", "Coordinator"] },
-    { name: "Marks Entry", path: "/marks-entry", category: "Assessment", keywords: ["cis", "entry"], allowedRoles: ["Faculty", "HOD", "Coordinator"] },  ];
+    { name: "Marks Entry", path: "/marks-entry", category: "Assessment", keywords: ["cis", "entry"], allowedRoles: ["Faculty", "HOD", "Coordinator"] },];
 
   const filteredItems = searchItems
     .filter(item => item.allowedRoles.some(role => role.toLowerCase() === userRole))
@@ -87,11 +96,30 @@ const Header = ({ onToggleSidebar }) => {
           </div>
         </div>
 
+        {/* DEPARTMENT (New section)
+        {['faculty', 'hod', 'coordinator'].includes(userRole) && user?.department_name && (
+          <div
+            className="header-dept text-white mx-auto d-none d-xl-flex align-items-center justify-content-center"
+            style={{
+              maxWidth: '350px',
+              fontSize: '16px',
+              fontWeight: '500',
+              textAlign: 'center',
+              lineHeight: '1.2',
+              padding: '0 20px',
+              borderLeft: '1px solid rgba(255,255,255,0.3)',
+              marginLeft: '20px'
+            }}
+          >
+            Department: {user.department_name}
+          </div>
+        )} */}
+
         {/* CENTER */}
         <div
-          className="header-title text-center text-white cursor-pointer d-none d-md-block"
+          className="header-title text-center text-white cursor-pointer d-none d-md-block ms-auto me-auto"
           onClick={handleDashboardClick}
-          style={{ cursor: "pointer", fontSize: '24px', fontWeight: 'bold' }}
+          style={{ cursor: "pointer", fontSize: '24px', fontWeight: 'bold', paddingLeft: '50px', paddingRight: '50px' }}
         >
           Dashboard
         </div>
@@ -132,6 +160,45 @@ const Header = ({ onToggleSidebar }) => {
               </div>
             )}
           </div>
+
+          {/* Global Filters - Hidden for Admin */}
+          {userRole !== 'admin' && (
+            <div className="header-filters d-none d-xl-flex align-items-center gap-2">
+              <div className="filter-item d-flex align-items-center bg-white rounded px-2" style={{ height: '38px', minWidth: '150px' }}>
+                <select
+                  className="form-select border-0 bg-transparent shadow-none p-0"
+                  style={{ fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                  value={selectedDept}
+                  onChange={(e) => setSelectedDept(e.target.value)}
+                  disabled={loadingFilters}
+                >
+                  <option value="">All Departments</option>
+                  {departments.map(dept => (
+                    <option key={dept.program_id} value={dept.program_id}>
+                      {dept.program_abbr || dept.program_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-item d-flex align-items-center bg-white rounded px-2" style={{ height: '38px', minWidth: '100px' }}>
+                <select
+                  className="form-select border-0 bg-transparent shadow-none p-0"
+                  style={{ fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                  value={selectedScheme}
+                  onChange={(e) => setSelectedScheme(e.target.value)}
+                  disabled={loadingFilters}
+                >
+                  <option value="">All Schemes</option>
+                  {schemes.map(scheme => (
+                    <option key={scheme.scheme_id} value={scheme.scheme_id}>
+                      {scheme.scheme_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="notification-container" ref={downloadRef}>
             <FaDownload

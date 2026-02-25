@@ -28,6 +28,27 @@ const getAttainmentLevel = (avg) => {
     return ATTAINMENT_LEVELS[4];
 };
 
+const SURVEY_INQUIRY_MAPPING = {
+    'PO 1': 'Are you able to apply the knowledge of basic mathematics, science and engineering fundamentals to solve engineering problems?',
+    'PO 2': 'Can you identify and analyze engineering problems using mathematics and engineering sciences?',
+    'PO 3': 'Are you able to design solutions for engineering problems that meet specific needs?',
+    'PO 4': 'Can you use research-based knowledge and methods to investigate engineering problems?',
+    'PO 5': 'Are you able to use modern engineering tools and techniques for engineering activities?',
+    'PO 6': 'Do you understand the role of an engineer in society and the responsibilities towards it?',
+    'PO 7': 'Are you aware of the impact of engineering solutions on the environment and the need for sustainable development?',
+    'PO 8': 'Do you follow professional ethics and norms of engineering practice?',
+    'PO 9': 'Can you work effectively as an individual and as a member or leader in diverse teams?',
+    'PO 10': 'Are you able to communicate effectively on engineering activities?',
+    'PO 11': 'Do you understand engineering and management principles to manage projects?',
+    'PO 12': 'Do you recognize the need for life-long learning and have the ability to engage in it?',
+};
+
+const getSurveyInquiry = (stmt) => {
+    if (!stmt) return '';
+    const key = stmt.number;
+    return SURVEY_INQUIRY_MAPPING[key] || stmt.description || 'No description available.';
+};
+
 const OtherIndirectTools = () => {
     const [programs, setPrograms] = useState([]);
     const [selectedProgram, setSelectedProgram] = useState('');
@@ -202,7 +223,7 @@ const OtherIndirectTools = () => {
                                     <div>{s.number}</div>
                                     {s.description && (
                                         <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.65rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 110 }}>
-                                            {s.description.split(' ').slice(0, 5).join(' ')}{s.description.split(' ').length > 5 ? '…' : ''}
+                                            {getSurveyInquiry(s).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry(s).split(' ').length > 5 ? '…' : ''}
                                         </div>
                                     )}
                                 </th>
@@ -419,7 +440,7 @@ const OtherIndirectTools = () => {
                                 {pos.map((p, i) => (
                                     <div key={i} className="oit-question-item d-flex gap-3 mb-2">
                                         <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
-                                        <span className="oit-qdesc">{p.description || '—'}</span>
+                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description })}</span>
                                     </div>
                                 ))}
                                 {psos.length > 0 && (
@@ -428,7 +449,7 @@ const OtherIndirectTools = () => {
                                         {psos.map((p, i) => (
                                             <div key={i} className="oit-question-item d-flex gap-3 mb-2">
                                                 <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
-                                                <span className="oit-qdesc">{p.description || '—'}</span>
+                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description })}</span>
                                             </div>
                                         ))}
                                     </>

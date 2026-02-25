@@ -13,6 +13,8 @@ from .serializers import (
 # from users.models import User
 
 from .attainment_service import AttainmentService
+from .report_service import ReportService
+from django.http import HttpResponse
 
 class CalculateAttainmentView(APIView):
     permission_classes = [AllowAny]
@@ -106,3 +108,24 @@ class SnapshotHistoryView(APIView):
         snapshots = AttainmentSnapshot.objects.all()
         serializer = AttainmentSnapshotSerializer(snapshots, many=True)
         return Response({"snapshot list": serializer.data}, status=status.HTTP_200_OK)
+
+class BatchEvaluationReportView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request):
+        program_id = request.query_params.get('program_id')
+        batch_id = request.query_params.get('batch_id')
+        
+        if not program_id or not batch_id:
+            return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            excel_data = ReportService.generate_batch_evaluation_report(program_id, batch_id)
+            response = HttpResponse(
+                excel_data.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename=PO_Attainment_Report_Batch_{batch_id}.xlsx'
+            return response
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

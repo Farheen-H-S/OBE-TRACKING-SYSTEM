@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../utils/axios';
+import { useFilters } from '../../../context/FilterContext';
 import './Viewcourse1.css';
 
 const Viewcourse1 = ({ isMyCourses = false }) => {
@@ -9,7 +10,6 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [copySuccess, setCopySuccess] = useState('');
-    const [schemes, setSchemes] = useState([]);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(syllabusLink);
@@ -19,9 +19,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [programs, setPrograms] = useState([]);
-    const [selectedDept, setSelectedDept] = useState('');
-    const [selectedScheme, setSelectedScheme] = useState('');
+    const { selectedDept, setSelectedDept, selectedScheme, setSelectedScheme, departments, schemes } = useFilters();
     const [selectedYear, setSelectedYear] = useState('2025-26');
 
     useEffect(() => {
@@ -31,10 +29,8 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                 const userDept = user?.department || user?.department_id;
                 const userId = user?.user_id || user?.id;
 
-                const [courseRes, schemeRes, progRes] = await Promise.all([
-                    api.get('/academics/courses/'),
-                    api.get('/academics/schemes/list/'),
-                    api.get('/academics/programs/')
+                const [courseRes] = await Promise.all([
+                    api.get('/academics/courses/')
                 ]);
 
                 let fetchedCourses = courseRes.data;
@@ -43,16 +39,6 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                 }
 
                 setCourses(fetchedCourses);
-                setSchemes(schemeRes.data);
-                setPrograms(progRes.data);
-
-                if (userDept) {
-                    setSelectedDept(userDept);
-                }
-                if (schemeRes.data.length > 0) {
-                    setSelectedScheme(schemeRes.data[0].scheme_id);
-                }
-
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching data:", err);
@@ -105,7 +91,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                                 disabled={isMyCourses}
                             >
                                 <option value="">All Departments</option>
-                                {programs.map(p => (
+                                {departments.map(p => (
                                     <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
                                 ))}
                             </select>
