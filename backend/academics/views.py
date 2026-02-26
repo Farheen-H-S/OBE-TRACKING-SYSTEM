@@ -158,6 +158,7 @@ class BatchDetailAPIView(APIView):
 # ---------------- PROGRAM ----------------
 
 class ProgramListCreateAPIView(APIView):
+    permission_classes = [AllowAny] # Survey uses this to list programs or get one
 
     def get(self, request):
         show_all = request.query_params.get('all', 'false').lower() == 'true'
@@ -187,6 +188,7 @@ class ProgramListCreateAPIView(APIView):
 
 
 class ProgramDetailAPIView(APIView):
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
         program = get_object_or_404(Program, pk=pk)
@@ -497,6 +499,7 @@ class CODetailAPIView(APIView):
 # ---------------- PO & PSO ----------------
 
 class POListCreateAPIView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         program_id = request.query_params.get('program_id')
         pos = PO.objects.filter(is_active=True)
@@ -557,6 +560,7 @@ class PODetailAPIView(APIView):
 
 
 class PSOListCreateAPIView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         program_id = request.query_params.get('program_id')
         psos = PSO.objects.filter(is_active=True)

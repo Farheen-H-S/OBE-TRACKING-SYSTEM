@@ -29,7 +29,7 @@ const getAttainmentLevel = (avg) => {
     return ATTAINMENT_LEVELS[4];
 };
 
-const SURVEY_INQUIRY_MAPPING = {
+const PO_QUESTIONS = {
     'PO 1': 'Can you apply basic mathematics, science, and engineering knowledge to solve engineering problems?',
     'PO 2': 'Can you identify and analyze engineering problems using standard methods?',
     'PO 3': 'Can you design solutions for technical problems and help design systems or components?',
@@ -37,21 +37,53 @@ const SURVEY_INQUIRY_MAPPING = {
     'PO 5': 'Can you use technology responsibly considering society, environment, and ethics?',
     'PO 6': 'Can you manage engineering projects and work effectively in a team or as a leader?',
     'PO 7': 'Do you update your knowledge to keep up with new technologies?',
-    'PSO 1': 'Can you use modern computer software and hardware technologies?',
-    'PSO 2': 'Can you maintain computer related software and hardware systems?',
-    'PSO 3': 'Can you solve real time computational problems using your knowledge from different subjects?'
+};
+
+const PSO_QUESTIONS = {
+    'Computer Engineering': {
+        'PSO 1': 'Can you use modern computer software and hardware technologies?',
+        'PSO 2': 'Can you maintain computer related software and hardware systems?',
+        'PSO 3': 'Can you solve real time computational problems using knowledge from different subjects?',
+    },
+    'Information Technology': {
+        'PSO 1': 'Can you use the latest information technology tools and technologies?',
+        'PSO 2': 'Can you maintain information processes using modern IT and communication technologies?',
+    },
+    'Mechanical Engineering': {
+        'PSO 1': 'Can you use mechanical engineering software for design, drafting, manufacturing, maintenance, and documentation?',
+        'PSO 2': 'Can you maintain mechanical engineering equipment and instruments?',
+        'PSO 3': 'Can you manage mechanical engineering processes using proper equipment, materials, and quality control methods?',
+    },
+    'Civil Engineering': {
+        'PSO 1': 'Can you plan and design civil engineering construction work with good quality and cost efficiency?',
+        'PSO 2': 'Can you execute and maintain construction work using proper materials and equipment?',
+        'PSO 3': 'Can you estimate civil engineering projects and prepare bid quotations?',
+    },
+    'Electrical Engineering': {
+        'PSO 1': 'Can you maintain different types of electrical machines and equipment?',
+        'PSO 2': 'Can you maintain electrical power systems?',
+        'PSO 3': 'Can you use instruments and equipment to measure electrical parameters?',
+    }
 };
 
 
-const getSurveyInquiry = (stmt) => {
-    if (!stmt) return '';
+const getSurveyInquiry = (stmt, programName = '') => {
+    if (!stmt || !stmt.number) return stmt?.description || 'No description available.';
     const key = stmt.number;
-    return SURVEY_INQUIRY_MAPPING[key] || stmt.description || 'No description available.';
+    if (String(key).startsWith('PO')) {
+        return PO_QUESTIONS[key] || stmt.description || 'No description available.';
+    }
+    if (String(key).startsWith('PSO')) {
+        const deptPso = PSO_QUESTIONS[programName];
+        if (deptPso && deptPso[key]) return deptPso[key];
+        return stmt.description || 'No description available.';
+    }
+    return stmt.description || 'No description available.';
 };
 
 const OtherIndirectTools = () => {
     const {
-        selectedDept: selectedProgram, setSelectedDept: setSelectedProgram,
+        selectedDept: selectedProgram,
         selectedBatch, setSelectedBatch,
         selectedYear, setSelectedYear,
         selectedClass, setSelectedClass,
@@ -59,6 +91,9 @@ const OtherIndirectTools = () => {
         selectedDivision, setSelectedDivision,
         departments: programs
     } = useFilters();
+
+    const currentProgramObj = programs.find(p => String(p.program_id) === String(selectedProgram));
+    const programName = currentProgramObj ? currentProgramObj.program_name : '';
 
     // Generate academic years locally (FilterContext doesn't export years)
     const academicYears = [];
@@ -88,6 +123,19 @@ const OtherIndirectTools = () => {
     const [timeLeft, setTimeLeft] = useState('');
     const [showStats, setShowStats] = useState(false);
     const [responses, setResponses] = useState([]);
+    const [showActiveModal, setShowActiveModal] = useState(false);
+    const [activeSurveys, setActiveSurveys] = useState([]);
+
+    // Smart filtering for semesters
+    const availableSemesters = selectedClass === 'FY' ? ['1', '2'] :
+        selectedClass === 'SY' ? ['3', '4'] :
+            selectedClass === 'TY' ? ['5', '6'] : ['1', '2', '3', '4', '5', '6'];
+
+    useEffect(() => {
+        if (selectedClass !== 'All' && !availableSemesters.includes(selectedSem)) {
+            setSelectedSem(availableSemesters[0]);
+        }
+    }, [selectedClass, availableSemesters, selectedSem, setSelectedSem]);
 
     const isRP = selectedTool.id === 'resource-person';
 
@@ -168,8 +216,8 @@ const OtherIndirectTools = () => {
     };
 
     const allStatements = [
-        ...pos.map((p, i) => ({ type: 'PO', id: `po_${i}`, number: p.po_number || `PO ${i + 1}`, description: p.description })),
-        ...psos.map((p, i) => ({ type: 'PSO', id: `pso_${i}`, number: p.pso_number || `PSO ${i + 1}`, description: p.description })),
+        ...pos.map((p, i) => ({ type: 'PO', id: p.po_number, number: p.po_number || `PO ${i + 1}`, description: p.description })),
+        ...psos.map((p, i) => ({ type: 'PSO', id: p.pso_number, number: p.pso_number || `PSO ${i + 1}`, description: p.description })),
     ];
 
     // ── Survey link ──────────────────────────────────────────────────────
@@ -187,7 +235,7 @@ const OtherIndirectTools = () => {
             params.set('activity_type', activityType);
             params.set('activity_title', activityDetail.trim() ? `${activityType} — ${activityDetail.trim()}` : activityType);
         }
-        return `${window.location.origin}/student/oit-survey/welcome?${params.toString()}`;
+        return `${window.location.origin}/student/oit-login?${params.toString()}`;
     };
 
     // ── Actions ──────────────────────────────────────────────────────────
@@ -240,17 +288,17 @@ const OtherIndirectTools = () => {
                 expires_at: expiry.toISOString(),
                 questions: [
                     ...poRes.data.map(po => ({
-                        question_text: `Achievement of ${po.po_number}: ${po.description || ''}`,
+                        question_text: getSurveyInquiry({ number: po.po_number, description: po.description }, programName),
                         po_id: po.po_id
                     })),
                     ...psoRes.data.map(pso => ({
-                        question_text: `Achievement of ${pso.pso_number}: ${pso.description || ''}`,
+                        question_text: getSurveyInquiry({ number: pso.pso_number, description: pso.description }, programName),
                         pso_id: pso.pso_id
                     }))
                 ]
             };
 
-            const response = await api.post('/surveys/surveys/', surveyPayload);
+            const response = await api.post('/surveys/', surveyPayload);
             const backendId = response.data.survey_id;
 
             const newState = {
@@ -275,17 +323,18 @@ const OtherIndirectTools = () => {
         alert('Link copied to clipboard!');
     };
 
-    const loadResponses = async () => {
-        if (!surveyState?.backendId) {
+    const loadResponses = async (specificBackendId = null) => {
+        const id = specificBackendId || surveyState?.backendId;
+        if (!id) {
             // Fallback to local storage if no backend ID (legacy)
             const key = `oit_responses_${surveyKey}`;
             const saved = localStorage.getItem(key);
             setResponses(saved ? JSON.parse(saved) : []);
         } else {
             try {
-                const res = await api.get(`/surveys/stats/${surveyState.backendId}/`);
-                // Adapt backend stats to frontend format
-                const adapted = res.data.data.map(r => ({
+                const res = await api.get(`/surveys/${id}/responses/`);
+                // Backend returns array of {enrollment, roll_no, name, respondent_name, answers}
+                const adapted = (res.data || []).map(r => ({
                     enrollment: r.enrollment,
                     rollNo: r.roll_no,
                     respondentName: r.respondent_name || r.name,
@@ -294,9 +343,35 @@ const OtherIndirectTools = () => {
                 setResponses(adapted);
             } catch (err) {
                 console.error('Failed to load responses from backend:', err);
+                setResponses([]);
             }
         }
         setShowStats(true);
+    };
+
+    const fetchAllActiveSurveys = async () => {
+        try {
+            const res = await api.get('/surveys/');
+            const indirect = (res.data || []).filter(s => s.survey_category === 'indirect' && (s.status === 'APPROVED' || s.status === 'CLOSED'));
+            setActiveSurveys(indirect);
+            setShowActiveModal(true);
+        } catch (err) {
+            console.error('Failed to fetch active surveys:', err);
+            alert('Failed to load active surveys.');
+        }
+    };
+
+    const handleCloseFromModal = async (s) => {
+        if (!window.confirm('Close this survey early?')) return;
+        try {
+            await api.patch(`/surveys/${s.survey_id}/`, { status: 'CLOSED' });
+            fetchAllActiveSurveys(); // Refresh list
+            if (s.survey_id === surveyState?.backendId) {
+                setSurveyState(prev => ({ ...prev, status: 'CLOSED' }));
+            }
+        } catch (err) {
+            alert('Failed to close survey');
+        }
     };
 
 
@@ -382,7 +457,7 @@ const OtherIndirectTools = () => {
                             </>
                         ) : (
                             <tr>
-                                <td colSpan={(isRP ? 1 : 3) + allStatements.length} className="text-center py-4 text-muted">
+                                <td colSpan={(isRP ? 1 : 3) + (allStatements.length || 0)} className="text-center py-4 text-muted">
                                     No responses collected yet.
                                 </td>
                             </tr>
@@ -393,9 +468,62 @@ const OtherIndirectTools = () => {
         );
     };
 
+    const ViewAllModal = () => {
+        if (!showActiveModal) return null;
+        return (
+            <div className="custom-modal-overlay">
+                <div className="custom-modal-content p-4">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h4 className="mb-0 fw-bold">Active OIT Surveys</h4>
+                        <button className="btn-close" onClick={() => setShowActiveModal(false)}></button>
+                    </div>
+                    <div className="active-surveys-list">
+                        {activeSurveys.length > 0 ? (
+                            <table className="table table-hover">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Survey Details</th>
+                                        <th>Expiry</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activeSurveys.map(s => {
+                                        const fullLink = `${window.location.origin}/student/oit-login?survey=${s.survey_id}&type=${s.activity_type ? 'co-curricular' : 'program-exit'}&program=${s.program_id}&year=${s.academic_year}&activity_type=${s.activity_type || ''}&activity_title=${s.activity_title || ''}`;
+                                        return (
+                                            <tr key={s.survey_id} className="align-middle">
+                                                <td>
+                                                    <div className="fw-bold">{s.survey_name}</div>
+                                                    <div className="small text-muted">{s.activity_title || s.academic_year}</div>
+                                                </td>
+                                                <td>{new Date(s.expires_at).toLocaleString()}</td>
+                                                <td><span className={`status-badge-compact ${s.status === 'APPROVED' ? 'approved' : 'closed'}`}>{s.status}</span></td>
+                                                <td>
+                                                    <div className="d-flex gap-2">
+                                                        <button className="btn btn-sm btn-outline-primary" onClick={() => { navigator.clipboard.writeText(fullLink); alert('Link copied!'); }}>Link</button>
+                                                        <button className="btn btn-sm btn-outline-info" onClick={() => { setShowActiveModal(false); loadResponses(s.survey_id); }}>Stats</button>
+                                                        {s.status === 'APPROVED' && <button className="btn btn-sm btn-outline-danger" onClick={() => handleCloseFromModal(s)}>Close</button>}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-center py-4 text-muted">No surveys found.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // ── Render ───────────────────────────────────────────────────────────
     return (
         <div className="oit-wrapper">
+            <ViewAllModal />
             <div className="oit-main">
                 <div className="oit-card">
 
@@ -428,13 +556,7 @@ const OtherIndirectTools = () => {
                     {/* Filters */}
                     <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                         <div className="row g-3">
-                            <div className="col-md">
-                                <label className="filter-label">DEPARTMENT</label>
-                                <select className="form-select filter-select" value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
-                                    <option value="All">All Departments</option>
-                                    {programs.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
-                                </select>
-                            </div>
+                            {/* Department selector removed as it's global */}
                             <div className="col-md">
                                 <label className="filter-label">BATCH</label>
                                 <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
@@ -459,8 +581,8 @@ const OtherIndirectTools = () => {
                             <div className="col-md" style={{ maxWidth: 80 }}>
                                 <label className="filter-label">SEM</label>
                                 <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {['1', '2', '3', '4', '5', '6'].map(s => <option key={s} value={s}>{s}</option>)}
+                                    {selectedClass === 'All' && <option value="All">All</option>}
+                                    {availableSemesters.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -625,6 +747,13 @@ const OtherIndirectTools = () => {
                         </span>
                     </div>
 
+                    <div className="d-flex justify-content-between align-items-center mb-1 mt-4">
+                        <h5 className="fw-bold text-dark mb-0">Question Sets</h5>
+                        <button className="btn btn-sm btn-outline-secondary" onClick={fetchAllActiveSurveys}>
+                            View All Active Surveys
+                        </button>
+                    </div>
+
                     <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
                         {loadingStmts ? (
                             <div className="text-center py-4"><div className="spinner-border text-primary" /></div>
@@ -640,7 +769,7 @@ const OtherIndirectTools = () => {
                                 {pos.map((p, i) => (
                                     <div key={i} className="oit-question-item d-flex gap-3 mb-2">
                                         <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
-                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description })}</span>
+                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description }, programName)}</span>
                                     </div>
                                 ))}
                                 {psos.length > 0 && (
@@ -649,7 +778,7 @@ const OtherIndirectTools = () => {
                                         {psos.map((p, i) => (
                                             <div key={i} className="oit-question-item d-flex gap-3 mb-2">
                                                 <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
-                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description })}</span>
+                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description }, programName)}</span>
                                             </div>
                                         ))}
                                     </>
@@ -664,7 +793,7 @@ const OtherIndirectTools = () => {
                                     className="btn btn-sm btn-info text-white"
                                     onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
                                 >
-                                    {showStats ? 'Show Questions' : 'Show Statistics'}
+                                    {showStats ? 'Hide Statistics' : 'Show Statistics'}
                                 </button>
                             )}
                             <select

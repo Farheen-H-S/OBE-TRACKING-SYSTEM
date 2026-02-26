@@ -10,25 +10,56 @@ const RATING_SCALE = [
     { val: 0, label: 'Not Achieved' },
 ];
 
-const SURVEY_INQUIRY_MAPPING = {
-    'PO 1': 'Are you able to apply the knowledge of basic mathematics, science and engineering fundamentals to solve engineering problems?',
-    'PO 2': 'Can you identify and analyze engineering problems using mathematics and engineering sciences?',
-    'PO 3': 'Are you able to design solutions for engineering problems that meet specific needs?',
-    'PO 4': 'Can you use research-based knowledge and methods to investigate engineering problems?',
-    'PO 5': 'Are you able to use modern engineering tools and techniques for engineering activities?',
-    'PO 6': 'Do you understand the role of an engineer in society and the responsibilities towards it?',
-    'PO 7': 'Are you aware of the impact of engineering solutions on the environment and the need for sustainable development?',
-    'PO 8': 'Do you follow professional ethics and norms of engineering practice?',
-    'PO 9': 'Can you work effectively as an individual and as a member or leader in diverse teams?',
-    'PO 10': 'Are you able to communicate effectively on engineering activities?',
-    'PO 11': 'Do you understand engineering and management principles to manage projects?',
-    'PO 12': 'Do you recognize the need for life-long learning and have the ability to engage in it?',
+const PO_QUESTIONS = {
+    'PO 1': 'Can you apply basic mathematics, science, and engineering knowledge to solve engineering problems?',
+    'PO 2': 'Can you identify and analyze engineering problems using standard methods?',
+    'PO 3': 'Can you design solutions for technical problems and help design systems or components?',
+    'PO 4': 'Can you use modern engineering tools to perform tests and measurements?',
+    'PO 5': 'Can you use technology responsibly considering society, environment, and ethics?',
+    'PO 6': 'Can you manage engineering projects and work effectively in a team or as a leader?',
+    'PO 7': 'Do you update your knowledge to keep up with new technologies?',
 };
 
-const getSurveyInquiry = (stmt) => {
-    if (!stmt) return '';
+const PSO_QUESTIONS = {
+    'Computer Engineering': {
+        'PSO 1': 'Can you use modern computer software and hardware technologies?',
+        'PSO 2': 'Can you maintain computer related software and hardware systems?',
+        'PSO 3': 'Can you solve real time computational problems using knowledge from different subjects?',
+    },
+    'Information Technology': {
+        'PSO 1': 'Can you use the latest information technology tools and technologies?',
+        'PSO 2': 'Can you maintain information processes using modern IT and communication technologies?',
+    },
+    'Mechanical Engineering': {
+        'PSO 1': 'Can you use mechanical engineering software for design, drafting, manufacturing, maintenance, and documentation?',
+        'PSO 2': 'Can you maintain mechanical engineering equipment and instruments?',
+        'PSO 3': 'Can you manage mechanical engineering processes using proper equipment, materials, and quality control methods?',
+    },
+    'Civil Engineering': {
+        'PSO 1': 'Can you plan and design civil engineering construction work with good quality and cost efficiency?',
+        'PSO 2': 'Can you execute and maintain construction work using proper materials and equipment?',
+        'PSO 3': 'Can you estimate civil engineering projects and prepare bid quotations?',
+    },
+    'Electrical Engineering': {
+        'PSO 1': 'Can you maintain different types of electrical machines and equipment?',
+        'PSO 2': 'Can you maintain electrical power systems?',
+        'PSO 3': 'Can you use instruments and equipment to measure electrical parameters?',
+    }
+};
+
+
+const getSurveyInquiry = (stmt, programName = '') => {
+    if (!stmt || !stmt.number) return stmt?.description || 'No description available.';
     const key = stmt.number;
-    return SURVEY_INQUIRY_MAPPING[key] || stmt.description || 'No description available.';
+    if (String(key).startsWith('PO')) {
+        return PO_QUESTIONS[key] || stmt.description || 'No description available.';
+    }
+    if (key.startsWith('PSO')) {
+        const deptPso = PSO_QUESTIONS[programName];
+        if (deptPso && deptPso[key]) return deptPso[key];
+        return stmt.description || 'No description available.';
+    }
+    return stmt.description || 'No description available.';
 };
 
 const OITQuestion = () => {
@@ -48,6 +79,7 @@ const OITQuestion = () => {
     const [answers, setAnswers] = useState({});
     const [selectedOption, setSelectedOption] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [programName, setProgramName] = useState('');
 
     useEffect(() => { fetchStatements(); }, [programId]);
 
@@ -57,20 +89,26 @@ const OITQuestion = () => {
             const isBackendSurvey = !isNaN(survey) && survey !== '';
 
             if (isBackendSurvey) {
-                const res = await api.get(`/surveys/surveys/${survey}/`);
+                const res = await api.get(`/surveys/${survey}/`);
+                if (res.data.program_id) {
+                    const pRes = await api.get(`/academics/programs/${res.data.program_id}/`);
+                    setProgramName(pRes.data.program_name);
+                }
                 const backendQuestions = res.data.questions.map(q => ({
                     type: q.po_id ? 'PO' : 'PSO',
                     id: q.question_id,
-                    number: q.po_id ? q.po_id.po_number : q.pso_id.pso_number,
+                    number: q.po_number || q.pso_number,
                     description: q.question_text
                 }));
                 setStatements(backendQuestions);
             } else {
                 // Legacy / fallback: fetch all POS/PSOS
-                const [poRes, psoRes] = await Promise.allSettled([
+                const [poRes, psoRes, progRes] = await Promise.allSettled([
                     api.get(`/academics/pos/?program_id=${programId}`),
                     api.get(`/academics/psos/?program_id=${programId}`),
+                    api.get(`/academics/programs/${programId}/`),
                 ]);
+                if (progRes.status === 'fulfilled') setProgramName(progRes.value.data.program_name);
                 const pos = poRes.status === 'fulfilled' ? (Array.isArray(poRes.value.data) ? poRes.value.data : []) : [];
                 const psos = psoRes.status === 'fulfilled' ? (Array.isArray(psoRes.value.data) ? psoRes.value.data : []) : [];
                 const combined = [
@@ -126,18 +164,21 @@ const OITQuestion = () => {
                 // Submit to backend
                 const backendPayload = {
                     survey_id: survey,
-                    answers: Object.entries(answers).map(([qid, val]) => ({
-                        question_id: qid.includes('_') ? null : qid, // Current frontend uses 'po_i' as id, need to handle this
-                        po_number: qid.startsWith('po_') ? statements.find(s => s.id === qid)?.number : null,
-                        pso_number: qid.startsWith('pso_') ? statements.find(s => s.id === qid)?.number : null,
-                        answer_value: val
-                    })),
-                    respondent_name: isRP ? respondent.name : (respondent.respondentName || respondent.name),
+                    answers: Object.entries(answers).map(([qid, val]) => {
+                        const stmt = statements.find(s => String(s.id) === String(qid));
+                        return {
+                            question_id: !isNaN(qid) ? qid : null,
+                            po_number: stmt?.type === 'PO' ? stmt.number : null,
+                            pso_number: stmt?.type === 'PSO' ? stmt.number : null,
+                            answer_value: val
+                        };
+                    }),
+                    respondent_name: respondent.respondentName || respondent.name,
                     enrollment_no: respondent.enrollment || '',
                     type: respondent.type || 'student'
                 };
 
-                await api.post('/surveys/submit-response/', backendPayload);
+                await api.post('/surveys/respond/', backendPayload);
 
                 // For backward compatibility/stats view if needed in temporary transition
                 const storageKey = `oit_responses_oit_survey_${survey}_${programId}_${year.replace(/\s/g, '')}_${classYear}_${division}`;
@@ -198,7 +239,7 @@ const OITQuestion = () => {
 
                 {/* Statement text */}
                 <p className="oitq-question mb-4 fw-semibold text-dark fs-5">
-                    {getSurveyInquiry(current)}
+                    {getSurveyInquiry(current, programName)}
                 </p>
 
                 {/* Rating options — same pill style as Co1 */}

@@ -40,7 +40,7 @@ const OITWelcome = () => {
             try {
                 const [progRes, survRes] = await Promise.all([
                     api.get('/academics/programs/'),
-                    survey ? api.get(`/surveys/surveys/${survey}/`) : Promise.resolve({ data: null })
+                    survey ? api.get(`/surveys/${survey}/`) : Promise.resolve({ data: null })
                 ]);
                 const prog = (progRes.data || []).find(p => String(p.program_id) === String(programId));
                 setProgramName(prog?.program_name || 'Program');
@@ -109,19 +109,19 @@ const OITWelcome = () => {
                                                     <td className="fw-bold text-secondary">Batch / Division</td>
                                                     <td className="fw-bold text-dark">{classYear} – Division {division}</td>
                                                 </tr>
-                                                {isActivity && activityType && (
+                                                {(activityType || surveyData?.activity_type) && (
                                                     <tr>
                                                         <td className="fw-bold text-secondary">Activity Type</td>
-                                                        <td className="fw-bold text-dark">{activityType}</td>
+                                                        <td className="fw-bold text-dark">{surveyData?.activity_type || activityType}</td>
                                                     </tr>
                                                 )}
-                                                {isActivity && activityTitle && (
+                                                {(activityTitle || surveyData?.activity_title) && (
                                                     <tr>
                                                         <td className="fw-bold text-secondary">
                                                             {isRP ? 'Session / Topic' : 'Activity Title'}
                                                         </td>
                                                         <td className="fw-bold" style={{ color: '#ff3333' }}>
-                                                            {activityTitle}
+                                                            {surveyData?.activity_title || activityTitle}
                                                         </td>
                                                     </tr>
                                                 )}

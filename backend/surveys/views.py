@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from audit.utils import log_action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,8 +13,10 @@ class SurveyMasterListCreateView(generics.ListCreateAPIView):
 class SurveyMasterDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = SurveyMaster.objects.all()
     serializer_class = SurveyMasterSerializer
+    permission_classes = [permissions.AllowAny]
 
 class SubmitSurveyResponseView(APIView):
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
         survey_id = request.data.get('survey_id')
         student_id = request.data.get('student_id')
@@ -24,7 +26,9 @@ class SubmitSurveyResponseView(APIView):
         
         from users.models import Student
         student = None
-        if student_id:
+        if not student_id and request.data.get('enrollment_no'):
+            student = Student.objects.filter(enrollment_no=request.data.get('enrollment_no')).first()
+        elif student_id:
             student = Student.objects.filter(enrollment_no=student_id).first()
         
         response = SurveyResponse.objects.create(
@@ -35,17 +39,25 @@ class SubmitSurveyResponseView(APIView):
         )
         
         for ans in answers:
-            co_id = ans.get('co_id')
             question_id = ans.get('question_id')
+            po_number = ans.get('po_number')
+            pso_number = ans.get('pso_number')
             
-            # If front-end sends co_id (common in current student UI), find or create a question
-            if co_id and not question_id:
-                question, created = SurveyQuestion.objects.get_or_create(
-                    survey_id=survey,
-                    co_id_id=co_id,
-                    defaults={'question_text': f"Evaluation for CO {co_id}"}
-                )
-                question_id = question.question_id
+            if not question_id:
+                if po_number:
+                    question = SurveyQuestion.objects.filter(survey_id=survey, po_id__po_number=po_number).first()
+                    if question: question_id = question.question_id
+                elif pso_number:
+                    question = SurveyQuestion.objects.filter(survey_id=survey, pso_id__pso_number=pso_number).first()
+                    if question: question_id = question.question_id
+                elif ans.get('co_id'):
+                    co_id = ans.get('co_id')
+                    question, created = SurveyQuestion.objects.get_or_create(
+                        survey_id=survey,
+                        co_id_id=co_id,
+                        defaults={'question_text': f"Evaluation for CO {co_id}"}
+                    )
+                    question_id = question.question_id
 
             SurveyAnswer.objects.create(
                 response_id=response,
@@ -70,10 +82,11 @@ class SurveyStatsView(APIView):
         
         # 2. Get students expected based on current program and semester
         expected_students_ids = []
-        if program and (course and course.semester):
+        target_semester = survey.semester or (course.semester if course else None)
+        if program and target_semester:
             expected_students_ids = list(Student.objects.filter(
                 program_id=program,
-                semester=course.semester,
+                semester=target_semester,
                 is_active=True
             ).values_list('student_id', flat=True))
         elif program:
@@ -100,13 +113,18 @@ class SurveyStatsView(APIView):
             res = response_map.get(student.enrollment_no)
             answers_map = {}
             if res:
-                for ans in res.answers.all().select_related('question_id', 'question_id__co_id'):
-                    co_id = None
-                    if ans.question_id and ans.question_id.co_id:
-                        co_id = ans.question_id.co_id.co_id
+                for ans in res.answers.all().select_related('question_id', 'question_id__co_id', 'question_id__po_id', 'question_id__pso_id'):
+                    key = None
+                    if ans.question_id:
+                        if ans.question_id.co_id:
+                            key = ans.question_id.co_id.co_id
+                        elif ans.question_id.po_id:
+                            key = ans.question_id.po_id.po_number
+                        elif ans.question_id.pso_id:
+                            key = ans.question_id.pso_id.pso_number
                     
-                    if co_id:
-                        answers_map[co_id] = ans.answer_value
+                    if key:
+                        answers_map[key] = ans.answer_value
             
             data.append({
                 'enrollment': student.enrollment_no,
@@ -120,6 +138,7 @@ class SurveyStatsView(APIView):
 
 
 class SurveyLookupView(APIView):
+    permission_classes = [permissions.AllowAny]
     """Return surveys matching activity_type + program for dropdown population."""
     def get(self, request):
         activity_type = request.query_params.get('activity_type')
