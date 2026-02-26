@@ -98,7 +98,7 @@ export default function Cisdirectrep() {
             });
             // res.data is now {attainment: [...], course_atr: "..."}
             setPreviewData(res.data.attainment);
-            setAtrInputs(res.data.course_atr || '');
+            setAtrInputs(res.data.course_atr === "No ATR Submitted" ? '' : (res.data.course_atr || ''));
         } catch (err) {
             console.error("Error fetching preview:", err);
             alert("Failed to fetch attainment preview.");
@@ -110,13 +110,8 @@ export default function Cisdirectrep() {
     const handleGenerateReport = async () => {
         if (!previewCourse) return;
 
-        const hasGaps = previewData.some(item => item.gap > 0);
-        const finalAtr = atrInputs.trim() || (hasGaps ? "" : "Target achieved, we will continue to use the same teaching-learning methods to maintain the attainment level.");
-
-        if (hasGaps && !finalAtr) {
-            alert("Please provide the 'Action Taken Report' as gaps are detected.");
-            return;
-        }
+        // Decouple Report Generation from ATR presence
+        const finalAtr = atrInputs.trim() || "No ATR Submitted";
 
         try {
             setAtrSaving(true);
@@ -405,9 +400,7 @@ export default function Cisdirectrep() {
                                         ACTION TAKEN / PROPOSED REPORT (ATR)
                                     </Form.Label>
                                     <p className="text-muted small mb-3">
-                                        {previewData.some(item => item.gap > 0)
-                                            ? "Gaps detected. Please provide proposed actions to improve attainment."
-                                            : "Targets achieved. ATR is optional; default message will be used if left blank."}
+                                        Optional: Provide an Action Taken Report (ATR) if gaps are detected, or if you want to propose improvements. If left blank, 'No ATR Submitted' will be recorded.
                                     </p>
                                     <Form.Control
                                         as="textarea"

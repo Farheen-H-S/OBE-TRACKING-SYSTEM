@@ -372,6 +372,55 @@ class CourseDetailAPIView(APIView):
             status=status.HTTP_200_OK
         )
 
+class RequestATRAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        course = get_object_or_404(Course, pk=course_id)
+        
+        # Find exactly ONE active faculty assignment.
+        # Note: If no academic_year logic is supplied from frontend for this specific endpoint,
+        # we pull the newest or active one by default.
+        assignment = FacultyCourseAssignment.objects.filter(course_id=course, is_active=True).first()
+        
+        if not assignment or !assignment.faculty_id:
+            return Response(
+                {"error": "No faculty is assigned to this course, so the notification cannot be sent."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        faculty = assignment.faculty_id
+        
+        try:
+            from notifications.utils import send_obe_notification
+            
+            title = f"ATR Required: {course.course_code}"
+            message = (
+                f"Dear {faculty.name},\n\n"
+                f"You are requested to submit the Action Taken Report (ATR) for the course "
+                f"'{course.course_name}' ({course.course_code}).\n\n"
+                f"Please navigate to the Direct Attainment Report section to submit it."
+            )
+            
+            # Send Notification & Email
+            success = send_obe_notification(
+                recipient=faculty,
+                title=title,
+                message=message,
+                notification_type='ALERT',
+                module='TARGETS',
+                priority='HIGH',
+                send_email=True
+            )
+            
+            if success:
+                return Response({"message": f"Notification successfully sent to {faculty.name}."})
+            else:
+                return Response({"error": "Failed to dispatch notification."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class CourseAssignmentAPIView(APIView):
     permission_classes = [IsAuthenticated] # HOD should use this
 

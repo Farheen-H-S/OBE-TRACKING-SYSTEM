@@ -1,0 +1,181 @@
+.hod-dashboard-wrapper {
+    background-color: #f0f2f5;
+    min-height: 100vh;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Specific styling for the Main White Container */
+.hod-main-container {
+    background-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 30px;
+    height: 100%;
+}
+
+/* Right Side Panel styling */
+.hod-right-panel {
+    background-color: #e6c2c2;
+    /* Pinkish-brown tone from image */
+    border-radius: 15px;
+    padding: 20px;
+    height: 100%;
+    color: #4a4a4a;
+}
+
+
+.div {
+   font-family: 'Inter', sans-serif;
+}
+
+/* Section Headings */
+.section-heading {
+    color: #444;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    margin-top: 5px;
+    text-align: left;
+}
+
+/* Top Stats Cards */
+.stat-card-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.stat-card-box {
+    background-color: #f1f3f5;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 0.85rem;
+    border: 1px solid #e9ecef;
+}
+
+/* Course Overview Cards */
+.course-card {
+    background-color: #f1f3f5;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+}
+
+.course-card-header {
+    background-color: #e9ecef;
+    padding: 8px 12px;
+    font-weight: 500;
+    color: #0d6efd;
+    /* Blue text */
+    font-size: 0.9rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.course-card-body {
+    padding: 12px;
+    font-size: 0.8rem;
+    color: #333;
+}
+
+.course-card-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.course-card-body li {
+    margin-bottom: 4px;
+}
+
+/* OBE Process Health (Charts) */
+.obe-chart-container {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: left;
+    height: 100%;
+    width: 50%;
+}
+
+.chart-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0d6efd;
+    margin-bottom: 5px;
+}
+
+/* Right Panel Elements */
+.right-panel-stat {
+    background-color: #fdfdfd;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.total-students-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.right-course-card {
+    background-color: #fdfdfd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.right-course-title {
+    color: #0d6efd;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Scrollable Course Container */
+.course-scroll-container {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.course-scroll-item {
+    min-width: 250px;
+    flex: 0 0 auto;
+}
+
+/* Hide scrollbar for cleaner look */
+.course-scroll-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.course-scroll-container::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 3px;
+}
+
+/* Adjustments for items inside the scroll container */
+.course-scroll-item .right-panel-stat,
+.course-scroll-item .right-course-card {
+    margin-bottom: 0;
+    height: 100%;
+    /* Ensure they fill the height */
+}
+
+.course-scroll-item .right-panel-stat {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}

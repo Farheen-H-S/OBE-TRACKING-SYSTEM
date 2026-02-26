@@ -7,8 +7,12 @@ import csv
 import io
 from users.models import Student, User, UserRole
 from academics.models import Program, Batch, Course, CO
-from assessments.models import Assessment, MarksEntry
+from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
+from attainment.attainment_service import AttainmentService
 from django.db import transaction
+import re
+import openpyxl
+from openpyxl.utils import get_column_letter
 
 from django.db.models import Q
 import pandas as pd
@@ -31,6 +35,105 @@ class DownloadStudentTemplateView(APIView):
             response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             response['Content-Disposition'] = 'attachment; filename=Student_Bulk_Upload_Template.xlsx'
             return response
+
+class DownloadCourseTemplateView(APIView):
+    """
+    Generates and serves an Excel template for course bulk upload.
+    """
+    def get(self, request):
+        cols = [
+            'Program Name', 'Scheme Name', 'Course Code', 'Course Name', 
+            'Course Title', 'Course Abbr', 'Semester', 'Class Year'
+        ]
+        df = pd.DataFrame(columns=cols)
+        
+        # Add a sample row
+        df.loc[0] = ['Computer Engineering', 'Scheme 2023', '22101', 'English', 'Communication Skills', 'ENG', '1', 'FY']
+        
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Courses')
+        output.seek(0)
+        
+        response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=Course_Bulk_Upload_Template.xlsx'
+        return response
+
+class DownloadCISTemplateView(APIView):
+    """
+    Generates a pre-filled Excel template for CIS marks based on the course and tool.
+    Matches the Marks Entry UI exactly: Enrollment, Roll No, Name, Label (Q/Wt/CO), Questions.
+    """
+    def get(self, request):
+        course_id = request.query_params.get('course_id')
+        tool_name = request.query_params.get('tool_name', 'CT-1')
+        
+        if not course_id:
+            return Response({"error": "Course ID is required"}, status=400)
+            
+        course = get_object_or_404(Course, pk=course_id)
+        students = Student.objects.filter(program_id=course.program_id, is_active=True).order_by('roll_no')
+        
+        assessment_config = course.assessment_tools or {}
+        tool_data = assessment_config.get(tool_name, {})
+        col_count = tool_data.get('columnCount', tool_data.get('questionCount', 6))
+        
+        output = io.BytesIO()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "CIS Marks Entry"
+        
+        # Column Headers - Labels are row-specific for the 4th column
+        ws['A1'] = "ENROLLMENT NO"
+        ws['B1'] = "Roll No."
+        ws['C1'] = "Name of Student"
+        
+        # Merge A-C for the 3 header rows
+        for col_char in ['A', 'B', 'C']:
+            ws.merge_cells(f'{col_char}1:{col_char}3')
+            cell = ws[f'{col_char}1']
+            apply_header_style(cell, fill_color="2F5597", font_color="FFFFFF")
+
+        # Row 1-3 Labels in Column D
+        ws['D1'] = "Q"
+        ws['D2'] = "Wt"
+        ws['D3'] = "CO"
+        for r in [1, 2, 3]:
+            apply_header_style(ws.cell(row=r, column=4), fill_color="2F5597", font_color="FFFFFF")
+
+        # Questions (Row 1), Weights (Row 2), COs (Row 3) Starting from Col E (5)
+        for i in range(col_count):
+            col_idx = 5 + i
+            ws.cell(row=1, column=col_idx, value=f"Q{i+1}")
+            ws.cell(row=2, column=col_idx, value=tool_data.get('customWeights', [5]*20)[i] if 'customWeights' in tool_data else 5)
+            ws.cell(row=3, column=col_idx, value=tool_data.get('userCos', [f"CO{(i%6)+1}"]*20)[i] if 'userCos' in tool_data else f"CO{(i%6)+1}")
+            
+            apply_header_style(ws.cell(row=1, column=col_idx), fill_color="DEEBF7", font_color="000000")
+            apply_header_style(ws.cell(row=2, column=col_idx), fill_color="DAE3F3", font_color="000000")
+            apply_header_style(ws.cell(row=3, column=col_idx), fill_color="DEEBF7", font_color="000000")
+
+        # Add Students starting row 4
+        for idx, student in enumerate(students, start=4):
+            ws.cell(row=idx, column=1, value=student.enrollment_no)
+            ws.cell(row=idx, column=2, value=student.roll_no)
+            ws.cell(row=idx, column=3, value=student.name)
+            # Empty Label in Col D for students
+            ws.cell(row=idx, column=4, value="") 
+            
+        wb.save(output)
+        output.seek(0)
+        
+        response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename=CIS_Template_{course.course_code}_{tool_name}.xlsx'
+        return response
+
+def apply_header_style(cell, fill_color="2F5597", font_color="FFFFFF"):
+    """Helper for template styling"""
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    cell.font = Font(bold=True, color=font_color)
+    cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
+    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
 
 class BulkStudentUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -104,6 +207,7 @@ class BulkStudentUploadView(APIView):
                     'studentname', 'name', 'fullname', 'nameofstudent', 'nameofthestudent', 
                     'stname', 'student', 'fname', 'firstnamemiddlename', 'nameofstudent'
                 ],
+                'email': ['email', 'mail', 'emailaddress', 'studentemail', 'mailid', 'emailid'],
                 'is active': ['isactive', 'active', 'status', 'enabled']
             }
 
@@ -159,6 +263,7 @@ class BulkStudentUploadView(APIView):
                 'enrollment_no': [clean(a) for a in alias_map['enrollment no']],
                 'roll_no': [clean(a) for a in alias_map['roll no']],
                 'student_name': [clean(a) for a in alias_map['student name']],
+                'email': [clean(a) for a in alias_map['email']],
                 'is_active': [clean(a) for a in alias_map['is active']],
             }
 
@@ -226,6 +331,7 @@ class BulkStudentUploadView(APIView):
                         enroll_no = get_num_val('enrollment_no')
                         roll_no = get_num_val('roll_no')
                         name = str(row.get('student_name', '')).strip()
+                        email = str(row.get('email', '')).strip()
                         
                         if not enroll_no or not roll_no or not name:
                             if row.isnull().all():
@@ -309,7 +415,8 @@ class BulkStudentUploadView(APIView):
                             if user:
                                 user.name = name
                                 user.username = enroll_no
-                                user.email = f"{enroll_no.lower()}@obe_tracking.com"
+                                if email and '@' in email:
+                                    user.email = email
                                 user.save()
                             results["updated"] += 1
                         else:
@@ -320,10 +427,11 @@ class BulkStudentUploadView(APIView):
                                 other_conflict.is_active = False
                                 other_conflict.save()
 
-                            user = User.objects.filter(Q(username=enroll_no) | Q(email=f"{enroll_no.lower()}@obe_tracking.com")).first()
+                            user_email = email if (email and '@' in email) else f"{enroll_no.lower()}@obe_tracking.com"
+                            user = User.objects.filter(Q(username=enroll_no) | Q(email=user_email)).first()
                             if not user:
                                 user = User.objects.create(
-                                    username=enroll_no, email=f"{enroll_no.lower()}@obe_tracking.com",
+                                    username=enroll_no, email=user_email,
                                     name=name, role_id=student_role, is_active=is_active
                                 )
                                 user.set_password(enroll_no)
@@ -473,3 +581,364 @@ class PromoteStudentsView(APIView):
             "message": f"Successfully carried forward {updated_count} students to Semester {target_sem}.",
             "count": updated_count
         }, status=status.HTTP_200_OK)
+
+class BulkCISUploadView(APIView):
+    """
+    Highly robust bulk upload for CIS marks.
+    Detects formats:
+    1. System Format (3 rows: Q, Wt, CO)
+    2. Sandip/Green Format (2 rows: CO, Q/Desc)
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        course_id = request.data.get('course_id')
+        academic_year = request.data.get('academic_year')
+        tool_name = request.data.get('tool_name')
+        semester = request.data.get('semester')
+        
+        if not all([file_obj, course_id, academic_year, tool_name, semester]):
+            return Response({"error": "Missing required fields (course_id, tool_name, academic_year, semester)"}, status=400)
+
+        try:
+            df = pd.read_excel(file_obj, header=None)
+            
+            # 1. Orientation: Find Enrollment Row
+            enroll_row = -1
+            enroll_col = -1
+            for r in range(min(10, len(df))): # Look in first 10 rows
+                for c in range(min(5, len(df.columns))):
+                    val = str(df.iloc[r, c]).upper()
+                    if "ENROLLMENT" in val or "ENROLMENT" in val:
+                        enroll_row, enroll_col = r, c
+                        break
+                if enroll_row != -1: break
+
+            if enroll_row == -1:
+                return Response({"error": "Could not find 'ENROLLMENT NO' column header."}, status=400)
+
+            # 2. Header Block Identification
+            # Scan 3 rows around enroll_row (from idx 0 to enroll_row)
+            header_range = df.iloc[0 : enroll_row + 1]
+            
+            q_row_idx, wt_row_idx, co_row_idx = -1, -1, -1
+            
+            for r_idx in range(len(header_range)):
+                row_str = " ".join([str(v).upper() for v in header_range.iloc[r_idx] if pd.notnull(v)])
+                if co_row_idx == -1 and ("CO" in row_str or "COURSE OUTCOME" in row_str):
+                    co_row_idx = r_idx
+                elif wt_row_idx == -1 and ("WT" in row_str or "WEIGHT" in row_str or "MAX MARKS" in row_str):
+                    wt_row_idx = r_idx
+                elif q_row_idx == -1 and ("QUESTION" in row_str or " Q " in row_str or " Q1 " in row_str or "DESCRIPTION" in row_str or "DEVELOP" in row_str):
+                    q_row_idx = r_idx
+
+            # Fallbacks based on position
+            if q_row_idx == -1: q_row_idx = enroll_row
+            
+            # Start column for questions
+            q_start_col = -1
+            q_names_row = df.iloc[q_row_idx]
+            # Excluded column names that might act as "Labels"
+            excluded_headers = [
+                "NAN", "", "NAME", "NAME OF STUDENT", "SR. NO.", "SR.NO.", "SR", 
+                "ROLL NO.", "ROLL NO", "ROLL", "ENROLLMENT", "ENROLMENT", "ENROLLM ENT NO",
+                "Q", "WT", "CO", "WEIGHT", "COURSE OUTCOME"
+            ]
+            for c in range(enroll_col + 1, len(q_names_row)):
+                val = str(q_names_row[c]).strip().upper()
+                if val not in excluded_headers:
+                    q_start_col = c
+                    break
+            
+            if q_start_col == -1: q_start_col = enroll_col + 3 
+            
+            # Data usually starts immediately after the header row (enroll_row)
+            # BUT if it's a multi-row header (Wt/CO present below name), it starts later.
+            # For the Green format in our image, data starts at enroll_row + 1
+            data_start_row_final = enroll_row + 1
+            
+            # 3. Extract Metadata
+            # Forward-fill merged cells in metadata rows
+            q_names_row = df.iloc[q_row_idx].fillna(method='ffill')
+            wt_row = df.iloc[wt_row_idx].fillna(method='ffill') if wt_row_idx != -1 else None
+            co_row = df.iloc[co_row_idx].fillna(method='ffill') if co_row_idx != -1 else None
+
+            custom_questions, user_cos, custom_weights = [], [], []
+            
+            # Pull defaults from course config for holes
+            course = get_object_or_404(Course, pk=course_id)
+            tool_defaults = (course.assessment_tools or {}).get(tool_name, {})
+            
+            for c in range(q_start_col, len(df.columns)):
+                q_text = str(q_names_row[c]).strip()
+                if q_text.upper() in ["TOTAL", "PERCENTAGE", "AVERAGE", "NAN", ""]:
+                    if len(custom_questions) > 0 and c > q_start_col + 1: break # End of questions if we hit a total column
+                    q_text = f"Q{len(custom_questions)+1}"
+                
+                custom_questions.append(q_text)
+                
+                # Weight
+                w_val = 5.0 # Default fallback
+                if wt_row is not None:
+                    try: w_val = float(wt_row[c])
+                    except: pass
+                elif 'customWeights' in tool_defaults and len(custom_weights) < len(tool_defaults['customWeights']):
+                     w_val = tool_defaults['customWeights'][len(custom_weights)]
+                elif "CES" in tool_name.upper(): w_val = 4.0
+                custom_weights.append(w_val)
+                
+                # CO
+                co_val = ""
+                if co_row is not None:
+                    co_val = str(co_row[c]).strip().upper()
+                    if co_val and not co_val.startswith("CO") and any(char.isdigit() for char in co_val):
+                        # Convert things like "1" to "CO1"
+                        digits = "".join([char for char in co_val if char.isdigit()])
+                        if digits: co_val = f"CO{digits}"
+                elif 'userCos' in tool_defaults and len(user_cos) < len(tool_defaults['userCos']):
+                    co_val = tool_defaults['userCos'][len(user_cos)]
+                user_cos.append(co_val if co_val != "NAN" else "")
+
+            # 4. Extract Student Marks
+            marks_map, marks_list = {}, []
+            for r in range(data_start_row_final, len(df)):
+                enroll_val = str(df.iloc[r, enroll_col]).strip().replace('.0', '')
+                if enroll_val.upper() in ["AVERAGE", "TOTAL", "CO ATTAINMENT", "NAN", "", "NUMBER OF"]: continue
+                if not any(char.isdigit() for char in enroll_val): continue
+                
+                total_m, q_marks = 0, {}
+                for i in range(len(custom_questions)):
+                    try: 
+                        m = float(df.iloc[r, q_start_col + i])
+                        if pd.isna(m): m = 0
+                    except: m = 0
+                    q_marks[i] = m
+                    total_m += m
+                
+                marks_map[enroll_val] = q_marks
+                marks_list.append({"enrollment_no": enroll_val, "marks": total_m})
+
+            # 5. Atomic Upsert
+            user = request.user if request.user.is_authenticated else User.objects.first()
+            max_m = sum(custom_weights)
+            if "CES" in tool_name.upper() and max_m > 50: max_m = 4.0 # Sanity check for surveys
+
+            with transaction.atomic():
+                tool_base = tool_name.split('-')[0]
+                t_suffix = "_TH" if "TH" in tool_name else "_PR" if "PR" in tool_name else ""
+                t_type = f"{tool_base}{t_suffix}"
+                
+                # Special cases
+                if "SLA" in tool_name: t_type = "SLA"
+                elif "CES" in tool_name: t_type = "CES"
+
+                assessment, _ = Assessment.objects.update_or_create(
+                    course_id=course, assessment_name=tool_name, 
+                    academic_year=academic_year, semester=semester,
+                    defaults={
+                        'assessment_type': t_type, 'max_marks': max_m,
+                        'weightage': 1.0, # Default internal weightage
+                        'configuration': {
+                            'columnCount': len(custom_questions), 'customQuestions': custom_questions,
+                            'customWeights': custom_weights, 'userCos': user_cos,
+                            'marksData': marks_map, 'toolKey': tool_name
+                        },
+                        'user_id': user, 'is_active': True
+                    }
+                )
+
+                # Mapping & Marks
+                AssessmentCOMapping.objects.filter(assessment_id=assessment).delete()
+                co_sums = {}
+                for idx, co_n in enumerate(user_cos):
+                    if co_n: co_sums[co_n] = co_sums.get(co_n, 0) + custom_weights[idx]
+                
+                for co_n, weight in co_sums.items():
+                    co_obj = CO.objects.filter(course_id=course, co_number__iexact=co_n).first()
+                    if co_obj: AssessmentCOMapping.objects.create(assessment_id=assessment, co_id=co_obj, co_weightage=weight)
+
+                for item in marks_list:
+                    student = Student.objects.filter(enrollment_no=item['enrollment_no'], program_id=course.program_id).first()
+                    if student:
+                        MarksEntry.objects.update_or_create(
+                            assessment_id=assessment, student_id=student,
+                            defaults={'marks_obtained': item['marks'], 'user_id': user}
+                        )
+
+            AttainmentService.calculate_attainment(course_id, academic_year)
+            return Response({"message": f"Successfully uploaded {len(marks_list)} records."}, status=201)
+
+        except Exception as e:
+            return Response({"error": f"Upload Failed: {str(e)}"}, status=500)
+
+class BulkCourseUploadView(APIView):
+    """
+    Handles bulk upload of courses from an Excel file.
+    Maps headers like 'Course Code', 'Course Name', 'Type', 'Class', 'Sem' etc.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Defaults from frontend filters
+        default_program_id = request.data.get('program_id')
+        default_scheme_id = request.data.get('scheme_id')
+        default_academic_year = request.data.get('academic_year')
+
+        if not (file_obj.name.endswith('.xlsx') or file_obj.name.endswith('.xls')):
+            return Response({"error": "Only Excel files (.xlsx, .xls) are allowed"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 1. Header Detection (More robust)
+            preview_df = pd.read_excel(file_obj, header=None, nrows=15)
+            header_row_idx = 0
+            # Higher threshold and specific combination check
+            keywords = ['course', 'code', 'name', 'title', 'abbr', 'sem', 'class', 'scheme', 'dept', 'program']
+            for i, row in preview_df.iterrows():
+                row_vals = [str(val).lower() for val in row if pd.notnull(val)]
+                row_str = " ".join(row_vals)
+                
+                # Count hits
+                hits = sum(1 for k in keywords if k in row_str)
+                
+                # Check for critical combination: code AND name
+                has_critical = any('code' in v for v in row_vals) and any('name' in v for v in row_vals)
+                
+                if hits >= 3 or (hits >= 2 and has_critical):
+                    header_row_idx = i
+                    break
+            
+            file_obj.seek(0)
+            df = pd.read_excel(file_obj, skiprows=header_row_idx, dtype=str)
+            
+            # Remove any completely empty columns
+            df = df.dropna(axis=1, how='all')
+            
+            # 2. Alias Mapping
+            def clean(s): return "".join(c.lower() for c in str(s) if c.isalnum())
+            
+            alias_map = {
+                'course_code': ['coursecode', 'code', 'subcode', 'subjectcode', 'ccode', 'id', 'courseid'],
+                'course_name': ['coursename', 'name', 'subjectname', 'subject', 'cname', 'subname'],
+                'course_title': ['coursetitle', 'title', 'subjecttitle', 'ctitle'],
+                'course_abbr': ['courseabbr', 'abbr', 'abbreviatedname', 'shortname', 'subjabbr', 'subabbr'],
+                'semester': ['semester', 'sem', 'sme', 'term'],
+                'class_year': ['class', 'classyear', 'year', 'yr', 'grade'],
+                'program_name': ['program', 'department', 'dept', 'branch', 'pname', 'programname', 'deptname'],
+                'scheme_name': ['scheme', 'schemename', 'revision', 'sname', 'reg', 'regulation']
+            }
+
+            rename_map = {}
+            for col in df.columns:
+                if 'unnamed' in str(col).lower(): continue
+                c_col = clean(col)
+                if not c_col: continue
+                
+                found = False
+                # Try exact clean match first
+                for internal, aliases in alias_map.items():
+                    if c_col in [clean(a) for a in aliases]:
+                        if internal not in rename_map.values():
+                            rename_map[col] = internal
+                            found = True
+                        break
+                
+                # Fallback: substring match
+                if not found:
+                    for internal, aliases in alias_map.items():
+                        if any(clean(a) in c_col for a in aliases if len(a) > 3):
+                            if internal not in rename_map.values():
+                                rename_map[col] = internal
+                            break
+            
+            df = df.rename(columns=rename_map)
+            
+            # Critical Validation
+            if 'course_code' not in df.columns or 'course_name' not in df.columns:
+                return Response({
+                    "error": "Required columns 'Course Code' and 'Course Name' not found.",
+                    "detected_headers": list(df.columns),
+                    "header_row_identified": header_row_idx + 1
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            courses_created = 0
+            courses_updated = 0
+            errors = []
+
+            with transaction.atomic():
+                for idx, row in df.iterrows():
+                    try:
+                        code = str(row.get('course_code')).strip()
+                        name = str(row.get('course_name')).strip()
+                        if not code or not name or code == "nan": continue
+
+                        # Resolve Program
+                        p_name = str(row.get('program_name', '')).strip()
+                        if p_name and p_name != "nan":
+                            program = Program.objects.filter(Q(program_name__iexact=p_name) | Q(program_name__icontains=p_name)).first()
+                            if not program:
+                                program = Program.objects.create(program_name=p_name)
+                        elif default_program_id:
+                            program = Program.objects.filter(pk=default_program_id).first()
+                        else:
+                            program = Program.objects.first() # Total fallback
+
+                        if not program:
+                            errors.append(f"Row {idx+2}: Could not resolve program.")
+                            continue
+
+                        # Resolve Scheme
+                        s_name = str(row.get('scheme_name', '')).strip()
+                        if s_name and s_name != "nan":
+                            scheme = Scheme.objects.filter(Q(scheme_name__iexact=s_name) | Q(scheme_name__icontains=s_name)).first()
+                            if not scheme:
+                                # Default years if creating on the fly
+                                scheme = Scheme.objects.create(scheme_name=s_name, start_year=2023)
+                        elif default_scheme_id:
+                            scheme = Scheme.objects.filter(pk=default_scheme_id).first()
+                        else:
+                            scheme = None
+
+                        # Resolve Sem and Class
+                        sem = str(row.get('semester', '1')).replace('Semester', '').strip()
+                        try: sem_int = int(float(sem))
+                        except: sem_int = 1
+
+                        class_y = str(row.get('class_year', '')).strip()
+                        if not class_y or class_y == "nan":
+                            if sem_int <= 2: class_y = "FY"
+                            elif sem_int <= 4: class_y = "SY"
+                            else: class_y = "TY"
+
+                        # Upsert Course
+                        course, created = Course.objects.update_or_create(
+                            course_code=code,
+                            program_id=program,
+                            defaults={
+                                'course_name': name,
+                                'course_title': str(row.get('course_title', name)).strip(),
+                                'course_abbr': str(row.get('course_abbr', code[:5])).strip(),
+                                'semester': sem_int,
+                                'class_year': class_y,
+                                'scheme_id': scheme,
+                                'is_active': True
+                            }
+                        )
+                        
+                        if created: courses_created += 1
+                        else: courses_updated += 1
+                        
+                    except Exception as row_err:
+                        errors.append(f"Row {idx+2}: {str(row_err)}")
+
+            return Response({
+                "message": f"Successfully processed courses: {courses_created} created, {courses_updated} updated.",
+                "errors": errors[:10] # Limit reported errors
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": f"Failed to parse file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

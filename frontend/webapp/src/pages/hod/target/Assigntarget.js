@@ -350,33 +350,12 @@ const Assigntarget = () => {
 
   const handleOpenAtrModal = (course) => {
     setSelectedCourseAtr(course);
-    setAtrText(course.course_atr || '');
+    setAtrText(course.course_atr || 'No ATR Submitted');
     setShowAtrModal(true);
   };
 
-  const handleSaveAtr = async () => {
-    if (!selectedCourseAtr) return;
-
-    try {
-      setSavingAtr(true);
-      // Use PATCH to update the course object directly
-      await api.patch(`/academics/courses/${selectedCourseAtr.id}/`, {
-        course_atr: atrText
-      });
-
-      // Update local state
-      setCourses(prev => prev.map(c =>
-        c.id === selectedCourseAtr.id ? { ...c, course_atr: atrText } : c
-      ));
-
-      setShowAtrModal(false);
-      alert("ATR updated successfully!");
-    } catch (err) {
-      console.error("Error saving ATR:", err);
-      alert("Failed to save ATR.");
-    } finally {
-      setSavingAtr(false);
-    }
+  const handleRequestAtr = () => {
+    alert("Please navigate to Reports -> Direct Attainment to generate the CIS Report and submit an ATR for this course.");
   };
 
   return (
@@ -573,18 +552,25 @@ const Assigntarget = () => {
                       </td>
                       <td className="text-center">
                         <div className="d-flex align-items-center justify-content-center gap-2">
-                          <button
-                            className={`btn btn-sm ${parseFloat(course.gap) > 0 && !course.course_atr ? 'btn-outline-danger' : 'btn-outline-primary'} border-0`}
-                            onClick={() => handleOpenAtrModal(course)}
-                            title={parseFloat(course.gap) > 0 ? "ATR Mandatory (Gap Detected)" : "ATR Optional"}
-                          >
-                            <FaEdit size={18} />
-                          </button>
-                          {course.course_atr ? (
-                            <FaCheckCircle className="text-success" title="ATR Submitted" />
-                          ) : parseFloat(course.gap) > 0 ? (
-                            <FaExclamationCircle className="text-danger" title="ATR Required" />
-                          ) : null}
+                          {(course.course_atr && course.course_atr !== "No ATR Submitted") ? (
+                            <button
+                              className="btn btn-sm btn-outline-primary border-0 fw-bold d-flex align-items-center gap-1"
+                              onClick={() => handleOpenAtrModal(course)}
+                            >
+                              <FaCheckCircle className="text-success" /> View ATR
+                            </button>
+                          ) : (
+                            <div className="d-flex flex-column align-items-center gap-1">
+                              <span className="text-danger small fw-bold">No ATR Submitted</span>
+                              <button
+                                className="btn btn-sm btn-warning fw-bold py-0"
+                                style={{ fontSize: '11px' }}
+                                onClick={handleRequestAtr}
+                              >
+                                Request ATR
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -721,24 +707,15 @@ const Assigntarget = () => {
           <Form.Group className="mb-3">
             <Form.Label className="fw-bold">Action Taken / Proposed Report (ATR)</Form.Label>
             <p className="text-muted small">
-              {parseFloat(selectedCourseAtr?.gap) > 0
-                ? "Gap detected. High priority: please provide specific remedial actions."
-                : "No gap detected. Optional: provide any additional improvements if needed."}
+              This is the ATR submitted during the Direct Attainment Report generation.
             </p>
-            <Form.Control
-              as="textarea"
-              rows={6}
-              value={atrText}
-              onChange={(e) => setAtrText(e.target.value)}
-              placeholder="Enter ATR content here..."
-            />
+            <div className="p-3 bg-light border rounded text-dark" style={{ whiteSpace: 'pre-wrap', minHeight: '100px' }}>
+              {atrText}
+            </div>
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAtrModal(false)}>Cancel</Button>
-          <Button variant="primary" onClick={handleSaveAtr} disabled={savingAtr}>
-            {savingAtr ? "Saving..." : "Save ATR"}
-          </Button>
+          <Button variant="secondary" onClick={() => setShowAtrModal(false)}>Close</Button>
         </Modal.Footer>
       </Modal>
     </div>
