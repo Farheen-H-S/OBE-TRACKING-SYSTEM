@@ -76,7 +76,8 @@ const HodSide = ({ isOpen, onClose, user: propUser }) => {
             items: [
                 { name: "DAC Reports", path: "/dac-reports" },
                 { name: "Report Verification", path: "/report-verification" },
-                { name: "Attainment Backtracking", path: "/attainment-backtracking" }
+                { name: "Attainment Backtracking", path: "/attainment-backtracking" },
+                { name: "Activity Log", path: "/activity-log" }
             ]
         },
         {

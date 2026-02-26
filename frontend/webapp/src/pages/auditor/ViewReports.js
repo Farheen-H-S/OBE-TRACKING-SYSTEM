@@ -39,30 +39,31 @@ const ViewReports = () => {
         }
     };
 
-    const loadApprovedReports = () => {
-        const dacReports = JSON.parse(localStorage.getItem('dac_reports') || '[]');
-        const verificationStates = JSON.parse(localStorage.getItem('report_verification_states') || '{}');
+    const loadApprovedReports = async () => {
+        try {
+            // Fetch reports from backend
+            const res = await api.get('/reports/', {
+                params: {
+                    status: 'Approved' // Backend should filter or we filter here
+                }
+            });
 
-        // Combine dac reports and mock reports, filtered by status === 'Approved' or 'Verified'
-        const mockReports = [
-            { id: 102, name: "Direct CIS Report - CS101", type: "Direct Attainment", date: "20-02-2025", submittedBy: "Faculty John", status: "Approved", filters: { program: '1', batch: '2022-26', class: 'FY', semester: 'Sem 1' } },
-            { id: 103, name: "Indirect Attainment - TY Comp", type: "Indirect Attainment", date: "15-02-2025", submittedBy: "Coordinator Sarah", status: "Verified", filters: { program: '1', batch: '2022-26', class: 'TY', semester: 'Sem 5' } },
-        ];
+            // Format for UI
+            const approved = res.data.filter(r => r.status === 'Approved' || r.status === 'Verified').map(r => ({
+                id: r.report_id,
+                name: r.report_type === 'Direct' ? `Direct CIS - ${r.course_id}` : `Batch Report - ${r.batch_id}`,
+                type: r.report_type === 'Direct' ? 'Direct Attainment' : 'PO/PSO Attainment',
+                date: new Date(r.created_at).toLocaleDateString(),
+                submittedBy: r.user_id_created || 'System',
+                status: r.status,
+                filters: { program: r.program_id, batch: r.batch_id }, // Adjusted filters
+                content: r.report_file
+            }));
 
-        const formattedDac = dacReports.map(r => ({
-            id: r.id,
-            name: r.name,
-            type: "DAC Report",
-            date: r.date,
-            submittedBy: r.submittedBy,
-            status: verificationStates[r.id] || r.status || 'Pending',
-            filters: r.filters,
-            content: r.content
-        }));
-
-        const all = [...formattedDac, ...mockReports];
-        const approved = all.filter(r => r.status === 'Approved' || r.status === 'Verified');
-        setReports(approved);
+            setReports(approved);
+        } catch (err) {
+            console.error("Error loading reports:", err);
+        }
     };
 
     const loadRemarks = () => {

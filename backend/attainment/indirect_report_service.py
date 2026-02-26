@@ -185,7 +185,8 @@ class IndirectReportService:
             for survey in surveys:
                 # Add table for each survey
                 ws.merge_cells(start_row=curr_row, start_column=1, end_row=curr_row, end_column=num_cols+2)
-                cell = ws.cell(row=curr_row, column=1, value=f"{survey.survey_name} ({survey.academic_year})")
+                date_str = f" | Date: {survey.conducted_date.strftime('%d-%m-%Y')}" if survey.conducted_date else ""
+                cell = ws.cell(row=curr_row, column=1, value=f"{survey.survey_name} ({survey.academic_year}){date_str}")
                 cell.font = bold_font
                 curr_row += 1
                 

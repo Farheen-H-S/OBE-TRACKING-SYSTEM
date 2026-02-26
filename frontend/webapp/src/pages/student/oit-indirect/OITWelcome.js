@@ -32,22 +32,28 @@ const OITWelcome = () => {
     const activityTitle = searchParams.get('activity_title') || '';
 
     const [programName, setProgramName] = useState('');
+    const [surveyData, setSurveyData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchProgram = async () => {
+        const fetchData = async () => {
             try {
-                const res = await api.get('/academics/programs/');
-                const prog = (res.data || []).find(p => String(p.program_id) === String(programId));
+                const [progRes, survRes] = await Promise.all([
+                    api.get('/academics/programs/'),
+                    survey ? api.get(`/surveys/surveys/${survey}/`) : Promise.resolve({ data: null })
+                ]);
+                const prog = (progRes.data || []).find(p => String(p.program_id) === String(programId));
                 setProgramName(prog?.program_name || 'Program');
+                setSurveyData(survRes.data);
             } catch (e) {
+                console.error('Fetch error:', e);
                 setProgramName('Program');
             } finally {
                 setLoading(false);
             }
         };
-        fetchProgram();
-    }, [programId]);
+        fetchData();
+    }, [programId, survey]);
 
     const handleStart = () => {
         navigate(`/student/oit-questions?${searchParams.toString()}`);
@@ -119,7 +125,29 @@ const OITWelcome = () => {
                                                         </td>
                                                     </tr>
                                                 )}
-                                                {isRP && respondent?.name && (
+                                                {isActivity && (surveyData?.conducted_date || surveyData?.resource_person_name) && (
+                                                    <>
+                                                        {surveyData?.conducted_date && (
+                                                            <tr>
+                                                                <td className="fw-bold text-secondary">Conducted Date</td>
+                                                                <td className="fw-bold text-dark">{surveyData.conducted_date}</td>
+                                                            </tr>
+                                                        )}
+                                                        {surveyData?.resource_person_name && (
+                                                            <tr>
+                                                                <td className="fw-bold text-secondary">
+                                                                    {isRP ? 'Resource Person' : 'Speaker / Expert'}
+                                                                </td>
+                                                                <td className="fw-bold text-dark">
+                                                                    {surveyData.resource_person_name}
+                                                                    {surveyData.resource_person_designation && <div className="small text-muted fw-normal">{surveyData.resource_person_designation}</div>}
+                                                                    {surveyData.resource_person_company && <div className="small text-muted fw-normal">{surveyData.resource_person_company}</div>}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </>
+                                                )}
+                                                {isRP && respondent?.name && !surveyData?.resource_person_name && (
                                                     <tr>
                                                         <td className="fw-bold text-secondary">Resource Person</td>
                                                         <td className="fw-bold text-dark">{respondent.name}</td>

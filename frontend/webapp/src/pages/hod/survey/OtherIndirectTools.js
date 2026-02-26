@@ -71,6 +71,14 @@ const OtherIndirectTools = () => {
     // User types only the suffix; full title = `${activityType} — ${activityDetail}`
     const [activityDetail, setActivityDetail] = useState('');
     const [calcDuration, setCalcDuration] = useState('48');
+    const [conductedDate, setConductedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [rpName, setRpName] = useState('');
+    const [rpDesignation, setRpDesignation] = useState('');
+    const [rpCompany, setRpCompany] = useState('');
+    const [rpAddress, setRpAddress] = useState('');
+
+    const [existingSurveys, setExistingSurveys] = useState([]);
+    const [loadingSurveys, setLoadingSurveys] = useState(false);
 
     const [pos, setPos] = useState([]);
     const [psos, setPsos] = useState([]);
@@ -108,6 +116,42 @@ const OtherIndirectTools = () => {
         }, 1000);
         return () => clearInterval(timer);
     }, [surveyState]);
+
+    useEffect(() => {
+        if (isRP && selectedProgram && selectedProgram !== 'All') {
+            fetchExistingSurveys();
+        }
+    }, [isRP, activityType, selectedProgram]);
+
+    const fetchExistingSurveys = async () => {
+        setLoadingSurveys(true);
+        try {
+            const res = await api.get(`/surveys/lookup/?activity_type=${activityType}&program_id=${selectedProgram}`);
+            setExistingSurveys(res.data);
+        } catch (e) {
+            console.error('Failed to fetch existing surveys:', e);
+        } finally {
+            setLoadingSurveys(false);
+        }
+    };
+
+    const handleExistingSurveyChange = (surveyId) => {
+        const survey = existingSurveys.find(s => s.survey_id === parseInt(surveyId));
+        if (survey) {
+            setActivityDetail(survey.activity_title || '');
+            setRpName(survey.resource_person_name || '');
+            setRpDesignation(survey.resource_person_designation || '');
+            setRpCompany(survey.resource_person_company || '');
+            setRpAddress(survey.resource_person_address || '');
+            if (survey.conducted_date) setConductedDate(survey.conducted_date);
+        } else {
+            setActivityDetail('');
+            setRpName('');
+            setRpDesignation('');
+            setRpCompany('');
+            setRpAddress('');
+        }
+    };
 
     const fetchStatements = async () => {
         if (!selectedProgram || selectedProgram === 'All') return;
@@ -157,7 +201,15 @@ const OtherIndirectTools = () => {
             return;
         }
         if (selectedTool.hasActivity && !activityDetail.trim()) {
-            alert('Please enter the activity detail (e.g. the topic or company name) before approving.');
+            alert('Please select or enter the activity title before approving.');
+            return;
+        }
+        if (selectedTool.hasActivity && !conductedDate) {
+            alert('Please select the date when the survey was conducted.');
+            return;
+        }
+        if (selectedTool.id === 'resource-person' && !rpName && activityType !== 'Industry Visit') {
+            alert('Please select an existing activity to pull resource person details.');
             return;
         }
 
@@ -179,6 +231,11 @@ const OtherIndirectTools = () => {
                 program_id: selectedProgram,
                 activity_type: selectedTool.hasActivity ? activityType : null,
                 activity_title: selectedTool.hasActivity ? activityDetail : null,
+                conducted_date: selectedTool.hasActivity ? conductedDate : null,
+                resource_person_name: selectedTool.hasActivity ? rpName : null,
+                resource_person_designation: selectedTool.hasActivity ? rpDesignation : null,
+                resource_person_company: selectedTool.hasActivity ? rpCompany : null,
+                resource_person_address: selectedTool.hasActivity ? rpAddress : null,
                 status: 'APPROVED',
                 expires_at: expiry.toISOString(),
                 questions: [
@@ -416,7 +473,16 @@ const OtherIndirectTools = () => {
                                 <button
                                     key={tool.id}
                                     className={`oit-tool-btn ${selectedTool.id === tool.id ? 'active' : ''}`}
-                                    onClick={() => { setSelectedTool(tool); setActivityDetail(''); setActivityType(ACTIVITY_TYPES[0]); setShowStats(false); }}
+                                    onClick={() => {
+                                        setSelectedTool(tool);
+                                        setActivityDetail('');
+                                        setActivityType(ACTIVITY_TYPES[0]);
+                                        setRpName('');
+                                        setRpDesignation('');
+                                        setRpCompany('');
+                                        setRpAddress('');
+                                        setShowStats(false);
+                                    }}
                                 >
                                     {tool.label}
                                 </button>
@@ -439,28 +505,107 @@ const OtherIndirectTools = () => {
                                     </select>
                                 </div>
                                 <div className="col-md-8">
-                                    {/* Input group — activity type auto-prepended */}
-                                    <div className="input-group input-group-sm">
-                                        <span className="input-group-text oit-type-prefix fw-semibold">
-                                            {activityType} —
-                                        </span>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder={
-                                                activityType === 'Industry Visit' ? 'company / organisation name'
-                                                    : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
-                                                        : 'program name / topic'
-                                            }
-                                            value={activityDetail}
-                                            onChange={e => setActivityDetail(e.target.value)}
-                                        />
-                                    </div>
+                                    {isRP ? (
+                                        <select
+                                            className="form-select form-select-sm"
+                                            onChange={(e) => handleExistingSurveyChange(e.target.value)}
+                                            disabled={loadingSurveys}
+                                        >
+                                            <option value="">-- Select Existing Activity --</option>
+                                            {existingSurveys.map(s => (
+                                                <option key={s.survey_id} value={s.survey_id}>
+                                                    {s.activity_title} ({s.conducted_date || 'No date'})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <div className="input-group input-group-sm">
+                                            <span className="input-group-text oit-type-prefix fw-semibold">
+                                                {activityType} —
+                                            </span>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder={
+                                                    activityType === 'Industry Visit' ? 'company / organisation name'
+                                                        : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
+                                                            : 'program name / topic'
+                                                }
+                                                value={activityDetail}
+                                                onChange={e => setActivityDetail(e.target.value)}
+                                            />
+                                        </div>
+                                    )}
                                     {activityDetail && (
                                         <small className="text-success fw-semibold mt-1 d-block">
                                             Title: <em>{computedTitle}</em>
                                         </small>
                                     )}
+                                </div>
+                            </div>
+
+                            {/* New fields: Date and Resource Person Details */}
+                            <div className="row g-2 mt-2">
+                                <div className="col-md-4">
+                                    <label className="small fw-bold text-muted mb-1">CONDUCTED DATE</label>
+                                    <input
+                                        type="date"
+                                        className="form-control form-control-sm"
+                                        value={conductedDate}
+                                        onChange={e => setConductedDate(e.target.value)}
+                                        readOnly={isRP && activityDetail !== ''}
+                                    />
+                                </div>
+
+                                {activityType !== 'Industry Visit' && (
+                                    <>
+                                        <div className="col-md-4">
+                                            <label className="small fw-bold text-muted mb-1">RESOURCE PERSON NAME</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                placeholder="Name"
+                                                value={rpName}
+                                                onChange={e => setRpName(e.target.value)}
+                                                readOnly={isRP && activityDetail !== ''}
+                                            />
+                                        </div>
+                                        <div className="col-md-4">
+                                            <label className="small fw-bold text-muted mb-1">DESIGNATION</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                placeholder="Designation"
+                                                value={rpDesignation}
+                                                onChange={e => setRpDesignation(e.target.value)}
+                                                readOnly={isRP && activityDetail !== ''}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="col-md-4">
+                                    <label className="small fw-bold text-muted mb-1">COMPANY / ORGANIZATION</label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Company"
+                                        value={rpCompany}
+                                        onChange={e => setRpCompany(e.target.value)}
+                                        readOnly={isRP && activityDetail !== ''}
+                                    />
+                                </div>
+
+                                <div className="col-md-8">
+                                    <label className="small fw-bold text-muted mb-1">ADDRESS</label>
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Address / Venue"
+                                        value={rpAddress}
+                                        onChange={e => setRpAddress(e.target.value)}
+                                        readOnly={isRP && activityDetail !== ''}
+                                    />
                                 </div>
                             </div>
                         </div>

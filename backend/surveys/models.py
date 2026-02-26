@@ -32,6 +32,11 @@ class SurveyMaster(models.Model):
     is_anonymous = models.BooleanField(default=False)
     status = models.CharField(max_length=20, default='DRAFT') # DRAFT, APPROVED, CLOSED
     expires_at = models.DateTimeField(null=True, blank=True)
+    conducted_date = models.DateField(null=True, blank=True)
+    resource_person_name = models.CharField(max_length=200, null=True, blank=True)
+    resource_person_designation = models.CharField(max_length=200, null=True, blank=True)
+    resource_person_company = models.CharField(max_length=200, null=True, blank=True)
+    resource_person_address = models.TextField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:

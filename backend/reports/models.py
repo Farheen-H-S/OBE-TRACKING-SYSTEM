@@ -4,10 +4,18 @@ from users.models import User
 
 
 class Report(models.Model):
+    REPORT_TYPE_CHOICES = [
+        ('Direct', 'Direct Attainment'),
+        ('Indirect', 'Indirect Attainment'),
+        ('Batch', 'Batch evaluation (PO/PSO)'),
+    ]
+
     STATUS_CHOICES = [
         ('Draft', 'Draft'),
+        ('Pending', 'Pending Approval'),
         ('Approved', 'Approved'),
         ('Rejected', 'Rejected'),
+        ('Verified', 'Verified'),
     ]
 
     report_id = models.AutoField(primary_key=True)
@@ -16,7 +24,33 @@ class Report(models.Model):
         Course,
         on_delete=models.PROTECT,
         related_name='reports',
-        db_column='course_id'
+        db_column='course_id',
+        null=True,
+        blank=True
+    )
+
+    program_id = models.ForeignKey(
+        'academics.Program',
+        on_delete=models.PROTECT,
+        related_name='reports',
+        db_column='program_id',
+        null=True,
+        blank=True
+    )
+
+    batch_id = models.ForeignKey(
+        'academics.Batch',
+        on_delete=models.PROTECT,
+        related_name='reports',
+        db_column='batch_id',
+        null=True,
+        blank=True
+    )
+
+    report_type = models.CharField(
+        max_length=20,
+        choices=REPORT_TYPE_CHOICES,
+        default='Direct'
     )
 
     year = models.CharField(

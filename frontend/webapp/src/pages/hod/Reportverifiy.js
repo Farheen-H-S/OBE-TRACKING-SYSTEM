@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Reportverifiy.css';
 import { FaCheck, FaTimes, FaEye, FaSearch, FaFilter } from 'react-icons/fa';
+import api from '../../utils/axios';
 
 const Reportverifiy = () => {
     const [reports, setReports] = useState([]);
@@ -20,54 +21,34 @@ const Reportverifiy = () => {
     const semesters = ['1', '2', '3', '4', '5', '6'];
 
     useEffect(() => {
-        loadReports();
+        fetchPendingReports();
     }, []);
 
-    const loadReports = () => {
-        // 1. Load DAC reports from localStorage
-        const dacReports = JSON.parse(localStorage.getItem('dac_reports') || '[]');
-
-        // 2. Synthesize one sample report row
-        const otherReports = [
-            { id: 101, name: "Direct CIS Report - CS101", type: "Direct Attainment", date: "24-02-2025", submittedBy: "Faculty John", status: "Pending" }
-        ];
-
-        // Format DAC reports to match the table structure
-        const formattedDac = dacReports.map(r => ({
-            id: r.id,
-            name: r.name,
-            type: "DAC Report",
-            date: r.date,
-            submittedBy: r.submittedBy,
-            status: r.status || 'Pending',
-            isDac: true,
-            content: r.content
-        }));
-
-        // Combine and load (prioritizing DAC reports from Task 1)
-        const combined = [...formattedDac, ...otherReports];
-
-        // Check if we already have verification states in localStorage
-        const verificationStates = JSON.parse(localStorage.getItem('report_verification_states') || '{}');
-        const finalReports = combined.map(r => ({
-            ...r,
-            status: verificationStates[r.id] || r.status
-        }));
-
-        setReports(finalReports);
+    const fetchPendingReports = async () => {
+        try {
+            const res = await api.get('/reports/verification/');
+            setReports(res.data);
+        } catch (err) {
+            console.error("Error fetching reports:", err);
+        }
     };
 
-    const handleAction = (id, newStatus) => {
-        const verificationStates = JSON.parse(localStorage.getItem('report_verification_states') || '{}');
-        verificationStates[id] = newStatus;
-        localStorage.setItem('report_verification_states', JSON.stringify(verificationStates));
-
-        // Also update dac_reports if it's a DAC report
-        const dacReports = JSON.parse(localStorage.getItem('dac_reports') || '[]');
-        const updatedDac = dacReports.map(r => r.id === id ? { ...r, status: newStatus } : r);
-        localStorage.setItem('dac_reports', JSON.stringify(updatedDac));
-
-        setReports(reports.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    const handleAction = async (id, newStatus) => {
+        try {
+            if (newStatus === 'Approved') {
+                await api.post(`/reports/${id}/approve/`);
+                alert("Report approved successfully!");
+            } else if (newStatus === 'Rejected') {
+                const remark = window.prompt("Enter reason for rejection:");
+                if (remark === null) return; // Cancelled
+                await api.post(`/reports/${id}/reject/`, { remark });
+                alert("Report rejected.");
+            }
+            fetchPendingReports();
+        } catch (err) {
+            console.error(`Error updating report status to ${newStatus}:`, err);
+            alert(`Failed to update report status to ${newStatus}.`);
+        }
     };
 
     const filteredReports = reports.filter(r => {
@@ -166,28 +147,25 @@ const Reportverifiy = () => {
                             <tbody>
                                 {filteredReports.length > 0 ? (
                                     filteredReports.map((report) => (
-                                        <tr key={report.id}>
-                                            <td>{report.id}</td>
-                                            <td className="text-start fw-bold">{report.name}</td>
-                                            <td className="small">{report.type}</td>
-                                            <td className="small">{report.date}</td>
-                                            <td>{report.submittedBy}</td>
+                                        <tr key={report.report_id}>
+                                            <td>{report.report_id}</td>
+                                            <td className="text-start fw-bold">
+                                                {report.report_type} Report - {report.course_id || report.batch_id}
+                                            </td>
+                                            <td className="small">{report.report_type}</td>
+                                            <td className="small">{new Date(report.created_at).toLocaleDateString()}</td>
+                                            <td>{report.user_id_created || 'System'}</td>
                                             <td>
                                                 <div className="d-flex justify-content-center">
-                                                    <button
+                                                    <a
+                                                        href={report.report_file}
+                                                        target="_blank"
+                                                        rel="noreferrer"
                                                         className="btn btn-view btn-sm"
                                                         title="View Report"
-                                                        onClick={() => {
-                                                            if (report.isDac && report.content) {
-                                                                const win = window.open();
-                                                                win.document.write(`<iframe src="${report.content}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                                            } else {
-                                                                alert("Preview for this report type is under development. Please check generated files.");
-                                                            }
-                                                        }}
                                                     >
                                                         View
-                                                    </button>
+                                                    </a>
                                                 </div>
                                             </td>
                                             <td className="text-center">
@@ -200,14 +178,14 @@ const Reportverifiy = () => {
                                                     <button
                                                         className={`btn btn-success btn-sm btn-action ${(report.status === 'Approved' || report.status === 'Verified') ? 'disabled' : ''}`}
                                                         title="Approve"
-                                                        onClick={() => handleAction(report.id, 'Approved')}
+                                                        onClick={() => handleAction(report.report_id, 'Approved')}
                                                     >
                                                         ✓
                                                     </button>
                                                     <button
                                                         className={`btn btn-danger btn-sm btn-action ${report.status === 'Rejected' ? 'disabled' : ''}`}
                                                         title="Reject"
-                                                        onClick={() => handleAction(report.id, 'Rejected')}
+                                                        onClick={() => handleAction(report.report_id, 'Rejected')}
                                                     >
                                                         ✗
                                                     </button>

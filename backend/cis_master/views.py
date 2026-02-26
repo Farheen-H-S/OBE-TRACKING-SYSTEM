@@ -10,6 +10,9 @@ import io
 from attainment.attainment_service import AttainmentService
 from attainment.models import COAttainment
 from rest_framework.permissions import AllowAny
+from audit.utils import log_action
+from reports.utils import save_generated_report
+from academics.models import Course
 
 class DirectCISPreviewView(APIView):
     permission_classes = [AllowAny]
@@ -98,6 +101,23 @@ class DirectCISReportView(APIView):
         # Save workbook to memory and then to response
         output = io.BytesIO()
         wb.save(output)
+        
+        # Save to database
+        user = request.user if request.user and not request.user.is_anonymous else None
+        course = Course.objects.filter(pk=course_id).first()
+        filename = f"CIS_Report_{course.course_code if course else course_id}.xlsx"
+        save_generated_report(
+            user=user,
+            report_type='Direct',
+            year=academic_year,
+            file_content=output,
+            filename=filename,
+            course=course
+        )
+        
+        # Log action
+        log_action(user, 'CREATE', 'Report', course_id, remark=f"Direct CIS report generated for {academic_year}")
+
         response.write(output.getvalue())
         
         return response

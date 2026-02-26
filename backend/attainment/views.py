@@ -15,8 +15,10 @@ from .serializers import (
 from .attainment_service import AttainmentService
 from .report_service import ReportService
 from .indirect_report_service import IndirectReportService
-from django.http import HttpResponse
 import traceback
+from audit.utils import log_action
+from reports.utils import save_generated_report
+from academics.models import Course, Program, Batch
 
 class CalculateAttainmentView(APIView):
     permission_classes = [AllowAny]
@@ -30,6 +32,10 @@ class CalculateAttainmentView(APIView):
         try:
             results = AttainmentService.calculate_attainment(course_id, academic_year)
             if results:
+                # Log the calculation
+                user = request.user if request.user and not request.user.is_anonymous else None
+                log_action(user, 'CALCULATE', 'Course', course_id, remark=f"Attainment calculated for {academic_year}")
+                
                 return Response({
                     "message": f"Attainment calculation completed for course {course_id}",
                     "results": results
@@ -123,11 +129,33 @@ class BatchEvaluationReportView(APIView):
         
         try:
             excel_data = ReportService.generate_batch_evaluation_report(program_id, batch_id)
+            
+            # Save to database
+            user = request.user if request.user and not request.user.is_anonymous else None
+            program = Program.objects.get(pk=program_id)
+            batch = Batch.objects.get(pk=batch_id)
+            academic_year = f"{batch.start_year}-{batch.end_year}"
+            
+            filename = f'PO_Attainment_Report_Batch_{batch_id}.xlsx'
+            save_generated_report(
+                user=user,
+                report_type='Batch',
+                year=academic_year,
+                file_content=excel_data,
+                filename=filename,
+                program=program,
+                batch=batch
+            )
+            
+            # Log action
+            log_action(user, 'CREATE', 'Report', batch_id, remark=f"Batch evaluation report generated for {academic_year}")
+
+            excel_data.seek(0)
             response = HttpResponse(
                 excel_data.read(),
                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-            response['Content-Disposition'] = f'attachment; filename=PO_Attainment_Report_Batch_{batch_id}.xlsx'
+            response['Content-Disposition'] = f'attachment; filename={filename}'
             return response
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

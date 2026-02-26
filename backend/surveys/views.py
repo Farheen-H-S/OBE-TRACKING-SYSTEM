@@ -117,3 +117,34 @@ class SurveyStatsView(APIView):
             })
             
         return Response(data, status=status.HTTP_200_OK)
+
+
+class SurveyLookupView(APIView):
+    """Return surveys matching activity_type + program for dropdown population."""
+    def get(self, request):
+        activity_type = request.query_params.get('activity_type')
+        program_id = request.query_params.get('program_id')
+        if not activity_type or not program_id:
+            return Response([], status=status.HTTP_200_OK)
+
+        surveys = SurveyMaster.objects.filter(
+            activity_type=activity_type,
+            program_id=program_id,
+            survey_category='indirect',
+        ).exclude(
+            survey_name__icontains='Resource Person'
+        ).order_by('-survey_id')
+
+        data = [{
+            'survey_id': s.survey_id,
+            'survey_name': s.survey_name,
+            'activity_title': s.activity_title,
+            'conducted_date': s.conducted_date,
+            'resource_person_name': s.resource_person_name,
+            'resource_person_designation': s.resource_person_designation,
+            'resource_person_company': s.resource_person_company,
+            'resource_person_address': s.resource_person_address,
+            'academic_year': s.academic_year,
+        } for s in surveys]
+
+        return Response(data, status=status.HTTP_200_OK)
