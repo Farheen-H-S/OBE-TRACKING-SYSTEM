@@ -7,12 +7,10 @@ import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle } from 'react-icons
 import { useFilters } from '../../../context/FilterContext';
 import { Chart } from 'react-google-charts';
 
-const STATUS_COLOR = (achieved, target) => {
+const STATUS_COLOR = (achieved) => {
     if (achieved === null || achieved === undefined) return '#9e9e9e';
-    return achieved >= target ? '#2e7d32' : '#c62828';
+    return '#1565c0';
 };
-
-const GAP_COLOR = (gap) => parseFloat(gap) <= 0 ? '#388e3c' : '#d32f2f';
 
 const SURVEY_TOOLS = [
     { id: 'co-curricular', label: 'Co-curricular / Extra Curricular Activity Feedback', short: 'Co-curricular' },
@@ -75,29 +73,17 @@ export default function IndirectAttainment() {
             const academic_year = selectedYear.replace(/\s/g, '');
             const params = { program_id: selectedDept, batch_id: selectedBatch, academic_year };
 
-            const [summaryRes, targetsRes] = await Promise.allSettled([
-                api.get('/attainment/indirect-summary/', { params }),
-                api.get('/academics/targets/', { params: { academic_year } }),
+            const [summaryRes] = await Promise.allSettled([
+                api.get('/attainment/indirect-summary/', { params })
             ]);
 
             const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : [];
-            const targets = targetsRes.status === 'fulfilled' ? targetsRes.value.data : {};
-
-            const poTargetMap = {};
-            const psoTargetMap = {};
-            (targets.po_targets || []).forEach(t => poTargetMap[String(t.po_id)] = t.target_value);
-            (targets.pso_targets || []).forEach(t => psoTargetMap[String(t.pso_id)] = t.target_value);
 
             const combined = summary.map(a => {
-                const targetVal = a.type === 'PO' ? poTargetMap[String(a.id)] : psoTargetMap[String(a.id)];
-                const target = parseFloat(targetVal || 2.86);
                 const achieved = parseFloat(a.achieved || 0);
-                const gap = target - achieved;
                 return {
                     label: a.label,
-                    achieved: achieved,
-                    target: target,
-                    gap: gap
+                    achieved: achieved
                 };
             });
 
@@ -191,24 +177,11 @@ export default function IndirectAttainment() {
     // ── Chart data ──────────────────────────────────────────────────────────
     const buildAttainmentChartData = () => {
         if (!chartData.length) return null;
-        const header = ['PO / PSO', 'Achieved', { role: 'style' }, 'Target', { role: 'style' }];
+        const header = ['PO / PSO', 'Achieved', { role: 'style' }];
         const rows = chartData.map(r => [
             r.label,
             r.achieved,
-            STATUS_COLOR(r.achieved, r.target),
-            r.target,
-            'color: #1565c0; opacity: .35',
-        ]);
-        return [header, ...rows];
-    };
-
-    const buildGapChartData = () => {
-        if (!chartData.length) return null;
-        const header = ['PO / PSO', 'Gap', { role: 'style' }];
-        const rows = chartData.map(r => [
-            r.label,
-            r.gap,
-            GAP_COLOR(r.gap),
+            STATUS_COLOR(r.achieved),
         ]);
         return [header, ...rows];
     };
@@ -222,14 +195,7 @@ export default function IndirectAttainment() {
         backgroundColor: 'transparent',
     };
 
-    const gapChartOptions = {
-        ...chartOptions,
-        vAxis: { title: 'Gap (Target − Achieved)' },
-        seriesType: 'bars',
-    };
-
     const attainChartData = buildAttainmentChartData();
-    const gapChartData = buildGapChartData();
 
     return (
         <div className="indir-wrapper">
@@ -283,13 +249,13 @@ export default function IndirectAttainment() {
                         <div className="text-muted mt-2">Loading Visualization Dashboard...</div>
                     </div>
                 ) : (
-                    attainChartData && gapChartData && (
+                    attainChartData && (
                         <div className="row g-4 mb-4">
-                            <div className="col-lg-6">
+                            <div className="col-12">
                                 <div className="card shadow-sm h-100 border-0">
                                     <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
                                         <h5 className="card-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
-                                            A. PO / PSO Attainment vs Target
+                                            Indirect Attainment Level
                                         </h5>
                                     </div>
                                     <div className="card-body p-0" style={{ height: 350 }}>
@@ -299,24 +265,6 @@ export default function IndirectAttainment() {
                                             height="100%"
                                             data={attainChartData}
                                             options={chartOptions}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="col-lg-6">
-                                <div className="card shadow-sm h-100 border-0">
-                                    <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
-                                        <h5 className="card-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
-                                            B. Gap Analysis
-                                        </h5>
-                                    </div>
-                                    <div className="card-body p-0" style={{ height: 350 }}>
-                                        <Chart
-                                            chartType="ColumnChart"
-                                            width="100%"
-                                            height="100%"
-                                            data={gapChartData}
-                                            options={gapChartOptions}
                                         />
                                     </div>
                                 </div>

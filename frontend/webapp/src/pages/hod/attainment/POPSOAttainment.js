@@ -110,13 +110,11 @@ export default function POPSOAttainment() {
     // ── Chart data ──────────────────────────────────────────────────────────
     const buildAttainmentChartData = () => {
         if (!tableData.length) return null;
-        const header = ['PO / PSO', 'Achieved', { role: 'style' }, 'Target', { role: 'style' }];
+        const header = ['PO / PSO', 'Attainment Achieved', { role: 'style' }];
         const rows = tableData.map(r => [
             r.label,
             parseFloat(r.achieved),
             STATUS_COLOR(parseFloat(r.achieved), r.target),
-            r.target,
-            'color: #1565c0; opacity: .35',
         ]);
         return [header, ...rows];
     };
@@ -209,14 +207,13 @@ export default function POPSOAttainment() {
                 {/* Summary cards */}
                 <div className="ppo-summary-row mb-4">
                     {[
-                        { label: 'Avg. Achieved', value: summary.achieved, cls: 'ppo-card-achieved' },
-                        { label: 'Avg. Target', value: summary.target, cls: 'ppo-card-target' },
-                        { label: 'Avg. Gap', value: summary.gap, cls: 'ppo-card-gap' },
-                        { label: 'Met Target', value: `${metCount} / ${tableData.length}`, cls: 'ppo-card-met' },
+                        { label: 'Attainment Achieved', value: summary.achieved, cls: 'ppo-card-achieved', valClass: '' },
+                        { label: 'Target Attainment', value: summary.target, cls: 'ppo-card-target', valClass: '' },
+                        { label: 'Gap', value: summary.gap, cls: 'ppo-card-gap', valClass: parseFloat(summary.gap) <= 0 ? 'text-success' : 'text-danger' },
                     ].map(c => (
                         <div key={c.label} className={`ppo-summary-card ${c.cls}`}>
                             <div className="ppo-card-label">{c.label}</div>
-                            <div className="ppo-card-value">{loading ? '…' : c.value}</div>
+                            <div className={`ppo-card-value ${c.valClass}`}>{loading ? '…' : c.value}</div>
                         </div>
                     ))}
                 </div>

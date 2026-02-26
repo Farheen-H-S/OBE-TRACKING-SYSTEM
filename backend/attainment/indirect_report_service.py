@@ -57,16 +57,19 @@ class IndirectReportService:
 
     @staticmethod
     def _get_batch_years(graduating_year):
-        """Returns 3 academic years for a graduating batch (FY, SY, TY)"""
+        """Returns 3 academic years for a graduating batch (FY, SY, TY).
+           Returns both spaced and unspaced formats to ensure query matching."""
         try:
-            # Assumes format "2025 - 26"
-            start_yr = int(graduating_year.split(" - ")[0])
+            cleaned_year = str(graduating_year).replace(" ", "")
+            start_yr = int(cleaned_year.split("-")[0])
             years = []
             for i in range(2, -1, -1):
                 y = start_yr - i
-                years.append(f"{y} - {(y + 1) % 100:02d}")
+                next_yr_short = (y + 1) % 100
+                years.append(f"{y} - {next_yr_short:02d}")
+                years.append(f"{y}-{next_yr_short:02d}")
             return years
-        except:
+        except Exception:
             return [graduating_year]
 
     @staticmethod
@@ -114,8 +117,9 @@ class IndirectReportService:
             
             # Find relevant surveys for this category
             survey_ids = SurveyMaster.objects.filter(
-                program_id=program,
                 academic_year__in=batch_years
+            ).filter(
+                models.Q(program_id=program) | models.Q(program_id__isnull=True)
             ).filter(
                 models.Q(activity_type__in=types) | 
                 models.Q(survey_name__iregex=r'|'.join(keywords))
@@ -169,8 +173,9 @@ class IndirectReportService:
         for sheet_title, (types, keywords), long_title in sheets_config:
             ws = wb.create_sheet(title=sheet_title)
             surveys = SurveyMaster.objects.filter(
-                program_id=program,
                 academic_year__in=batch_years
+            ).filter(
+                models.Q(program_id=program) | models.Q(program_id__isnull=True)
             ).filter(
                 models.Q(activity_type__in=types) | 
                 models.Q(survey_name__iregex=r'|'.join(keywords))
@@ -273,8 +278,9 @@ class IndirectReportService:
             category_vals = []
             for (label, types, keywords) in categories:
                 survey_ids = SurveyMaster.objects.filter(
-                    program_id=program,
                     academic_year__in=batch_years
+                ).filter(
+                    models.Q(program_id=program) | models.Q(program_id__isnull=True)
                 ).filter(
                     models.Q(activity_type__in=types) | 
                     models.Q(survey_name__iregex=r'|'.join(keywords))

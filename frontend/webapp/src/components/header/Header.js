@@ -5,6 +5,7 @@ import { FaBell, FaSearch, FaBars, FaTimes, FaDownload } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { getLoggedInUser } from "../../utils/auth";
 import { useFilters } from "../../context/FilterContext";
+import api from "../../utils/axios";
 
 
 const Header = ({ onToggleSidebar }) => {
@@ -87,6 +88,24 @@ const Header = ({ onToggleSidebar }) => {
     else if (role === 'COORDINATOR') navigate("/hod-dashboard");
     else if (role === 'AUDITOR') navigate("/admin-dashboard");
     else navigate("/dashboard");
+  };
+
+  const handleDownloadTemplate = async (type) => {
+    try {
+      const url = type === 'student' ? '/bulk_upload/students/template/' : '/bulk_upload/courses/template/';
+      const response = await api.get(url, { responseType: 'blob' });
+      const dlUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = dlUrl;
+      link.setAttribute('download', `${type.charAt(0).toUpperCase() + type.slice(1)}_Bulk_Upload_Template.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      setShowDownloads(false);
+    } catch (err) {
+      console.error("Error downloading template:", err);
+      alert("Failed to download template. Please check your connection or contact administrator.");
+    }
   };
 
   return (
@@ -219,9 +238,15 @@ const Header = ({ onToggleSidebar }) => {
                   <span>Downloads</span>
                   <FaTimes className="cursor-pointer text-muted" onClick={() => setShowDownloads(false)} />
                 </div>
-                <div className="p-4 text-center text-muted">
-                  <FaDownload size={30} className="mb-2 opacity-25" />
-                  <p className="mb-0">No files available to download</p>
+                <div className="p-0">
+                  <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
+                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
+                  </button>
+                  <button onClick={() => handleDownloadTemplate('course')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <div className="fw-bold small text-primary">Course Bulk Upload Template</div>
+                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for course data entry</div>
+                  </button>
                 </div>
               </div>
             )}

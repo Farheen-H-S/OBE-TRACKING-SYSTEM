@@ -32,7 +32,7 @@ const Cisentry = lazy(() => import("./pages/faculty/cis/Cisentry"));
 const ViewCisEntries = lazy(() => import("./pages/faculty/cis/ViewCisEntries"));
 
 // HOD / Coordinator
-const HodDashboard = lazy(() => import("./pages/hod/HodDashboardHome"));
+const HodDashboard = lazy(() => import("./pages/hod/HodDashboardContent"));
 const StudentManagement = lazy(() => import("./pages/hod/student/StudentManagement"));
 const OtherIndirectTools = lazy(() => import("./pages/hod/survey/OtherIndirectTools"));
 const Statement1 = lazy(() => import("./pages/common/statement/Statement1")); // PEO, PO, PSO

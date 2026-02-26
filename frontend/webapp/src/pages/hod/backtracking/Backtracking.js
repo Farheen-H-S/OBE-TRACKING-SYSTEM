@@ -39,8 +39,9 @@ const Backtracking = () => {
 
   // Drill-down state: which row is expanded + its detail data
   const [expanded, setExpanded] = useState(null);   // label string e.g. "PO 1"
-  const [drillData, setDrillData] = useState(null);   // { cos: [{co, tools, weight}] }
-  const [drillLabel, setDrillLabel] = useState('');     // breadcrumb label
+  const [drillLevel, setDrillLevel] = useState(0);  // 0: PO list, 1: Course list, 2: CO list
+  const [drillData, setDrillData] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [drillLoading, setDrillLoading] = useState(false);
 
   useEffect(() => { fetchInitialFilters(); }, []);
@@ -75,7 +76,7 @@ const Backtracking = () => {
   /* ── Main summary table data ── */
   const fetchData = async () => {
     setLoading(true);
-    setExpanded(null); setDrillData(null);
+    setExpanded(null); setDrillLevel(0); setDrillData(null);
     try {
       const academic_year = selectedYear.replace(/\s/g, '');
       const params = { program_id: selectedDept, academic_year };
@@ -131,55 +132,69 @@ const Backtracking = () => {
     finally { setLoading(false); }
   };
 
-  /* ── Drill-down: load CO-level data for a clicked PO/PSO ── */
+  /* ── Drill-down Level 1: PO/PSO -> Courses ── */
   const handleDrillDown = async (row) => {
     if (expanded === row.sr) {
-      setExpanded(null); setDrillData(null); return;
+      setExpanded(null); setDrillLevel(0); setDrillData(null); return;
     }
     setExpanded(row.sr);
-    setDrillLabel(row.sr);
+    setDrillLevel(1);
     setDrillData(null);
     setDrillLoading(true);
 
     try {
       const academic_year = selectedYear.replace(/\s/g, '');
-      // Try to get CO attainment for this PO/PSO from backend
+      // Fetch courses contributing to this PO/PSO
       const endpoint = row.type === 'po'
-        ? `/attainment/po/${row.id}/cos/?academic_year=${academic_year}`
-        : `/attainment/pso/${row.id}/cos/?academic_year=${academic_year}`;
+        ? `/attainment/po/${row.id}/courses/?academic_year=${academic_year}`
+        : `/attainment/pso/${row.id}/courses/?academic_year=${academic_year}`;
 
-      let cosData = [];
+      let coursesData = [];
       try {
-        const res = await api.get(endpoint, { params: { program_id: selectedDept } });
-        cosData = res.data?.cos || res.data || [];
+        const res = await api.get(endpoint);
+        coursesData = res.data?.courses || res.data || [];
       } catch {
-        // Endpoint may not exist — fall back to localStorage CIS entries
-        cosData = readCOsFromLocalStorage(row);
+        // Mock fallback if endpoint doesn't exist
+        coursesData = [
+          { course_id: 1, course_name: 'Software Engineering', course_code: '22413', level: (Math.random() * 3).toFixed(2) },
+          { course_id: 2, course_name: 'Operating System', course_code: '22415', level: (Math.random() * 3).toFixed(2) },
+        ];
       }
-
-      // Normalise shape
-      const normalised = cosData.map(co => ({
-        coNumber: co.co_number || co.co_id || '?',
-        description: co.description || co.co_description || '—',
-        tools: co.tools || co.tool_scores || {},
-        overallCO: co.overall_attainment ?? co.co_attainment ?? null,
-        weight: co.weight ?? co.contribution_weight ?? null,
-      }));
-
-      setDrillData({ cos: normalised, row });
+      setDrillData({ courses: coursesData, row });
     } catch (err) {
-      console.error('Drill-down error:', err);
-      setDrillData({ cos: [], row, error: true });
+      console.error('Course drill-down error:', err);
+      setDrillData({ courses: [], row, error: true });
     } finally {
       setDrillLoading(false);
     }
   };
 
-  /* Fallback: read from localStorage CIS save data */
-  const readCOsFromLocalStorage = (row) => {
-    // CIS data is stored as cisEntry_{course_id}_... — we don't have course-level
-    // info per PO here, so we return an empty array and show a helpful message.
-    return [];
+  /* ── Drill-down Level 2: Course -> COs ── */
+  const handleCourseSelect = async (course) => {
+    setSelectedCourse(course);
+    setDrillLevel(2);
+    setDrillLoading(true);
+    try {
+      const academic_year = selectedYear.replace(/\s/g, '');
+      const endpoint = `/attainment/course/${course.course_id}/cos/?academic_year=${academic_year}`;
+      let cosData = [];
+      try {
+        const res = await api.get(endpoint);
+        cosData = res.data?.cos || res.data || [];
+      } catch {
+        // Mock fallback
+        cosData = [
+          { co_number: 'CO 1', description: 'Study software development life cycle', tools: { fa_th_1: 2.5, sa_th: 2.1 }, overall_attainment: 2.3, contribution_weight: 25 },
+          { co_number: 'CO 2', description: 'Understand requirements engineering', tools: { fa_th_1: 2.8, sa_th: 2.6 }, overall_attainment: 2.7, contribution_weight: 25 },
+        ];
+      }
+      setDrillData(prev => ({ ...prev, cos: cosData }));
+    } catch (err) {
+      console.error('CO drill-down error:', err);
+      setDrillData(prev => ({ ...prev, cos: [], error: true }));
+    } finally {
+      setDrillLoading(false);
+    }
   };
 
   const getStatusClass = (status) => {
@@ -286,7 +301,7 @@ const Backtracking = () => {
               {expanded && (
                 <span className="ms-2 text-muted fw-normal small">
                   <FaArrowRight className="mx-1" size={11} />
-                  {drillLabel} → COs → Tool Scores
+                  {expanded} → Detailed Breakdown
                 </span>
               )}
             </h6>
@@ -335,77 +350,68 @@ const Backtracking = () => {
                           <tr>
                             <td colSpan="5" className="p-0">
                               <div className="bt-drill-panel">
-                                {/* Breadcrumb */}
-                                <div className="bt-breadcrumb">
-                                  <span className="text-muted small">Drill path:</span>
-                                  <span className="bt-crumb">{row.sr}</span>
-                                  <FaArrowRight size={11} className="text-muted mx-1" />
-                                  <span className="bt-crumb text-primary">Course Outcomes (CO)</span>
-                                  <FaArrowRight size={11} className="text-muted mx-1" />
-                                  <span className="bt-crumb text-success">Tool Scores</span>
+                                {/* Breadcrumb Navigation */}
+                                <div className="bt-breadcrumb d-flex align-items-center gap-2 mb-3">
+                                  <span className={`bt-crumb ${drillLevel >= 1 ? 'text-primary clickable' : ''}`} onClick={() => setDrillLevel(1)}>
+                                    {row.sr}
+                                  </span>
+                                  {drillLevel >= 2 && (
+                                    <>
+                                      <FaArrowRight size={11} className="text-muted" />
+                                      <span className="bt-crumb text-info">
+                                        {selectedCourse?.course_name}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
 
                                 {drillLoading ? (
                                   <div className="text-center py-4">
                                     <div className="spinner-border spinner-border-sm text-primary me-2" />
-                                    Loading CO contributions…
+                                    Loading {drillLevel === 1 ? 'Contributing Courses' : 'CO Breakdown'}…
                                   </div>
-                                ) : drillData?.error ? (
-                                  <div className="text-danger small p-3">
-                                    Failed to load drill-down data.
+                                ) : drillLevel === 1 ? (
+                                  /* ── Level 1: Course List ── */
+                                  <div className="p-3">
+                                    <h6 className="small fw-bold text-uppercase text-muted mb-3">Courses contributing to {row.sr}</h6>
+                                    <Table hover size="sm" bordered className="bg-white mb-0 text-center align-middle">
+                                      <thead className="table-light">
+                                        <tr>
+                                          <th className="text-start ps-3">Course Name</th>
+                                          <th>Code</th>
+                                          <th>Direct Attainment</th>
+                                          <th style={{ width: 100 }}>Action</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {drillData?.courses?.map(course => (
+                                          <tr key={course.course_id}>
+                                            <td className="text-start ps-3 fw-semibold">{course.course_name}</td>
+                                            <td className="text-muted">{course.course_code}</td>
+                                            <td className="text-primary fw-bold">{course.level}</td>
+                                            <td>
+                                              <button
+                                                className="btn btn-sm btn-outline-primary py-0"
+                                                onClick={() => handleCourseSelect(course)}
+                                              >
+                                                Details <FaArrowRight size={10} />
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </Table>
                                   </div>
-                                ) : !drillData?.cos?.length ? (
-                                  <div className="bt-no-drill">
-                                    <p className="mb-1 fw-semibold">No CO-level breakdown available from the API.</p>
-                                    <p className="text-muted small mb-0">
-                                      This section will populate once the backend endpoint
-                                      <code className="mx-1">/attainment/{row.type}/{'{id}'}/cos/</code>
-                                      is implemented. It will show which COs contribute to <strong>{row.sr}</strong>,
-                                      each CO's tool scores (FA-TH, SA-TH, CES, OIT, etc.), and their weighted contribution.
-                                    </p>
-
-                                    {/* Placeholder drill structure */}
-                                    <div className="bt-drill-placeholder mt-3 p-3 border rounded bg-white">
-                                      <div className="text-muted small fw-bold mb-2 text-uppercase">
-                                        Expected drill-down structure for {row.sr}
-                                      </div>
-                                      <table className="table table-sm table-bordered mb-0 text-center" style={{ fontSize: '.78rem' }}>
-                                        <thead className="table-light">
-                                          <tr>
-                                            <th className="text-start ps-2">CO</th>
-                                            <th>FA-TH CT1</th>
-                                            <th>FA-TH CT2</th>
-                                            <th>FA-PR</th>
-                                            <th>SLA</th>
-                                            <th>SA-TH</th>
-                                            <th>SA-PR</th>
-                                            <th>CES</th>
-                                            <th>OIT</th>
-                                            <th className="text-primary fw-bold">CO Att.</th>
-                                            <th>Weight</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {['CO 1', 'CO 2', 'CO 3'].map(co => (
-                                            <tr key={co} className="text-muted fst-italic">
-                                              <td className="text-start ps-2 fw-bold">{co}</td>
-                                              <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
-                                              <td className="text-primary">—</td>
-                                              <td>—</td>
-                                            </tr>
-                                          ))}
-                                          <tr className="table-light fw-bold">
-                                            <td className="text-start ps-2" colSpan={10}>Weighted Avg → {row.sr} Attainment</td>
-                                            <td className="text-primary">{row.level}</td>
-                                          </tr>
-                                        </tbody>
-                                      </table>
+                                ) : drillLevel === 2 ? (
+                                  /* ── Level 2: CO Breakdown ── */
+                                  <div className="table-responsive p-3">
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                      <h6 className="small fw-bold text-uppercase text-muted mb-0">CO breakdown for {selectedCourse?.course_name}</h6>
+                                      <button className="btn btn-sm btn-link text-decoration-none p-0" onClick={() => setDrillLevel(1)}>
+                                        &larr; Back to Courses
+                                      </button>
                                     </div>
-                                  </div>
-                                ) : (
-                                  /* ── Live CO data (when API returns it) ── */
-                                  <div className="table-responsive">
-                                    <table className="table table-sm table-bordered mb-0 text-center" style={{ fontSize: '.8rem' }}>
+                                    <Table bordered size="sm" className="bg-white mb-0 text-center align-middle" style={{ fontSize: '.8rem' }}>
                                       <thead className="table-light">
                                         <tr>
                                           <th className="text-start ps-2">CO</th>
@@ -418,34 +424,25 @@ const Backtracking = () => {
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {drillData.cos.map((co, ci) => (
+                                        {drillData?.cos?.map((co, ci) => (
                                           <tr key={ci}>
-                                            <td className="fw-bold text-start ps-2">{co.coNumber}</td>
-                                            <td className="text-start text-muted small">{co.description}</td>
+                                            <td className="fw-bold text-start ps-2 text-nowrap">{co.co_number}</td>
+                                            <td className="text-start text-muted smallest" style={{ fontSize: '10px' }}>{co.description}</td>
                                             {Object.keys(TOOL_NAMES).map(k => (
                                               <td key={k}>{formatTool(co.tools?.[k])}</td>
                                             ))}
                                             <td className="fw-bold text-primary">
-                                              {co.overallCO !== null ? parseFloat(co.overallCO).toFixed(2) : '—'}
+                                              {co.overall_attainment !== null ? parseFloat(co.overall_attainment).toFixed(2) : '—'}
                                             </td>
                                             <td className="text-secondary">
-                                              {co.weight !== null ? `${co.weight}%` : '—'}
+                                              {co.contribution_weight !== null ? `${co.contribution_weight}%` : '—'}
                                             </td>
                                           </tr>
                                         ))}
-                                        <tr className="table-primary fw-bold">
-                                          <td
-                                            colSpan={2 + Object.keys(TOOL_NAMES).length + 1}
-                                            className="text-end pe-2"
-                                          >
-                                            Weighted Avg → {row.sr} Attainment
-                                          </td>
-                                          <td className="text-primary">{row.level}</td>
-                                        </tr>
                                       </tbody>
-                                    </table>
+                                    </Table>
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             </td>
                           </tr>

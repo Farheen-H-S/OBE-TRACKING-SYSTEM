@@ -316,7 +316,15 @@ class StudentListCreateAPIView(APIView):
         if program_id:
             queryset = queryset.filter(program_id=program_id)
         if batch_id:
-            queryset = queryset.filter(batch_id=batch_id)
+            # Handle both raw integer IDs and '2025 - 26' string formats
+            if str(batch_id).isdigit():
+                queryset = queryset.filter(batch_id=batch_id)
+            else:
+                import re
+                match = re.search(r'\d{4}', str(batch_id))
+                if match:
+                    base_year = int(match.group(0))
+                    queryset = queryset.filter(batch_id__batch_year=base_year)
         if semester:
             queryset = queryset.filter(semester=semester)
         if class_year:
@@ -324,7 +332,11 @@ class StudentListCreateAPIView(APIView):
         if division:
             queryset = queryset.filter(division=division)
         if academic_year:
-            queryset = queryset.filter(academic_year=academic_year)
+            # Handle spacing mismatches like '2025-26' vs '2025 - 26'
+            from django.db.models import Q
+            ay_clean = str(academic_year).replace(" ", "")
+            ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else str(academic_year)
+            queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
             
         serializer = StudentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

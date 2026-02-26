@@ -216,10 +216,10 @@ class AttainmentService:
             co_index = co_index_match.group() if co_index_match else "1"
             
             # If the raw CO already looks like CO301.1, don't double format
-            if '.' in raw_co and course_num in raw_co:
+            if '.' in raw_co and course_num and course_num in raw_co:
                 formatted_co = raw_co
             else:
-                formatted_co = f"CO{course_num}.{co_index}"
+                formatted_co = f"CO{course_num}.{co_index}" if course_num else f"CO.{co_index}"
 
             # Map database keys to user-friendly keys if necessary
             # tools keys are likely 'FA_TH_1', 'FA_TH_2', 'FA_PR', 'SLA', 'SA_TH', 'SA_PR'
@@ -311,13 +311,14 @@ class AttainmentService:
                 # 1. Calculate average per question
                 q_indices = set()
                 for student_marks in marks_data.values():
-                    for q_idx in student_marks.keys():
-                        if q_idx != 'total': q_indices.add(int(q_idx))
+                    if isinstance(student_marks, dict):
+                        for q_idx in student_marks.keys():
+                            if q_idx != 'total': q_indices.add(int(q_idx))
                 
                 q_averages = {}
                 student_list = list(marks_data.keys())
                 for q_idx in q_indices:
-                    v_marks = [float(marks_data[s].get(str(q_idx))) for s in student_list if marks_data[s].get(str(q_idx)) not in [None, '']]
+                    v_marks = [float(marks_data[s].get(str(q_idx))) for s in student_list if isinstance(marks_data[s], dict) and marks_data[s].get(str(q_idx)) not in [None, '']]
                     if v_marks:
                         q_avg = sum(v_marks) / len(v_marks)
                         q_success = len([m for m in v_marks if m >= q_avg])
