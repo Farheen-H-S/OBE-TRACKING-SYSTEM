@@ -290,13 +290,14 @@ const StudentManagement = () => {
                                         fetchStudents();
                                     } catch (err) {
                                         const errorData = err.response?.data;
-                                        if (errorData && typeof errorData === 'object' && errorData.total) {
+                                        if (errorData && typeof errorData === 'object' && errorData.total !== undefined) {
                                             setUploadResults(errorData);
                                             setShowResultsModal(true);
                                         } else if (errorData && errorData.expected) {
                                             alert(`Template Mismatch!\n\nExpected: ${errorData.expected.join(", ")}\n\nFound: ${errorData.found.join(", ")}`);
                                         } else {
-                                            alert("Upload failed: " + (errorData?.error || "Unknown error"));
+                                            const errorMsg = errorData?.error || errorData?.details || "Unknown error";
+                                            alert("Upload failed: " + errorMsg);
                                         }
                                     } finally {
                                         setLoading(false);

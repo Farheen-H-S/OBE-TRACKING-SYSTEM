@@ -80,25 +80,32 @@ const HodSide = ({ isOpen, onClose, user: propUser }) => {
             ]
         },
         {
-            title: "Stress & Feedback",
+            title: "Student Stress Survey",
             items: [
-                {
-                    name: "Stress Survey",
-                    subItems: [
-                        { name: "Survey Creation", path: "/stress-create" },
-                        { name: "Survey Report", path: "/stress-report" }
-                    ]
-                },
-                {
-                    name: "Teacher Feedback",
-                    subItems: [
-                        { name: "Survey Creation", path: "/teacher-feedback-create" },
-                        { name: "Survey Report", path: "/teacher-feedback-report" }
-                    ]
-                }
+                { name: "Survey Creation", path: "/stress-create" },
+                { name: "Survey Report", path: "/stress-report" }
             ]
-        }
+        },
     ];
+    // {
+    //     title: "Stress & Feedback",
+    //     items: [
+    //         {
+    //             name: "Stress Survey",
+    //             subItems: [
+    //                 { name: "Survey Creation", path: "/stress-create" },
+    //                 { name: "Survey Report", path: "/stress-report" }
+    //             ]
+    //         },
+    //         {
+    //             name: "Teacher Feedback",
+    //             subItems: [
+    //                 { name: "Survey Creation", path: "/teacher-feedback-create" },
+    //                 { name: "Survey Report", path: "/teacher-feedback-report" }
+    //             ]
+    //         }
+    //     ]
+    // }
 
     const handleNavigation = (path) => {
         if (path) {
@@ -148,7 +155,7 @@ const HodSide = ({ isOpen, onClose, user: propUser }) => {
                 );
             }
         });
-    };
+    }
 
     return (
         <div className={`sidebar d-flex flex-column text-white ${isOpen ? "open" : ""}`}>

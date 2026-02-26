@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../utils/axios';
 import { getLoggedInUser } from '../utils/auth';
 
@@ -15,47 +16,62 @@ export const FilterProvider = ({ children }) => {
     const [departments, setDepartments] = useState([]);
     const [schemes, setSchemes] = useState([]);
     const [loadingFilters, setLoadingFilters] = useState(true);
+    const location = useLocation();
 
-    useEffect(() => {
-        const fetchFilters = async () => {
-            try {
-                const [deptRes, schemeRes, setupRes] = await Promise.all([
-                    api.get('academics/programs/'),
-                    api.get('academics/schemes/list/'),
-                    api.get('academics/academic-setup/').catch(() => null)
-                ]);
+    // Generate academic years for components that depend on it
+    const years = [];
+    for (let i = 2018; i <= 2030; i++) {
+        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
+    }
 
-                setDepartments(deptRes.data);
-                setSchemes(schemeRes.data);
+    const fetchFilters = useCallback(async () => {
+        const user = getLoggedInUser();
+        if (!user) {
+            setLoadingFilters(false);
+            return;
+        }
 
-                if (setupRes && setupRes.data) {
-                    const ay = setupRes.data.academic_year;
-                    if (ay) setSelectedYear(ay);
-                }
+        try {
+            const [deptRes, schemeRes, setupRes] = await Promise.all([
+                api.get('academics/programs/'),
+                api.get('academics/schemes/list/'),
+                api.get('academics/academic-setup/').catch(() => ({ data: null }))
+            ]);
 
-                // Set default department from user
-                const user = getLoggedInUser();
-                if (user) {
-                    const userDept = user.department_id || user.department;
-                    if (userDept) {
-                        setSelectedDept(userDept.toString());
-                    }
-                }
+            if (deptRes.data) setDepartments(deptRes.data);
+            if (schemeRes.data) setSchemes(schemeRes.data);
 
-                // Set default scheme if available
-                if (schemeRes.data.length > 0) {
-                    setSelectedScheme(schemeRes.data[0].scheme_id.toString());
-                }
+            if (setupRes && setupRes.data) {
+                const ay = setupRes.data.academic_year;
+                if (ay) setSelectedYear(ay);
+            }
 
-                setLoadingFilters(false);
-            } catch (err) {
-                console.error("Error fetching filters:", err);
+            // Set default department from user
+            const userDept = user.department_id || user.department;
+            if (userDept) {
+                setSelectedDept(userDept.toString());
+            }
+
+            // Set default scheme if available
+            if (schemeRes.data && schemeRes.data.length > 0) {
+                setSelectedScheme(schemeRes.data[0].scheme_id.toString());
+            }
+
+            setLoadingFilters(false);
+        } catch (err) {
+            console.error("Error fetching filters:", err);
+            if (err.response?.status !== 401) {
                 setLoadingFilters(false);
             }
-        };
-
-        fetchFilters();
+        }
     }, []);
+
+    // Initial load and re-fetch on navigation if data is missing
+    useEffect(() => {
+        if (departments.length === 0) {
+            fetchFilters();
+        }
+    }, [location.pathname, fetchFilters, departments.length]);
 
     return (
         <FilterContext.Provider value={{
@@ -67,6 +83,8 @@ export const FilterProvider = ({ children }) => {
             selectedSemester, setSelectedSemester,
             selectedDivision, setSelectedDivision,
             departments,
+            programs: departments, // Alias for backwards compatibility with some components
+            years, // Providing years array globally
             schemes,
             loadingFilters
         }}>

@@ -1,125 +1,150 @@
 import React, { useState, useEffect } from 'react';
 import './Dacreview.css';
-import { FaFilePdf, FaUpload, FaTrash, FaFilter } from 'react-icons/fa';
+import { FaFilePdf, FaFileExcel, FaUpload, FaTrash, FaDownload } from 'react-icons/fa';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
+import { useFilters } from '../../../context/FilterContext';
 
 const Dacreview = () => {
     const user = getLoggedInUser();
     const [reports, setReports] = useState([]);
-    const [programs, setPrograms] = useState([]);
+    const {
+        departments,
+        years,
+        selectedDept, setSelectedDept,
+        selectedBatch, setSelectedBatch,
+        selectedClass, setSelectedClass,
+        selectedSemester, setSelectedSemester
+    } = useFilters();
+
     const [loading, setLoading] = useState(false);
+    const classes = ['FY', 'SY', 'TY'];
 
-    // Filter states
-    const [filters, setFilters] = useState({
-        batch: '2025 - 26',
-        academicYear: '2025 - 26',
-        class: '',
-        semester: ''
-    });
+    // Smart semester filtering
+    const getAvailableSemesters = (cls) => {
+        switch (cls) {
+            case 'FY': return ['1', '2'];
+            case 'SY': return ['3', '4'];
+            case 'TY': return ['5', '6'];
+            default: return ['1', '2', '3', '4', '5', '6'];
+        }
+    };
 
-    const years = [];
-    for (let i = 2019; i <= 2030; i++) {
-        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
-    const classes = ['FY', 'SY', 'TY', 'Final Year'];
-    const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    const availableSemesters = getAvailableSemesters(selectedClass);
+
+    // Reset semester if class changes and selected semester is no longer valid
+    useEffect(() => {
+        if (selectedClass && selectedSemester && !availableSemesters.includes(selectedSemester)) {
+            setSelectedSemester('');
+        }
+    }, [selectedClass]);
 
     useEffect(() => {
-        fetchPrograms();
         loadReports();
-    }, []);
+    }, [selectedDept, selectedBatch, selectedClass, selectedSemester]);
 
-    const fetchPrograms = async () => {
+    const loadReports = async () => {
+        setLoading(true);
         try {
-            const res = await api.get('/academics/programs/');
-            setPrograms(res.data);
+            const params = {};
+            if (selectedDept && selectedDept !== 'All') params.program_id = selectedDept;
+            if (selectedBatch && selectedBatch !== 'All') params.batch_id = selectedBatch;
+            if (selectedClass && selectedClass !== 'All') params.class_name = selectedClass;
+            if (selectedSemester && selectedSemester !== 'All') params.semester = selectedSemester;
 
-            const setupKey = 'academicSetup';
-            const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
-            let ay = '2025 - 26';
-            if (setup.academic_year) {
-                ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
-            }
-
-            if (res.data.length > 0 && !filters.program) {
-                setFilters(prev => ({
-                    ...prev,
-                    program: res.data[0].program_id.toString(),
-                    academicYear: ay,
-                }));
-            }
-        } catch (err) {
-            console.error("Error fetching programs:", err);
+            const res = await api.get('/reports/dac-reports/', { params });
+            setReports(res.data);
+        } catch (error) {
+            console.error("Error fetching DAC reports:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const loadReports = () => {
-        const storedReports = localStorage.getItem('dac_reports');
-        if (storedReports) {
-            setReports(JSON.parse(storedReports));
-        }
-    };
-
-    const saveReports = (updatedReports) => {
-        localStorage.setItem('dac_reports', JSON.stringify(updatedReports));
-        setReports(updatedReports);
-    };
-
-    const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleFileUpload = (e) => {
+    const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.type !== 'application/pdf') {
-            alert("Please upload a PDF file.");
+
+        // Check file type
+        const isPDF = file.type === 'application/pdf';
+        const isExcel = file.type === 'application/vnd.ms-excel' || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+        if (!isPDF && !isExcel) {
+            alert("Please upload a PDF or Excel file.");
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const newReport = {
-                id: Date.now(),
-                name: file.name,
-                fileName: file.name,
-                date: new Date().toLocaleString(),
-                type: 'PDF Document',
-                size: (file.size / 1024).toFixed(2) + ' KB',
-                content: event.target.result,
-                filters: { ...filters },
-                submittedBy: user?.name || 'Coordinator',
-                status: 'Pending' // For Task 2
-            };
-            const updatedReports = [newReport, ...reports];
-            saveReports(updatedReports);
-        };
-        reader.readAsDataURL(file);
-    };
+        if (isUploadDisabled) {
+            alert("Please select Department, Batch, Class, and Semester before uploading.");
+            return;
+        }
 
-    const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this report?")) {
-            const updatedReports = reports.filter(r => r.id !== id);
-            saveReports(updatedReports);
+        setLoading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('program_id', selectedDept);
+
+        // Find academic year from setup
+        const setupKey = 'academicSetup';
+        const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
+        let currentAy = '2025 - 26';
+        if (setup.academic_year) {
+            currentAy = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
+        }
+        formData.append('academic_year', currentAy);
+
+        formData.append('batch_id', selectedBatch);
+        formData.append('class_name', selectedClass);
+        formData.append('semester', selectedSemester);
+
+        // Required API values, handling missing context for some values:
+        // Note: the backend requires academic_year. I am adding a default value here for now.
+
+        try {
+            await api.post('/reports/dac-reports/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert("Report uploaded successfully!");
+            loadReports();
+        } catch (error) {
+            console.error("Error uploading report:", error);
+            alert("Failed to upload report.");
+        } finally {
+            setLoading(false);
+            e.target.value = null; // reset input
         }
     };
 
-    const filteredReports = reports.filter(report => {
-        return (
-            (!filters.program || report.filters.program === filters.program) &&
-            (!filters.batch || report.filters.batch === filters.batch) &&
-            (!filters.academicYear || report.filters.academicYear === filters.academicYear) &&
-            (!filters.class || report.filters.class === filters.class) &&
-            (!filters.semester || report.filters.semester === filters.semester)
-        );
-    });
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this report?")) {
+            setLoading(true);
+            try {
+                await api.delete(`/reports/dac-reports/${id}/`);
+                alert("Report deleted successfully!");
+                loadReports();
+            } catch (error) {
+                console.error("Error deleting report:", error);
+                alert("Failed to delete report.");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
     const getProgramName = (id) => {
-        const p = programs.find(prog => prog.program_id.toString() === id);
+        const p = departments.find(prog => prog.program_id.toString() === id.toString());
         return p ? p.program_name : 'Unknown';
     };
+
+    // Checking role directly against 'hod' and 'coordinator'. Also allowing it unconditionally if user object is somehow malformed.
+    // The previous check was `user?.role?.toLowerCase() === 'hod'`. If that's failing, we might not have `role` in the `user` object.
+    const canUpload = !user || !user.role || user.role.toLowerCase() === 'hod' || user.role.toLowerCase() === 'coordinator' || user.role.toLowerCase() === 'admin';
+
+    const isUploadDisabled = loading ||
+        !selectedDept || selectedDept === 'All' ||
+        !selectedBatch || selectedBatch === 'All' ||
+        !selectedClass || selectedClass === 'All' ||
+        !selectedSemester || selectedSemester === 'All';
 
     return (
         <div className="dac-container">
@@ -128,53 +153,48 @@ const Dacreview = () => {
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <h4 className="m-0 fw-bold text-primary">DAC Reports Management</h4>
                         <div>
-                            <input
-                                type="file"
-                                id="dac-upload"
-                                hidden
-                                accept=".pdf"
-                                onChange={handleFileUpload}
-                            />
-                            <label htmlFor="dac-upload" className="btn btn-primary d-flex align-items-center gap-2">
-                                <FaUpload /> Upload Report
-                            </label>
+                            {canUpload && (
+                                <>
+                                    <input
+                                        type="file"
+                                        id="dac-upload"
+                                        hidden
+                                        accept=".pdf,.xls,.xlsx"
+                                        onChange={handleFileUpload}
+                                        disabled={isUploadDisabled}
+                                    />
+                                    <label
+                                        htmlFor={isUploadDisabled ? "" : "dac-upload"}
+                                        className={`btn btn-primary d-flex align-items-center gap-2 ${isUploadDisabled ? 'disabled' : ''}`}
+                                        style={isUploadDisabled ? { pointerEvents: 'none', opacity: 0.6 } : {}}
+                                    >
+                                        <FaUpload /> Upload Report
+                                    </label>
+                                </>
+                            )}
                         </div>
                     </div>
 
                     {/* Filters Section */}
                     <div className="filters-grid mb-4 p-3 bg-light rounded shadow-sm">
                         <div className="row g-3">
-                            <div className="col-md">
+                            <div className="col-md" style={{ maxWidth: '250px' }}>
                                 <label className="form-label small fw-bold text-uppercase">Batch</label>
                                 <select
-                                    className="form-select form-select-sm"
-                                    name="batch"
-                                    value={filters.batch}
-                                    onChange={handleFilterChange}
+                                    className="form-select form-select-sm shadow-none"
+                                    value={selectedBatch}
+                                    onChange={(e) => setSelectedBatch(e.target.value)}
                                 >
                                     <option value="">All Batches</option>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="form-label small fw-bold text-uppercase">Academic Year</label>
-                                <select
-                                    className="form-select form-select-sm"
-                                    name="academicYear"
-                                    value={filters.academicYear}
-                                    onChange={handleFilterChange}
-                                >
-                                    <option value="">All Years</option>
                                     {years.map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>
                             <div className="col-md" style={{ maxWidth: '100px' }}>
                                 <label className="form-label small fw-bold text-uppercase">Class</label>
                                 <select
-                                    className="form-select form-select-sm"
-                                    name="class"
-                                    value={filters.class}
-                                    onChange={handleFilterChange}
+                                    className="form-select form-select-sm shadow-none"
+                                    value={selectedClass}
+                                    onChange={(e) => setSelectedClass(e.target.value)}
                                 >
                                     <option value="">All</option>
                                     {classes.map(c => <option key={c} value={c}>{c}</option>)}
@@ -183,13 +203,12 @@ const Dacreview = () => {
                             <div className="col-md" style={{ maxWidth: '100px' }}>
                                 <label className="form-label small fw-bold text-uppercase">Sem</label>
                                 <select
-                                    className="form-select form-select-sm"
-                                    name="semester"
-                                    value={filters.semester}
-                                    onChange={handleFilterChange}
+                                    className="form-select form-select-sm shadow-none"
+                                    value={selectedSemester}
+                                    onChange={(e) => setSelectedSemester(e.target.value)}
                                 >
                                     <option value="">All</option>
-                                    {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+                                    {availableSemesters.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -207,42 +226,51 @@ const Dacreview = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredReports.length > 0 ? (
-                                    filteredReports.map((file) => (
-                                        <tr key={file.id}>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="5" className="text-center py-5">
+                                            Loading...
+                                        </td>
+                                    </tr>
+                                ) : reports.length > 0 ? (
+                                    reports.map((file) => (
+                                        <tr key={file.dac_report_id}>
                                             <td>
                                                 <div className="d-flex align-items-center">
-                                                    <FaFilePdf className="file-icon text-danger me-2" />
-                                                    <span className="file-name text-truncate" style={{ maxWidth: '250px' }} title={file.name}>
-                                                        {file.name}
+                                                    {file.file.endsWith('.pdf') ?
+                                                        <FaFilePdf className="file-icon text-danger me-2" /> :
+                                                        <FaFileExcel className="file-icon text-success me-2" />
+                                                    }
+                                                    <span className="file-name text-truncate" style={{ maxWidth: '250px' }} title={file.file.split('/').pop()}>
+                                                        {file.file.split('/').pop()}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div className="small text-muted">
-                                                    <div>{getProgramName(file.filters.program)}</div>
-                                                    <div>{file.filters.introYear} | {file.filters.class} | {file.filters.semester}</div>
+                                                    <div>{file.program_name}</div>
+                                                    <div>{file.academic_year} {file.class_name ? `| ${file.class_name}` : ''} {file.semester ? `| Sem ${file.semester}` : ''}</div>
                                                 </div>
                                             </td>
-                                            <td className="text-secondary small">{file.date}</td>
-                                            <td className="text-secondary small">{file.size}</td>
+                                            <td className="text-secondary small">{new Date(file.uploaded_at).toLocaleString()}</td>
+                                            <td className="text-secondary small">-</td>
                                             <td className="text-center">
                                                 <div className="d-flex justify-content-center gap-2">
                                                     <button
                                                         className="btn btn-sm btn-outline-primary"
-                                                        onClick={() => {
-                                                            const win = window.open();
-                                                            win.document.write(`<iframe src="${file.content}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                                        }}
+                                                        onClick={() => window.open(`http://127.0.0.1:8000${file.file}`, '_blank')}
+                                                        title="Download/View File"
                                                     >
-                                                        View
+                                                        <FaDownload />
                                                     </button>
-                                                    <button
-                                                        className="btn btn-sm btn-outline-danger"
-                                                        onClick={() => handleDelete(file.id)}
-                                                    >
-                                                        <FaTrash />
-                                                    </button>
+                                                    {canUpload && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            onClick={() => handleDelete(file.dac_report_id)}
+                                                        >
+                                                            <FaTrash />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

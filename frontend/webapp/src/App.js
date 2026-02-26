@@ -84,8 +84,8 @@ const Loading = () => (
 
 function App() {
   return (
-    <FilterProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <FilterProvider>
         <Suspense fallback={<Loading />}>
           <Routes>
             {/* Login & Core */}
@@ -170,9 +170,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-      </BrowserRouter>
-    </FilterProvider>
-
+      </FilterProvider>
+    </BrowserRouter>
   );
 }
 

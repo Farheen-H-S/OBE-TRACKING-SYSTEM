@@ -100,3 +100,59 @@ class Report(models.Model):
 
     def __str__(self):
         return f"Report for {self.course_id.course_code} ({self.year})"
+
+class DACReport(models.Model):
+    dac_report_id = models.AutoField(primary_key=True)
+    
+    program_id = models.ForeignKey(
+        'academics.Program',
+        on_delete=models.PROTECT,
+        related_name='dac_reports',
+        db_column='program_id'
+    )
+    
+    batch_id = models.ForeignKey(
+        'academics.Batch',
+        on_delete=models.SET_NULL,
+        related_name='dac_reports',
+        db_column='batch_id',
+        null=True,
+        blank=True
+    )
+    
+    academic_year = models.CharField(
+        max_length=20,
+        help_text="Academic Year (e.g., 2025 - 26)"
+    )
+    
+    class_name = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="e.g., FY, SY, TY, Final Year"
+    )
+    
+    semester = models.CharField(
+        max_length=5,
+        blank=True,
+        null=True,
+        help_text="e.g., 1, 2, 3..."
+    )
+    
+    file = models.FileField(
+        upload_to='dac_reports/',
+        help_text="DAC Report file (PDF or Excel)"
+    )
+    
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='uploaded_dac_reports',
+        db_column='uploaded_by'
+    )
+    
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"DAC Report - {self.academic_year}"
