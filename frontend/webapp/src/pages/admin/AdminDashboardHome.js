@@ -74,40 +74,6 @@ function AdminDashboardHome() {
         <div className="d-flex flex-column p-4 dashboard-background" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
             <div className="container-fluid bg-white rounded shadow-sm p-4 dashboard-container">
 
-                {/* Section: Academic Info */}
-                <div className="row mb-4 text-left g-3">
-                    <div className="col-md-4">
-                        <div className="metric-label">Academic Year</div>
-                        <div className="metric-box shadow-hover">
-                            <div className="d-flex align-items-center gap-2 mb-1">
-                                <FaCalendarAlt className="text-primary" />
-                                <div className="fw-bold">{metrics.academic_year}</div>
-                            </div>
-                            <div className="text-success small">Status: Active</div>
-                        </div>
-                    </div>
-                    <div className="col-md-4">
-                        <div className="metric-label">Scheme</div>
-                        <div className="metric-box shadow-hover">
-                            <div className="d-flex align-items-center gap-2 mb-1">
-                                <FaLayerGroup className="text-info" />
-                                <div className="fw-bold">{metrics.scheme_name}</div>
-                            </div>
-                            <div className="text-muted small">Current Academic Scheme</div>
-                        </div>
-                    </div>
-                    <div className="col-md-4">
-                        <div className="metric-label">Semester Type</div>
-                        <div className="metric-box shadow-hover">
-                            <div className="d-flex align-items-center gap-2 mb-1">
-                                <FaRegClock className="text-warning" />
-                                <div className="fw-bold">{metrics.semester_type}</div>
-                            </div>
-                            <div className="text-muted small">Effective: {metrics.effective_from}</div>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Section: Attention Required */}
                 {(attention_required.config.length > 0 || attention_required.structural.length > 0) && (
                     <div className="row mb-4 px-2">

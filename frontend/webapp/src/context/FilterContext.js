@@ -20,9 +20,9 @@ export const FilterProvider = ({ children }) => {
         const fetchFilters = async () => {
             try {
                 const [deptRes, schemeRes, setupRes] = await Promise.all([
-                    api.get('/academics/programs/'),
-                    api.get('/academics/schemes/list/'),
-                    api.get('/academics/academic-setup/').catch(() => null)
+                    api.get('academics/programs/'),
+                    api.get('academics/schemes/list/'),
+                    api.get('academics/academic-setup/').catch(() => null)
                 ]);
 
                 setDepartments(deptRes.data);
