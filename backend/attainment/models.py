@@ -10,6 +10,12 @@ class COAttainment(models.Model):
     gap = models.FloatField(help_text="Target vs achieved")
     attainment_level = models.IntegerField(help_text="Level 1/2/3")
     academic_year = models.CharField(max_length=9, help_text="Academic year (e.g., 2024-25)")
+    ATR_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('submitted', 'Submitted'),
+        ('not_required', 'Not Required'),
+    ]
+    atr_status = models.CharField(max_length=20, choices=ATR_STATUS_CHOICES, default='not_required')
     action_proposed = models.TextField(null=True, blank=True, help_text="Action Taken/Proposed Report (ATR)")
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)

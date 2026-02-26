@@ -9,6 +9,7 @@ import { FilterProvider } from './context/FilterContext';
 import Layout from "./components/Layout";
 import DashboardRedirect from "./components/DashboardRedirect";
 import PlaceholderPage from "./pages/common/PlaceholderPage";
+import GlobalAlert from "./components/GlobalAlert";
 
 // Lazy Loaded Components
 // Common
@@ -84,94 +85,97 @@ const Loading = () => (
 
 function App() {
   return (
-    <BrowserRouter>
-      <FilterProvider>
-        <Suspense fallback={<Loading />}>
-          <Routes>
-            {/* Login & Core */}
-            <Route path="/" element={<Login />} />
-            <Route path="/dashboard" element={<DashboardRedirect />} />
-            <Route path="/profile" element={<Layout><Profile /></Layout>} />
+    <>
+      <GlobalAlert />
+      <BrowserRouter>
+        <FilterProvider>
+          <Suspense fallback={<Loading />}>
+            <Routes>
+              {/* Login & Core */}
+              <Route path="/" element={<Login />} />
+              <Route path="/dashboard" element={<DashboardRedirect />} />
+              <Route path="/profile" element={<Layout><Profile /></Layout>} />
 
-            {/* Admin Routes */}
-            <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
-            <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
-            <Route path="/update-user" element={<Layout><Updateuser /></Layout>} />
-            <Route path="/view-user" element={<Layout><Viewuser1 /></Layout>} />
-            <Route path="/view-user2" element={<Layout><Viewuser2 /></Layout>} />
-            <Route path="/academic-setup" element={<Layout><AcademicSetup /></Layout>} />
-            <Route path="/activity-log" element={<Layout><Auditlog /></Layout>} />
+              {/* Admin Routes */}
+              <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
+              <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
+              <Route path="/update-user" element={<Layout><Updateuser /></Layout>} />
+              <Route path="/view-user" element={<Layout><Viewuser1 /></Layout>} />
+              <Route path="/view-user2" element={<Layout><Viewuser2 /></Layout>} />
+              <Route path="/academic-setup" element={<Layout><AcademicSetup /></Layout>} />
+              <Route path="/activity-log" element={<Layout><Auditlog /></Layout>} />
 
-            {/* Faculty Routes */}
-            <Route path="/faculty-dashboard" element={<Layout><FacultyDashboard /></Layout>} />
-            <Route path="/my-courses" element={<Layout><Viewcourse1 isMyCourses={true} /></Layout>} />
-            <Route path="/teaching-plan" element={<Layout><PlaceholderPage title="Teaching Plan" /></Layout>} />
-            <Route path="/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
-            <Route path="/stress-survey-report" element={<Layout><PlaceholderPage title="Stress Survey Report" /></Layout>} />
-            <Route path="/view-cis-entries" element={<Layout><ViewCisEntries /></Layout>} />
+              {/* Faculty Routes */}
+              <Route path="/faculty-dashboard" element={<Layout><FacultyDashboard /></Layout>} />
+              <Route path="/my-courses" element={<Layout><Viewcourse1 isMyCourses={true} /></Layout>} />
+              <Route path="/teaching-plan" element={<Layout><PlaceholderPage title="Teaching Plan" /></Layout>} />
+              <Route path="/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
+              <Route path="/stress-survey-report" element={<Layout><PlaceholderPage title="Stress Survey Report" /></Layout>} />
+              <Route path="/view-cis-entries" element={<Layout><ViewCisEntries /></Layout>} />
 
-            {/* HOD / Coordinator Routes - REFACTORED */}
-            <Route path="/hod-dashboard" element={<Layout><HodDashboard /></Layout>} />
-            <Route path="/peo-po-pso" element={<Layout><Statement1 /></Layout>} />
-            <Route path="/statement2" element={<Layout><Statement2 /></Layout>} /> {/* Linked from Statement1 */}
-            <Route path="/student-management" element={<Layout><StudentManagement /></Layout>} />
+              {/* HOD / Coordinator Routes - REFACTORED */}
+              <Route path="/hod-dashboard" element={<Layout><HodDashboard /></Layout>} />
+              <Route path="/peo-po-pso" element={<Layout><Statement1 /></Layout>} />
+              <Route path="/statement2" element={<Layout><Statement2 /></Layout>} /> {/* Linked from Statement1 */}
+              <Route path="/student-management" element={<Layout><StudentManagement /></Layout>} />
 
-            <Route path="/course-management" element={<Layout><Viewcourse1 /></Layout>} />
-            {/* <Route path="/view-course2" element={<Layout><Viewcourse2 /></Layout>} />
+              <Route path="/course-management" element={<Layout><Viewcourse1 /></Layout>} />
+              {/* <Route path="/view-course2" element={<Layout><Viewcourse2 /></Layout>} />
             <Route path="/view-course3" element={<Layout><Viewcourse3 /></Layout>} /> */}
-            <Route path="/add-course" element={<Layout><Addcourse /></Layout>} />
+              <Route path="/add-course" element={<Layout><Addcourse /></Layout>} />
 
-            <Route path="/co-po-pso-mapping" element={<Layout><COPOmapping /></Layout>} />
+              <Route path="/co-po-pso-mapping" element={<Layout><COPOmapping /></Layout>} />
 
-            <Route path="/marks-entry" element={<Layout><Cisentry /></Layout>} />
-            <Route path="/course-exit-survey" element={<Layout><Cescreate /></Layout>} />
-            <Route path="/other-indirect-tools" element={<Layout><OtherIndirectTools /></Layout>} />
-            <Route path="/target-management" element={<Layout><Assigntarget /></Layout>} />
+              <Route path="/marks-entry" element={<Layout><Cisentry /></Layout>} />
+              <Route path="/course-exit-survey" element={<Layout><Cescreate /></Layout>} />
+              <Route path="/other-indirect-tools" element={<Layout><OtherIndirectTools /></Layout>} />
+              <Route path="/target-management" element={<Layout><Assigntarget /></Layout>} />
 
-            <Route path="/direct-attainment" element={<Layout><Cisdirectrep /></Layout>} />
-            <Route path="/indirect-attainment" element={<Layout><IndirectAttainment /></Layout>} />
-            <Route path="/po-pso-attainment" element={<Layout><POPSOAttainment /></Layout>} />
+              <Route path="/direct-attainment" element={<Layout><Cisdirectrep /></Layout>} />
+              <Route path="/indirect-attainment" element={<Layout><IndirectAttainment /></Layout>} />
+              <Route path="/po-pso-attainment" element={<Layout><POPSOAttainment /></Layout>} />
 
-            <Route path="/dac-reports" element={<Layout><Dacreview /></Layout>} />
-            <Route path="/report-verification" element={<Layout><Reportverifiy /></Layout>} />
-            <Route path="/attainment-backtracking" element={<Layout><Backtracking /></Layout>} />
+              <Route path="/dac-reports" element={<Layout><Dacreview /></Layout>} />
+              <Route path="/report-verification" element={<Layout><Reportverifiy /></Layout>} />
+              <Route path="/attainment-backtracking" element={<Layout><Backtracking /></Layout>} />
 
-            {/* Stress & Feedback (HOD) */}
-            <Route path="/stress-create" element={<Layout><Stresscreate /></Layout>} />
-            <Route path="/stress-report" element={<Layout><Stressreport /></Layout>} />
-            <Route path="/teacher-feedback-create" element={<Layout><PlaceholderPage title="Teacher Feedback Survey Creation" /></Layout>} />
-            <Route path="/teacher-feedback-report" element={<Layout><PlaceholderPage title="Teacher Feedback Survey Report" /></Layout>} />
+              {/* Stress & Feedback (HOD) */}
+              <Route path="/stress-create" element={<Layout><Stresscreate /></Layout>} />
+              <Route path="/stress-report" element={<Layout><Stressreport /></Layout>} />
+              <Route path="/teacher-feedback-create" element={<Layout><PlaceholderPage title="Teacher Feedback Survey Creation" /></Layout>} />
+              <Route path="/teacher-feedback-report" element={<Layout><PlaceholderPage title="Teacher Feedback Survey Report" /></Layout>} />
 
-            {/* Auditor Routes */}
-            <Route path="/auditor-dashboard" element={<Layout><AuditorDashboard /></Layout>} />
-            <Route path="/auditor/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
-            <Route path="/auditor/view-my-remarks" element={<Layout><ViewRemark /></Layout>} />
+              {/* Auditor Routes */}
+              <Route path="/auditor-dashboard" element={<Layout><AuditorDashboard /></Layout>} />
+              <Route path="/auditor/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
+              <Route path="/auditor/view-my-remarks" element={<Layout><ViewRemark /></Layout>} />
 
-            {/* Stress module flow (Student) - No Layout */}
-            <Route path="/stress/welcome" element={<Welcome key="welcome" />} />
-            <Route path="/stress/instructions" element={<Instruction key="instructions" />} />
-            <Route path="/stress/questions" element={<QuestionPage key="questions" />} />
-            <Route path="/stress/exit" element={<Exit key="exit" />} />
+              {/* Stress module flow (Student) - No Layout */}
+              <Route path="/stress/welcome" element={<Welcome key="welcome" />} />
+              <Route path="/stress/instructions" element={<Instruction key="instructions" />} />
+              <Route path="/stress/questions" element={<QuestionPage key="questions" />} />
+              <Route path="/stress/exit" element={<Exit key="exit" />} />
 
-            {/* Student Indirect CIS Survey Routes */}
-            <Route path="/student/cis-login" element={<Clogin />} />
-            <Route path="/student/cis-welcome" element={<Cwelcome />} />
-            <Route path="/student/expert-talk-welcome" element={<Cwel2 />} />
-            <Route path="/student/co1" element={<Co1 />} />
-            <Route path="/student/po-input" element={<POinput />} />
-            <Route path="/student/thank-you" element={<Thank />} />
+              {/* Student Indirect CIS Survey Routes */}
+              <Route path="/student/cis-login" element={<Clogin />} />
+              <Route path="/student/cis-welcome" element={<Cwelcome />} />
+              <Route path="/student/expert-talk-welcome" element={<Cwel2 />} />
+              <Route path="/student/co1" element={<Co1 />} />
+              <Route path="/student/po-input" element={<POinput />} />
+              <Route path="/student/thank-you" element={<Thank />} />
 
-            {/* Other Indirect Tools — PO/PSO Survey Routes */}
-            <Route path="/student/oit-login" element={<OITLogin />} />
-            <Route path="/student/oit-welcome" element={<OITWelcome />} />
-            <Route path="/student/oit-questions" element={<OITQuestion />} />
+              {/* Other Indirect Tools — PO/PSO Survey Routes */}
+              <Route path="/student/oit-login" element={<OITLogin />} />
+              <Route path="/student/oit-welcome" element={<OITWelcome />} />
+              <Route path="/student/oit-questions" element={<OITQuestion />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </FilterProvider>
-    </BrowserRouter>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </FilterProvider>
+      </BrowserRouter>
+    </>
   );
 }
 

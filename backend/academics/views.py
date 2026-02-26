@@ -353,6 +353,15 @@ class CourseDetailAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def patch(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        serializer = CourseSerializer(course, data=request.data, partial=True)
+        if serializer.is_valid():
+            course = serializer.save()
+            log_action(request.user, 'UPDATE', 'Course', course.course_id, new_value=serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def delete(self, request, pk):
         course = get_object_or_404(Course, pk=pk)
         course.is_active = False

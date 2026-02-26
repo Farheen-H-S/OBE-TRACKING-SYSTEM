@@ -46,7 +46,7 @@ class CourseSerializer(serializers.ModelSerializer):
             'course_abbr', 'semester', 'class_year', 'program_id', 
             'program_name', 'scheme_id', 'assessment_tools', 
             'faculty_assigned', 'faculty_assigned_name', 'is_internal', 'co_status', 'mapping_status',
-            'is_active', 'created_at', 'updated_at'
+            'course_atr', 'is_active', 'created_at', 'updated_at'
         ]
 
     def get_faculty_assigned(self, obj):

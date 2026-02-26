@@ -203,9 +203,20 @@ class SaveAssessmentMarksView(APIView):
                         )
 
         # Trigger attainment recalculation
-        AttainmentService.calculate_attainment(course_id, academic_year)
+        results = AttainmentService.calculate_attainment(course_id, academic_year)
+        
+        # Check and generate report if no gaps
+        # (This automates the workflow requested: Save -> Attainment -> (ATR?) -> Report)
+        user = request.user if request.user.is_authenticated else None
+        report_generated = AttainmentService.check_and_generate_report(course_id, academic_year, user)
 
-        return Response({"message": "Marks saved and recalculated successfully", "assessment_id": assessment.assessment_id}, status=status.HTTP_201_CREATED)
+        return Response({
+            "message": "Marks saved and recalculated successfully", 
+            "assessment_id": assessment.assessment_id,
+            "attainment_results": results,
+            "report_generated": report_generated
+        }, status=status.HTTP_201_CREATED)
+
 
 
 class EvidenceUploadView(APIView):

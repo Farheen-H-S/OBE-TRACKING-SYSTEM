@@ -47,6 +47,17 @@ class AttainmentService:
             target_val = target_obj.target_value if target_obj else 3.0 # Default target level
             gap = target_val - final_val
             
+            # ATR Status logic
+            if gap > 0:
+                # If gap exists, set to pending UNLESS it was already submitted
+                # (We might want to reset it if d_val/i_val changed significantly, but for now we keep it)
+                existing = COAttainment.objects.filter(co_id=co, academic_year=academic_year).first()
+                atr_status = 'pending'
+                if existing and existing.atr_status == 'submitted' and abs(existing.gap - gap) < 0.01:
+                    atr_status = 'submitted'
+            else:
+                atr_status = 'not_required'
+
             COAttainment.objects.update_or_create(
                 co_id=co,
                 academic_year=academic_year,
@@ -56,9 +67,11 @@ class AttainmentService:
                     'indirect_attainment': i_val,
                     'overall_attainment': final_val,
                     'gap': gap,
-                    'attainment_level': int(round(final_val))
+                    'attainment_level': int(round(final_val)),
+                    'atr_status': atr_status
                 }
             )
+
             
         # Step 7: Final Course Attainment
         final_course_attainment = sum(final_cos.values()) / len(final_cos) if final_cos else 0
@@ -129,8 +142,41 @@ class AttainmentService:
             'final_course_attainment': round(final_course_attainment, 2),
             'final_po_avg': round(final_po_avg, 2),
             'final_pso_avg': round(final_pso_avg, 2),
-            'academic_year': year_str
+            'academic_year': year_str,
+            'atr_required': any(att.atr_status == 'pending' for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year)),
+            'pending_cos': [att.co_id.co_number for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year, atr_status='pending')]
         }
+
+    @staticmethod
+    def check_and_generate_report(course_id, academic_year, user=None):
+        """
+        Checks if any ATR is pending. If not, generates the Direct Attainment report.
+        """
+        atr_needed = COAttainment.objects.filter(
+            course_id=course_id, 
+            academic_year=academic_year, 
+            atr_status='pending'
+        ).exists()
+
+        if not atr_needed:
+            from .report_service import ReportService
+            from reports.utils import save_generated_report
+            from academics.models import Course
+            
+            course = Course.objects.get(pk=course_id)
+            excel_data = ReportService.generate_course_attainment_report(course_id, academic_year)
+            
+            filename = f"Direct_Attainment_{course.course_code}_{academic_year.replace(' ', '')}.xlsx"
+            save_generated_report(
+                user=user,
+                report_type='Direct',
+                year=academic_year,
+                file_content=excel_data,
+                filename=filename,
+                course=course
+            )
+            return True
+        return False
 
     @staticmethod
     def get_attainment_preview(course_id, academic_year):

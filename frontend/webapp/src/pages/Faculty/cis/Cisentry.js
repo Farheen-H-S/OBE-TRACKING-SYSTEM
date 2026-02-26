@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Cisentry.css';
 // import { students } from '../../../data/studentData'; // REMOVED
 import { sampleCourses, sampleCOs } from '../../../data/sampleData';
 import api from '../../../utils/axios';
 import { useFilters } from '../../../context/FilterContext';
-import { FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus, FaEye, FaPaperclip, FaEdit } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus, FaEye, FaPaperclip, FaEdit, FaExclamationCircle } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions as computeSemesterOptions } from '../../../utils/semesterUtils';
 
 const Cisentry = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   // Global Filters from Context
   const { selectedDept: selectedProgram, setSelectedDept: setSelectedProgram, selectedScheme, setSelectedScheme, departments: programs, schemes } = useFilters();
 
@@ -19,6 +22,10 @@ const Cisentry = () => {
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [students, setStudents] = useState([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [showAtrModal, setShowAtrModal] = useState(false);
+  const [pendingAtrCos, setPendingAtrCos] = useState([]);
+  const [atrSubmitLoading, setAtrSubmitLoading] = useState(false);
+
 
   // Selection state
   const [selectedYear, setSelectedYear] = useState('2025 - 26');
@@ -224,6 +231,29 @@ const Cisentry = () => {
     }
   };
 
+  // Handle incoming navigation state from Direct Attainment Preview
+  useEffect(() => {
+    if (location.state) {
+      const {
+        course_id, academic_year, batch_id,
+        class_year, semester, division, tool
+      } = location.state;
+
+      if (course_id) setSelectedCourse(String(course_id));
+      if (academic_year) setSelectedYear(academic_year);
+      if (batch_id) setSelectedBatch(batch_id);
+      if (class_year) setSelectedClass(class_year);
+      if (semester) setSelectedSemester(String(semester));
+      if (division) setSelectedDivision(division);
+      if (tool) {
+        setSelectedTool(tool);
+        // Set assessment type based on tool
+        if (tool.startsWith('SA-')) setAssessmentType('External');
+        else setAssessmentType('Internal');
+      }
+    }
+  }, [location.state]);
+
   // Consolidate initial data fetching to avoid race conditions
   useEffect(() => {
     if (selectedProgram) {
@@ -273,6 +303,8 @@ const Cisentry = () => {
         class_year: selectedClass,
         semester: selectedSemester,
         division: selectedDivision,
+        academic_year: selectedYear,
+        batch_id: selectedBatch,
         is_active: true
       };
       let response = await api.get('/users/students/', { params });
@@ -810,12 +842,23 @@ const Cisentry = () => {
 
       payload.tool_type = backendToolType;
 
-      await api.post('/assessments/marks/', payload);
+      const response = await api.post('/assessments/marks/', payload);
+      const data = response.data;
+
+      // Handle ATR Requirement
+      if (data.attainment_results?.atr_required) {
+        setPendingAtrCos(data.attainment_results.pending_cos || []);
+        setShowAtrModal(true);
+      } else if (data.report_generated) {
+        alert('Marks saved and Direct Attainment Report generated successfully!');
+      } else {
+        if (showAlert) alert('Marks saved to database!');
+      }
 
       // Clear localStorage for this entry to avoid double storage
       localStorage.removeItem(`cis_entry_${selectedCourse}_${selectedTool}`);
-      if (showAlert) alert('Marks saved to database and attainment recalculated!');
       return true; // Indicate success
+
     } catch (e) {
       console.error("Save Error:", e);
       alert('An error occurred while saving data: ' + (e.response?.data?.error || e.message));
@@ -829,6 +872,45 @@ const Cisentry = () => {
       setViewMode('view');
     }
   };
+
+  const submitAtr = async (coNumber, actionText) => {
+    setAtrSubmitLoading(true);
+    try {
+      // Find the CO object ID for this coNumber
+      const coObj = courseOutcomes.find(co =>
+        co.co_number === coNumber ||
+        co.co_number.endsWith(`.${coNumber}`) ||
+        co.co_number === `CO${coNumber}`
+      );
+
+      if (!coObj) {
+        alert(`Error: CO statement for "${coNumber}" not found in course outcomes. Please ensure CO mapping is correct.`);
+        return;
+      }
+
+      const res = await api.post('/attainment/atr/submit/', {
+        co_id: coObj.co_id,
+        academic_year: selectedYear,
+        action_proposed: actionText
+      });
+
+      if (res.data.report_generated) {
+        alert('ATR submitted and Direct Attainment Report generated successfully!');
+      } else {
+        alert('ATR submitted successfully!');
+      }
+
+      const remaining = pendingAtrCos.filter(c => c !== coNumber);
+      setPendingAtrCos(remaining);
+      if (remaining.length === 0) setShowAtrModal(false);
+
+    } catch (error) {
+      alert('Failed to submit ATR: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setAtrSubmitLoading(false);
+    }
+  };
+
 
   const handleEdit = () => {
     setViewMode('edit');
@@ -1965,7 +2047,60 @@ const Cisentry = () => {
           </div>
         </>
       )}
+
+      {showAtrModal && (
+        <div className="oit-modal-overlay">
+          <div className="oit-modal-content" style={{ maxWidth: '600px' }}>
+            <div className="oit-modal-header d-flex justify-content-between align-items-center">
+              <h5 className="mb-0 fw-bold">Action Taken Report (ATR) Required</h5>
+              <button className="btn-close" onClick={() => setShowAtrModal(false)}></button>
+            </div>
+            <div className="oit-modal-body">
+              <p className="text-danger fw-bold mb-3">
+                <FaExclamationCircle className="me-2" />
+                Attainment gap detected for the following Course Outcomes:
+              </p>
+              <div className="list-group mb-4">
+                {pendingAtrCos.map((coNum, idx) => (
+                  <div key={idx} className="list-group-item">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="fw-bold">CO {coNum}</span>
+                      <span className="badge bg-danger">Gap Detected</span>
+                    </div>
+                    <textarea
+                      className="form-control form-control-sm"
+                      placeholder="Enter proposed action for this gap..."
+                      rows="2"
+                      id={`atr-text-${coNum}`}
+                    ></textarea>
+                    <div className="text-end mt-2">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        disabled={atrSubmitLoading}
+                        onClick={() => {
+                          const txt = document.getElementById(`atr-text-${coNum}`).value;
+                          if (!txt.trim()) return alert("Please enter action taken text.");
+                          submitAtr(coNum, txt);
+                        }}
+                      >
+                        {atrSubmitLoading ? 'Submitting...' : 'Submit ATR'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="small text-muted">
+                Note: A direct attainment report will be generated only after all gaps have proposed actions.
+              </p>
+            </div>
+            <div className="oit-modal-footer">
+              <button className="btn btn-secondary w-100" onClick={() => setShowAtrModal(false)}>Ask me later</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 

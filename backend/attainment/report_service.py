@@ -232,3 +232,38 @@ class ReportService:
         wb.save(output)
         output.seek(0)
         return output
+
+    @staticmethod
+    def generate_course_attainment_report(course_id, academic_year):
+        course = Course.objects.get(pk=course_id)
+        
+        # 1. Fetch CO Attainments
+        co_atts = COAttainment.objects.filter(course_id=course, academic_year=academic_year).order_by('co_id__co_id')
+        
+        # 2. Create Excel
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Direct Attainment Report"
+        
+        # Headers
+        headers = ['CO Number', 'Direct Attainment', 'Indirect Attainment', 'Overall Attainment', 'Target', 'Gap', 'ATR Status', 'Action Taken']
+        for i, h in enumerate(headers):
+            ws.cell(row=1, column=i+1, value=h).font = Font(bold=True)
+            
+        # Data
+        for r, att in enumerate(co_atts):
+            ws.cell(row=r+2, column=1, value=str(att.co_id.co_number))
+            ws.cell(row=r+2, column=2, value=round(att.direct_attainment, 2))
+            ws.cell(row=r+2, column=3, value=round(att.indirect_attainment or 0, 2))
+            ws.cell(row=r+2, column=4, value=round(att.overall_attainment, 2))
+            # Target is not stored in COAttainment, but gap is. Target = Overall + Gap
+            target = round(att.overall_attainment + att.gap, 2)
+            ws.cell(row=r+2, column=5, value=target)
+            ws.cell(row=r+2, column=6, value=round(att.gap, 2))
+            ws.cell(row=r+2, column=7, value=att.atr_status)
+            ws.cell(row=r+2, column=8, value=att.action_proposed or "")
+            
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output

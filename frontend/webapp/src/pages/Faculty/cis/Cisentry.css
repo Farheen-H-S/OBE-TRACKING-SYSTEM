@@ -187,3 +187,56 @@
 .blue-header-dark .header-input-transparent {
     color: #ffffff !important;
 }
+
+/* ATR Modal Styles */
+.oit-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.oit-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    animation: modalScaleUp 0.3s ease-out;
+}
+
+@keyframes modalScaleUp {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.oit-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.oit-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.oit-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+}

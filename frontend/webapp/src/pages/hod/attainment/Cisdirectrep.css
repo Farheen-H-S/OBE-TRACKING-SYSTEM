@@ -197,3 +197,22 @@
     font-size: 0.9rem;
     padding: 10px 8px;
 }
+
+.tool-click {
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.tool-click:hover {
+    color: #3b82f6 !important;
+}
+
+.cell-nav {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cell-nav:hover {
+    background-color: #e2e8f0 !important;
+}

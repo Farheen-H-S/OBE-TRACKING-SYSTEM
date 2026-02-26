@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../../components/header/Header';
 import HodSide from '../../../components/sidebar/HodSide';
 import { BsFileEarmarkExcelFill, BsDownload, BsEyeFill } from "react-icons/bs";
@@ -10,6 +11,7 @@ import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '.
 import { useFilters } from '../../../context/FilterContext';
 
 export default function Cisdirectrep() {
+    const navigate = useNavigate();
     const {
         selectedDept, setSelectedDept,
         selectedScheme, setSelectedScheme,
@@ -150,6 +152,32 @@ export default function Cisdirectrep() {
             setGeneratingCourseId(null);
             setAtrSaving(false);
         }
+    };
+
+    const handleToolNavigation = (toolName) => {
+        if (!previewCourse || !toolName) return;
+        const toolMap = {
+            'CT1': 'FA-TH-CT1',
+            'CT2': 'FA-TH-CT2',
+            'FA-PR': 'FA-PR',
+            'SLA': 'SLA',
+            'SA-TH': 'SA-TH',
+            'SA-PR': 'SA-PR'
+        };
+        const targetTool = toolMap[toolName] || toolName;
+        const academic_year = selectedYear.replace(/\s/g, '');
+        navigate('/marks-entry', {
+            state: {
+                course_id: previewCourse.course_id,
+                course_code: previewCourse.course_code,
+                academic_year: selectedYear,
+                batch_id: selectedBatch,
+                class_year: selectedClass,
+                semester: selectedSem,
+                division: selectedDivision,
+                tool: targetTool
+            }
+        });
     };
 
     return (
@@ -335,30 +363,30 @@ export default function Cisdirectrep() {
                                     <tr className="bg-light">
                                         <th rowSpan="2" style={{ minWidth: '80px', color: '#1a237e' }}>CO No.</th>
                                         <th colSpan="2" style={{ color: '#1a237e' }}>FA-TH</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }}>FA-PR</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }}>SLA</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }}>SA-TH</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }}>SA-PR</th>
+                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('FA-PR')}>FA-PR</th>
+                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SLA')}>SLA</th>
+                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SA-TH')}>SA-TH</th>
+                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SA-PR')}>SA-PR</th>
                                         <th rowSpan="2" style={{ color: '#1a237e' }}>CES</th>
                                         <th rowSpan="2" className="text-primary">Overall Att.</th>
                                         <th rowSpan="2" style={{ color: '#1a237e' }}>Target</th>
                                         <th rowSpan="2" className="text-danger">Gap</th>
                                     </tr>
-                                    <tr className="bg-light">
-                                        <th style={{ color: '#1a237e' }}>CT1</th>
-                                        <th style={{ color: '#1a237e' }}>CT2</th>
+                                    <tr className="bg-light header-navigable">
+                                        <th style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('CT1')}>CT1</th>
+                                        <th style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('CT2')}>CT2</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {previewData.map((item) => (
                                         <tr key={item.co_id} className="text-center align-middle fw-semibold">
                                             <td className="text-primary">{item.co_number.includes('.') ? item.co_number : `CO${item.co_number.replace(/[^0-9]/g, '')}`}</td>
-                                            <td>{item.tools.fa_th_1}</td>
-                                            <td>{item.tools.fa_th_2}</td>
-                                            <td>{item.tools.fa_pr}</td>
-                                            <td>{item.tools.sla}</td>
-                                            <td>{item.tools.sa_th}</td>
-                                            <td>{item.tools.sa_pr}</td>
+                                            <td className="cell-nav" onClick={() => handleToolNavigation('CT1')}>{item.tools.fa_th_1}</td>
+                                            <td className="cell-nav" onClick={() => handleToolNavigation('CT2')}>{item.tools.fa_th_2}</td>
+                                            <td className="cell-nav" onClick={() => handleToolNavigation('FA-PR')}>{item.tools.fa_pr}</td>
+                                            <td className="cell-nav" onClick={() => handleToolNavigation('SLA')}>{item.tools.sla}</td>
+                                            <td className="cell-nav" onClick={() => handleToolNavigation('SA-TH')}>{item.tools.sa_th}</td>
+                                            <td className="cell-nav" onClick={() => handleToolNavigation('SA-PR')}>{item.tools.sa_pr}</td>
                                             <td>{item.tools.ces}</td>
                                             <td className="fw-bold text-primary">{item.overall_attainment.toFixed(2)}</td>
                                             <td>{item.target.toFixed(2)}</td>

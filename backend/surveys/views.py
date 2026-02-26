@@ -80,24 +80,35 @@ class SurveyStatsView(APIView):
         responses = SurveyResponse.objects.filter(survey_id=survey).select_related('student_id')
         responder_ids = [r.student_id_id for r in responses if r.student_id_id]
         
-        # 2. Get students expected based on current program and semester
-        expected_students_ids = []
-        target_semester = survey.semester or (course.semester if course else None)
-        if program and target_semester:
-            expected_students_ids = list(Student.objects.filter(
-                program_id=program,
-                semester=target_semester,
-                is_active=True
-            ).values_list('student_id', flat=True))
-        elif program:
-             # For program-level surveys (Alumni, Exit)
-             expected_students_ids = list(Student.objects.filter(
-                program_id=program,
-                is_active=True
-            ).values_list('student_id', flat=True))
+        # 2. Fetch responses - Allow filtering by student data if provided
+        responses = SurveyResponse.objects.filter(survey_id=survey_id)
         
-        # 3. Combine both lists
+        batch_id = request.query_params.get('batch_id')
+        academic_year = request.query_params.get('academic_year')
+        class_year = request.query_params.get('class_year')
+        semester = request.query_params.get('semester')
+        division = request.query_params.get('division')
+        
+        if any([batch_id, academic_year, class_year, semester, division]):
+            if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
+            if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
+            if class_year: responses = responses.filter(student_id__class_year=class_year)
+            if semester: responses = responses.filter(student_id__semester=semester)
+            if division: responses = responses.filter(student_id__division=division)
+
+        responder_ids = responses.values_list('student_id', flat=True)
+        
+        # 3. Get expected students for this survey's program (and filters)
+        expected_students = Student.objects.filter(program_id=survey.program_id, is_active=True)
+        if batch_id: expected_students = expected_students.filter(batch_id=batch_id)
+        if academic_year: expected_students = expected_students.filter(academic_year=academic_year)
+        if class_year: expected_students = expected_students.filter(class_year=class_year)
+        if semester: expected_students = expected_students.filter(semester=semester)
+        if division: expected_students = expected_students.filter(division=division)
+        
+        expected_students_ids = expected_students.values_list('student_id', flat=True)
         all_student_ids = list(set(responder_ids) | set(expected_students_ids))
+
         
         # Fetch full student objects
         students = Student.objects.filter(student_id__in=all_student_ids).order_by('roll_no')
@@ -106,9 +117,10 @@ class SurveyStatsView(APIView):
         # fallback to just responders if any, else empty.
         # But we already included responder_ids.
         
-        response_map = {r.student_id.enrollment_no if r.student_id else None: r for r in responses}
+        # ... existing student fetch logic ...
+        response_map = {r.enrollment_no: r for r in responses}
         
-        data = []
+        student_data = []
         for student in students:
             res = response_map.get(student.enrollment_no)
             answers_map = {}
@@ -126,15 +138,45 @@ class SurveyStatsView(APIView):
                     if key:
                         answers_map[key] = ans.answer_value
             
-            data.append({
+            student_data.append({
                 'enrollment': student.enrollment_no,
                 'roll_no': student.roll_no,
                 'name': student.name,
                 'respondent_name': res.respondent_name if res else None,
                 'answers': answers_map
             })
-            
-        return Response(data, status=status.HTTP_200_OK)
+
+        # 4. Fetch Question Statements
+        from academics.models import CO, PO, PSO
+        from academics.serializers import COSerializer, POSerializer, PSOSerializer
+        
+        statements = []
+        if survey.course_id:
+            cos = CO.objects.filter(course_id=survey.course_id)
+            s_data = COSerializer(cos, many=True).data
+            for s in s_data:
+                s['id'] = s['co_id']
+                s['number'] = s['co_number']
+                statements.append(s)
+        elif program:
+            pos = PO.objects.filter(program_id=program)
+            psos = PSO.objects.filter(program_id=program)
+            po_data = POSerializer(pos, many=True).data
+            pso_data = PSOSerializer(psos, many=True).data
+            for p in po_data:
+                p['id'] = p['po_number']
+                p['number'] = p['po_number']
+                statements.append(p)
+            for p in pso_data:
+                p['id'] = p['pso_number']
+                p['number'] = p['pso_number']
+                statements.append(p)
+
+        return Response({
+            'survey': SurveyMasterSerializer(survey).data,
+            'statements': statements,
+            'responses': student_data
+        }, status=status.HTTP_200_OK)
 
 
 class SurveyLookupView(APIView):

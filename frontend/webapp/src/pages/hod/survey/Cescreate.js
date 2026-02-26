@@ -41,7 +41,7 @@ const Cescreate = () => {
 
     // Stats state
     const [showStats, setShowStats] = useState({}); // { courseId: boolean }
-    const [surveyResponses, setSurveyResponses] = useState({}); // { courseId: [responses] }
+    const [surveyStatsData, setSurveyStatsData] = useState({}); // { courseId: { responses, statements, survey } }
 
     useEffect(() => {
         fetchInitialData();
@@ -166,11 +166,11 @@ const Cescreate = () => {
 
     const fetchResponses = async (courseId, surveyId) => {
         try {
-            // Need an endpoint for responses. For now mock data based on students.
-            const res = await api.get(`surveys/${surveyId}/responses/`);
-            setSurveyResponses(prev => ({ ...prev, [courseId]: res.data }));
+            const res = await api.get(`/surveys/${surveyId}/responses/`);
+            // res.data is { survey, statements, responses }
+            setSurveyStatsData(prev => ({ ...prev, [courseId]: res.data }));
         } catch (err) {
-            console.error("Error fetching responses:", err);
+            console.error('Failed to fetch responses:', err);
         }
     };
 
@@ -292,12 +292,13 @@ const Cescreate = () => {
     };
 
     const ResponseTable = ({ courseId, surveyId }) => {
-        const responses = surveyResponses[courseId] || [];
-        const cos = courseCos[courseId] || [];
+        const data = surveyStatsData[courseId] || {};
+        const responses = data.responses || [];
+        const cos = data.statements || courseCos[courseId] || [];
 
         // Calculation Logic
         const stats = cos.map(co => {
-            const coAnswers = responses.map(r => r.answers?.[co.co_id] || 0).filter(v => v > 0);
+            const coAnswers = responses.map(r => r.answers?.[co.id || co.co_id] || 0).filter(v => v > 0);
             const avg = coAnswers.length > 0 ? (coAnswers.reduce((a, b) => a + b, 0) / coAnswers.length).toFixed(2) : 0;
             const countAboveAvg = coAnswers.filter(v => v >= parseFloat(avg)).length;
             const percentAboveAvg = coAnswers.length > 0 ? ((countAboveAvg / coAnswers.length) * 100).toFixed(2) : 0;
@@ -335,12 +336,12 @@ const Cescreate = () => {
                                         <td className="text-center">{r.roll_no}</td>
                                         <td>{r.name}</td>
                                         {cos.map(co => (
-                                            <td key={co.co_id} className="text-center fw-bold">
-                                                {r.answers?.[co.co_id] ? (
-                                                    <span className="text-dark">{r.answers[co.co_id]}</span>
+                                            <td key={co.id || co.co_id} className="text-center fw-bold">
+                                                {r.answers?.[co.id || co.co_id] ? (
+                                                    <span className="text-dark">{r.answers[co.id || co.co_id]}</span>
                                                 ) : (
                                                     <span className="text-muted opacity-50">-</span>
-                                                ) || '-'}
+                                                )}
                                             </td>
                                         ))}
                                     </tr>

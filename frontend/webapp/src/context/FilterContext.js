@@ -8,9 +8,9 @@ const FilterContext = createContext();
 export const FilterProvider = ({ children }) => {
     const [selectedDept, setSelectedDept] = useState('');
     const [selectedScheme, setSelectedScheme] = useState('');
-    const [selectedBatch, setSelectedBatch] = useState('All');
+    const [selectedBatch, setSelectedBatch] = useState('2025-26');
     const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('All');
+    const [selectedClass, setSelectedClass] = useState('TY');
     const [selectedSemester, setSelectedSemester] = useState('All');
     const [selectedDivision, setSelectedDivision] = useState('All');
     const [departments, setDepartments] = useState([]);

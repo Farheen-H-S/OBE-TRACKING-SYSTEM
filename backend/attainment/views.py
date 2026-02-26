@@ -181,3 +181,36 @@ class IndirectAttainmentReportView(APIView):
         except Exception as e:
             traceback.print_exc()
             return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SubmitATRView(APIView):
+    def post(self, request):
+        co_id = request.data.get('co_id')
+        academic_year = request.data.get('academic_year')
+        action_proposed = request.data.get('action_proposed')
+        
+        if not all([co_id, academic_year, action_proposed]):
+            return Response({"error": "co_id, academic_year and action_proposed are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            # co_id might be a CO object ID or a number. If it's a number, we need to find the CO.
+            # But usually it's passed as the database ID.
+            att = COAttainment.objects.filter(co_id=co_id, academic_year=academic_year).first()
+            if not att:
+                 return Response({"error": f"Attainment record not found for CO {co_id}"}, status=status.HTTP_404_NOT_FOUND)
+                 
+            att.action_proposed = action_proposed
+            att.atr_status = 'submitted'
+            att.save()
+            
+            user = request.user if request.user and not request.user.is_anonymous else None
+            # Check if all other ATRs are cleared for this course to generate the report
+            report_generated = AttainmentService.check_and_generate_report(att.course_id.course_id, academic_year, user)
+            
+            log_action(user, 'UPDATE', 'COAttainment', att.attainment_id, remark=f"ATR submitted for {att.co_id.co_number}")
+            
+            return Response({
+                "message": "ATR submitted successfully",
+                "report_generated": report_generated
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

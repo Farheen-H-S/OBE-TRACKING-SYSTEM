@@ -125,6 +125,7 @@ const OtherIndirectTools = () => {
     const [responses, setResponses] = useState([]);
     const [showActiveModal, setShowActiveModal] = useState(false);
     const [activeSurveys, setActiveSurveys] = useState([]);
+    const [fetchedStatements, setFetchedStatements] = useState([]);
 
     // Smart filtering for semesters
     const availableSemesters = selectedClass === 'FY' ? ['1', '2'] :
@@ -202,15 +203,14 @@ const OtherIndirectTools = () => {
     };
 
     const fetchStatements = async () => {
-        if (!selectedProgram || selectedProgram === 'All') return;
         setLoadingStmts(true);
         try {
-            const [poRes, psoRes] = await Promise.allSettled([
-                api.get(`/academics/pos/?program_id=${selectedProgram}`),
-                api.get(`/academics/psos/?program_id=${selectedProgram}`),
+            const [poRes, psoRes] = await Promise.all([
+                api.get('/academics/pos/', { params: { program_id: selectedProgram } }),
+                api.get('/academics/psos/', { params: { program_id: selectedProgram } })
             ]);
-            if (poRes.status === 'fulfilled') setPos(Array.isArray(poRes.value.data) ? poRes.value.data : []);
-            if (psoRes.status === 'fulfilled') setPsos(Array.isArray(psoRes.value.data) ? psoRes.value.data : []);
+            setPos(Array.isArray(poRes.data) ? poRes.data : []);
+            setPsos(Array.isArray(psoRes.data) ? psoRes.data : []);
         } catch (e) { console.error('PO/PSO fetch error:', e); }
         finally { setLoadingStmts(false); }
     };
@@ -330,20 +330,32 @@ const OtherIndirectTools = () => {
             const key = `oit_responses_${surveyKey}`;
             const saved = localStorage.getItem(key);
             setResponses(saved ? JSON.parse(saved) : []);
+            setFetchedStatements(allStatements);
         } else {
             try {
-                const res = await api.get(`/surveys/${id}/responses/`);
-                // Backend returns array of {enrollment, roll_no, name, respondent_name, answers}
-                const adapted = (res.data || []).map(r => ({
+                const params = {
+                    batch_id: selectedBatch,
+                    academic_year: selectedYear,
+                    class_year: selectedClass,
+                    semester: selectedSem,
+                    division: selectedDivision
+                };
+                const res = await api.get(`/surveys/${id}/responses/`, { params });
+
+                // Backend returns { survey, statements, responses }
+                const { statements, responses: backendResponses } = res.data;
+                const adapted = (backendResponses || []).map(r => ({
                     enrollment: r.enrollment,
                     rollNo: r.roll_no,
                     respondentName: r.respondent_name || r.name,
                     answers: r.answers
                 }));
                 setResponses(adapted);
+                setFetchedStatements(statements || []);
             } catch (err) {
                 console.error('Failed to load responses from backend:', err);
                 setResponses([]);
+                setFetchedStatements([]);
             }
         }
         setShowStats(true);
@@ -377,7 +389,8 @@ const OtherIndirectTools = () => {
 
     // ── Stats table ──────────────────────────────────────────────────────
     const StatsTable = () => {
-        const stats = allStatements.map(stmt => {
+        const currentStatements = fetchedStatements.length > 0 ? fetchedStatements : allStatements;
+        const stats = currentStatements.map(stmt => {
             const vals = responses.map(r => r.answers?.[stmt.id]).filter(v => v !== undefined && v !== null);
             const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
             const countAbove = avg !== null ? vals.filter(v => v >= avg).length : 0;
@@ -399,12 +412,12 @@ const OtherIndirectTools = () => {
                                     <th style={{ minWidth: 180 }}>Name</th>
                                 </>
                             )}
-                            {allStatements.map(s => (
+                            {currentStatements.map(s => (
                                 <th key={s.id} className="oit-blue-header" style={{ minWidth: 90 }}>
                                     <div>{s.number}</div>
                                     {s.description && (
                                         <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.65rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 110 }}>
-                                            {getSurveyInquiry(s).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry(s).split(' ').length > 5 ? '…' : ''}
+                                            {getSurveyInquiry(s, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry(s, programName).split(' ').length > 5 ? '…' : ''}
                                         </div>
                                     )}
                                 </th>
@@ -425,7 +438,7 @@ const OtherIndirectTools = () => {
                                                 <td>{r.respondentName || '—'}</td>
                                             </>
                                         )}
-                                        {allStatements.map(s => (
+                                        {currentStatements.map(s => (
                                             <td key={s.id} className="text-center fw-bold">
                                                 {r.answers?.[s.id] !== undefined ? r.answers[s.id] : <span className="text-muted opacity-50">-</span>}
                                             </td>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../utils/axios';
 import './Assigntarget.css';
 import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
+import { Modal, Button, Form } from 'react-bootstrap';
+import { FaEdit, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 
 const Assigntarget = () => {
   const [courses, setCourses] = useState([]);
@@ -11,6 +13,10 @@ const Assigntarget = () => {
   const [viewMode, setViewMode] = useState('course'); // 'course' or 'program'
   const [isEditing, setIsEditing] = useState(false);
   const [showAttainmentTables, setShowAttainmentTables] = useState(false);
+  const [showAtrModal, setShowAtrModal] = useState(false);
+  const [selectedCourseAtr, setSelectedCourseAtr] = useState(null);
+  const [atrText, setAtrText] = useState('');
+  const [savingAtr, setSavingAtr] = useState(false);
 
 
   // New Filter States
@@ -201,7 +207,8 @@ const Assigntarget = () => {
             class_year: c.class_year,
             targetLevel: tVal,
             achievedLevel: aLevel,
-            gap: aLevel === '-' ? '-' : (parseFloat(tVal) - parseFloat(aLevel)).toFixed(2)
+            gap: aLevel === '-' ? '-' : (parseFloat(tVal) - parseFloat(aLevel)).toFixed(2),
+            course_atr: c.course_atr || ''
           };
         });
 
@@ -339,6 +346,37 @@ const Assigntarget = () => {
     if (gap === '-' || gap === '' || isNaN(parseFloat(gap))) return 'bg-light';
     const gapVal = parseFloat(gap);
     return gapVal > 0 ? 'gap-high' : 'gap-low';
+  };
+
+  const handleOpenAtrModal = (course) => {
+    setSelectedCourseAtr(course);
+    setAtrText(course.course_atr || '');
+    setShowAtrModal(true);
+  };
+
+  const handleSaveAtr = async () => {
+    if (!selectedCourseAtr) return;
+
+    try {
+      setSavingAtr(true);
+      // Use PATCH to update the course object directly
+      await api.patch(`/academics/courses/${selectedCourseAtr.id}/`, {
+        course_atr: atrText
+      });
+
+      // Update local state
+      setCourses(prev => prev.map(c =>
+        c.id === selectedCourseAtr.id ? { ...c, course_atr: atrText } : c
+      ));
+
+      setShowAtrModal(false);
+      alert("ATR updated successfully!");
+    } catch (err) {
+      console.error("Error saving ATR:", err);
+      alert("Failed to save ATR.");
+    } finally {
+      setSavingAtr(false);
+    }
   };
 
   return (
@@ -497,6 +535,7 @@ const Assigntarget = () => {
                     <th>TARGET LEVEL</th>
                     <th>ACHIEVED LEVEL</th>
                     <th>GAP</th>
+                    <th>ATR</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -531,6 +570,22 @@ const Assigntarget = () => {
                           value={course.gap}
                           readOnly
                         />
+                      </td>
+                      <td className="text-center">
+                        <div className="d-flex align-items-center justify-content-center gap-2">
+                          <button
+                            className={`btn btn-sm ${parseFloat(course.gap) > 0 && !course.course_atr ? 'btn-outline-danger' : 'btn-outline-primary'} border-0`}
+                            onClick={() => handleOpenAtrModal(course)}
+                            title={parseFloat(course.gap) > 0 ? "ATR Mandatory (Gap Detected)" : "ATR Optional"}
+                          >
+                            <FaEdit size={18} />
+                          </button>
+                          {course.course_atr ? (
+                            <FaCheckCircle className="text-success" title="ATR Submitted" />
+                          ) : parseFloat(course.gap) > 0 ? (
+                            <FaExclamationCircle className="text-danger" title="ATR Required" />
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -655,6 +710,37 @@ const Assigntarget = () => {
           </div>
         </div>
       </div>
+
+      <Modal show={showAtrModal} onHide={() => setShowAtrModal(false)} centered size="lg">
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title style={{ color: '#1a237e' }}>
+            Consolidated ATR: {selectedCourseAtr?.name} ({selectedCourseAtr?.code})
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Action Taken / Proposed Report (ATR)</Form.Label>
+            <p className="text-muted small">
+              {parseFloat(selectedCourseAtr?.gap) > 0
+                ? "Gap detected. High priority: please provide specific remedial actions."
+                : "No gap detected. Optional: provide any additional improvements if needed."}
+            </p>
+            <Form.Control
+              as="textarea"
+              rows={6}
+              value={atrText}
+              onChange={(e) => setAtrText(e.target.value)}
+              placeholder="Enter ATR content here..."
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAtrModal(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleSaveAtr} disabled={savingAtr}>
+            {savingAtr ? "Saving..." : "Save ATR"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
