@@ -12,7 +12,7 @@ from .views import (
     BatchListAPIView, BatchDetailAPIView,
     ProgramStatementListCreateAPIView, PEOListCreateAPIView,
     CourseAssignmentAPIView, MyCoursesAPIView,
-    COListAPIView
+    COListAPIView, RequestATRAPIView
 )
 
 urlpatterns = [
@@ -33,6 +33,7 @@ urlpatterns = [
     # Courses
     path('courses/', CourseListCreateAPIView.as_view(), name='course-list-create'),
     path('courses/<int:pk>/', CourseDetailAPIView.as_view(), name='course-detail'),
+    path('courses/<int:course_id>/request-atr/', RequestATRAPIView.as_view(), name='course-request-atr'),
     path('assign-course/', CourseAssignmentAPIView.as_view(), name='course-assign'),
     path('my-courses/', MyCoursesAPIView.as_view(), name='my-courses'),
 

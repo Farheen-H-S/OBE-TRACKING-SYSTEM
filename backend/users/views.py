@@ -9,6 +9,10 @@ from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from .permissions import IsAdmin
 from audit.utils import log_action
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from notifications.utils import send_obe_notification
+from .tokens import custom_token_generator
 
 from django.db.models import Q, Case, When, Value, IntegerField
 from rest_framework.pagination import PageNumberPagination
@@ -31,7 +35,7 @@ class UserListCreateAPIView(APIView):
         return [IsAuthenticated(), IsAdmin()]
 
     def get(self, request):
-        queryset = User.objects.all().select_related('role_id').annotate(
+        queryset = User.objects.exclude(role_id__role_name__iexact='Student').select_related('role_id').annotate(
             role_priority=Case(
                 When(role_id__role_name__iexact='ADMIN', then=Value(1)),
                 When(role_id__role_name__iexact='AUDITOR', then=Value(2)),
@@ -210,7 +214,7 @@ class RoleListAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        roles = UserRole.objects.all()
+        roles = UserRole.objects.exclude(role_name__iexact='Student')
         serializer = UserRoleSerializer(roles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -356,3 +360,109 @@ class StudentDetailAPIView(APIView):
         student.is_active = False # Soft delete
         student.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class ForgotPasswordAPIView(APIView):
+    """
+    Receives an email, checks if the user exists and is eligible for a password reset,
+    generates a secure token, and dispatches a reset link email.
+    """
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        success_message = "If an account with this email exists, a reset link has been sent"
+            
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            # We silently return success to prevent email enumeration
+            return Response({"message": success_message}, status=status.HTTP_200_OK)
+            
+        # Role constraint: If Auditor is inactive, pretend we sent it but don't.
+        if user.role_id.role_name.lower() == 'auditor' and not user.is_active:
+            return Response({"message": success_message}, status=status.HTTP_200_OK)
+            
+        # Optional constraint for inactive normal users
+        if not user.is_active and user.role_id.role_name.lower() != 'auditor':
+            return Response({"message": success_message}, status=status.HTTP_200_OK)
+
+        # Generate standard Django UID and specific Token
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = custom_token_generator.make_token(user)
+        
+        # Build the frontend reset link URL
+        # e.g., http://localhost:3000/reset-password/<uid>/<token>
+        frontend_url = request.META.get('HTTP_ORIGIN', 'http://localhost:3000')
+        reset_link = f"{frontend_url}/reset-password/{uid}/{token}"
+        
+        # Send Email
+        title = "Password Reset Request"
+        message = (
+            f"Hello {user.name},\n\n"
+            f"You requested to reset your password for the OBE Tracking System.\n"
+            f"Please click the link below to set a new password:\n\n"
+            f"{reset_link}\n\n"
+            f"If you did not request this reset, you can safely ignore this email.\n"
+            f"This link will expire automatically."
+        )
+        
+        send_obe_notification(
+            recipient=user,
+            title=title,
+            message=message,
+            notification_type='INFO',
+            module='GENERAL',
+            priority='HIGH',
+            send_email=True
+        )
+
+        log_action(user, 'UPDATE', 'User', user.user_id, remark="Forgot password requested")
+        return Response({"message": success_message}, status=status.HTTP_200_OK)
+
+class ResetPasswordAPIView(APIView):
+    """
+    Validates token and updates the user's password.
+    """
+    def post(self, request):
+        uidb64 = request.data.get('uidb64')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+        
+        if not uidb64 or not token or not new_password:
+            return Response({"error": "Missing parameters"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"error": "Invalid reset link"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Verify Token
+        if not custom_token_generator.check_token(user, token):
+            return Response({"error": "This reset link is invalid or has expired"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Update Password - Model User instances invalidate existing JWTs when the password hash changes
+        user.set_password(new_password)
+        user.save()
+        
+        log_action(user, 'UPDATE', 'User', user.user_id, remark="Password successfully reset via token")
+        
+        # Option to send confirmation email
+        title = "Password Changed Successfully"
+        message = (
+            f"Hello {user.name},\n\n"
+            f"Your password for the OBE Tracking System has been successfully reset.\n"
+            f"If you did not perform this action, please contact your administrator immediately."
+        )
+        send_obe_notification(
+            recipient=user,
+            title=title,
+            message=message,
+            notification_type='INFO',
+            module='GENERAL',
+            priority='NORMAL',
+            send_email=True
+        )
+        
+        return Response({"message": "Password updated successfully. Please login again."}, status=status.HTTP_200_OK)

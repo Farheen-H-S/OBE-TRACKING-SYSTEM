@@ -9,6 +9,8 @@ from .serializers import (
     COAttainmentSerializer, POAttainmentSerializer, 
     PSOAttainmentSerializer, AttainmentSnapshotSerializer
 )
+from django.http import HttpResponse
+
 # from academics.models import Course, Program
 # from users.models import User
 
@@ -178,6 +180,23 @@ class IndirectAttainmentReportView(APIView):
             )
             response['Content-Disposition'] = f'attachment; filename=Indirect_Attainment_Report_{batch_id}.xlsx'
             return response
+        except Exception as e:
+            traceback.print_exc()
+            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class IndirectAttainmentSummaryView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request):
+        program_id = request.query_params.get('program_id')
+        batch_id = request.query_params.get('batch_id')
+        
+        if not program_id or not batch_id:
+            return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            summary = IndirectReportService.get_indirect_attainment_summary_data(program_id, batch_id)
+            return Response(summary, status=status.HTTP_200_OK)
         except Exception as e:
             traceback.print_exc()
             return Response({"error": str(e), "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -354,8 +354,17 @@ const Assigntarget = () => {
     setShowAtrModal(true);
   };
 
-  const handleRequestAtr = () => {
-    alert("Please navigate to Reports -> Direct Attainment to generate the CIS Report and submit an ATR for this course.");
+  const handleRequestAtr = async (course) => {
+    try {
+      // Optional: Add a localized loading indicator if you wish, 
+      // but for now an alert provides instant feedback.
+      const response = await api.post(`/academics/courses/${course.id}/request-atr/`);
+      alert(response.data.message || "ATR notification sent successfully.");
+    } catch (err) {
+      console.error("Error requesting ATR:", err);
+      const errorMsg = err.response?.data?.error || "Failed to send ATR notification.";
+      alert(`Error: ${errorMsg}`);
+    }
   };
 
   return (
@@ -556,16 +565,15 @@ const Assigntarget = () => {
                             <button
                               className="btn btn-sm btn-outline-primary border-0 fw-bold d-flex align-items-center gap-1"
                               onClick={() => handleOpenAtrModal(course)}
-                            >
-                              <FaCheckCircle className="text-success" /> View ATR
+                            > View ATR
                             </button>
                           ) : (
                             <div className="d-flex flex-column align-items-center gap-1">
                               <span className="text-danger small fw-bold">No ATR Submitted</span>
                               <button
-                                className="btn btn-sm btn-warning fw-bold py-0"
+                                className="btn btn-sm btn-primary fw-bold py-0"
                                 style={{ fontSize: '11px' }}
-                                onClick={handleRequestAtr}
+                                onClick={() => handleRequestAtr(course)}
                               >
                                 Request ATR
                               </button>
@@ -707,7 +715,7 @@ const Assigntarget = () => {
           <Form.Group className="mb-3">
             <Form.Label className="fw-bold">Action Taken / Proposed Report (ATR)</Form.Label>
             <p className="text-muted small">
-              This is the ATR submitted during the Direct Attainment Report generation.
+              This is the ATR submitted.
             </p>
             <div className="p-3 bg-light border rounded text-dark" style={{ whiteSpace: 'pre-wrap', minHeight: '100px' }}>
               {atrText}

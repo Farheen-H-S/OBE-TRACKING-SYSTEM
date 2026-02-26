@@ -161,13 +161,6 @@ export default function POPSOAttainment() {
                 <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                     <div className="row g-3">
                         <div className="col-md">
-                            <label className="filter-label">DEPARTMENT</label>
-                            <select className="form-select filter-select" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
-                                <option value="All">All Departments</option>
-                                {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md">
                             <label className="filter-label">BATCH</label>
                             <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
                                 <option value="All">All</option>

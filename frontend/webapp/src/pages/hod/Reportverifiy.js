@@ -52,9 +52,15 @@ const Reportverifiy = () => {
     };
 
     const filteredReports = reports.filter(r => {
-        const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.submittedBy.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = filterType === 'All' || r.type === filterType;
+        const typeMatchName = r.report_type ? r.report_type.toLowerCase() : '';
+        const userMatchName = r.user_id_created ? r.user_id_created.toLowerCase() : '';
+        const searchLow = searchTerm.toLowerCase();
+
+        const matchesSearch = typeMatchName.includes(searchLow) ||
+            userMatchName.includes(searchLow) ||
+            (r.course_id && r.course_id.toString().toLowerCase().includes(searchLow));
+
+        const matchesType = filterType === 'All' || r.report_type === filterType || (r.report_type === 'Batch' && filterType === 'PO/PSO Attainment');
 
         // Match additional filters if report has them (DAC reports have them)
         const matchesYear = !selectedYear || !r.filters?.academicYear || r.filters.academicYear === selectedYear;

@@ -2,11 +2,14 @@ from django.urls import path
 from .views import (
     UserListCreateAPIView, UserDetailAPIView, 
     RoleListAPIView, LoginAPIView, LogoutAPIView,
-    UserProfileAPIView, StudentListCreateAPIView, StudentDetailAPIView
+    UserProfileAPIView, StudentListCreateAPIView, StudentDetailAPIView,
+    ForgotPasswordAPIView, ResetPasswordAPIView
 )
 from .dashboard_views import AdminDashboardAPIView
 
 urlpatterns = [
+    path('auth/forgot-password/', ForgotPasswordAPIView.as_view(), name='forgot-password'),
+    path('auth/reset-password/', ResetPasswordAPIView.as_view(), name='reset-password'),
     path('login/', LoginAPIView.as_view(), name='login'),
     path('logout/', LogoutAPIView.as_view(), name='logout'),
     path('profile/', UserProfileAPIView.as_view(), name='user-profile'),

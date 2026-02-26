@@ -3,8 +3,11 @@ import './CreateUser.css';
 import React, { useState, useEffect } from 'react';
 import { celebImg } from '../../assets/images';
 import api from '../../utils/axios';
+import { useNavigate } from 'react-router-dom';
 
 const CreateUser = () => {
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -98,6 +101,7 @@ const CreateUser = () => {
 
     const closePopup = () => {
         setShowPopup(false);
+        navigate('/view-user');
     };
 
     const togglePasswordVisibility = () => {

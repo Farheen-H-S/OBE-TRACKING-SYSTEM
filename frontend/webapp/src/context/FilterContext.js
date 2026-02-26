@@ -11,6 +11,7 @@ export const FilterProvider = ({ children }) => {
     const [selectedBatch, setSelectedBatch] = useState('2025-26');
     const [selectedYear, setSelectedYear] = useState('2025 - 26');
     const [selectedClass, setSelectedClass] = useState('TY');
+    const [selectedIntroYear, setSelectedIntroYear] = useState('2025-26');
     const [selectedSemester, setSelectedSemester] = useState('All');
     const [selectedDivision, setSelectedDivision] = useState('All');
     const [departments, setDepartments] = useState([]);
@@ -79,6 +80,7 @@ export const FilterProvider = ({ children }) => {
             selectedScheme, setSelectedScheme,
             selectedBatch, setSelectedBatch,
             selectedYear, setSelectedYear,
+            selectedIntroYear, setSelectedIntroYear,
             selectedClass, setSelectedClass,
             selectedSemester, setSelectedSemester,
             selectedDivision, setSelectedDivision,

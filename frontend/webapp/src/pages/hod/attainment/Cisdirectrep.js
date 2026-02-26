@@ -94,7 +94,7 @@ export default function Cisdirectrep() {
             setShowPreview(true);
             const academic_year = selectedYear.replace(/\s/g, '');
             const res = await api.get('/cis_master/direct/preview/', {
-                params: { course_id: course.course_id, academic_year }
+                params: { course_id: course.course_id, academic_year, batch_id: selectedBatch }
             });
             // res.data is now {attainment: [...], course_atr: "..."}
             setPreviewData(res.data.attainment);
@@ -127,7 +127,8 @@ export default function Cisdirectrep() {
             const response = await api.get('/cis_master/direct/report/', {
                 params: {
                     course_id: previewCourse.course_id,
-                    academic_year: academic_year
+                    academic_year: academic_year,
+                    batch_id: selectedBatch
                 },
                 responseType: 'blob'
             });
@@ -183,20 +184,6 @@ export default function Cisdirectrep() {
 
                         <div className="filter-row-v2 mb-4 p-3 bg-light rounded shadow-none border">
                             <div className="row g-3">
-                                <div className="col-md">
-                                    <label className="filter-label">DEPARTMENT</label>
-                                    <select className="form-select filter-select" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
-                                        <option value="All">All Departments</option>
-                                        {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="col-md">
-                                    <label className="filter-label">SCHEME</label>
-                                    <select className="form-select filter-select" value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)}>
-                                        <option value="All">All Schemes</option>
-                                        {schemes.map(s => <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>)}
-                                    </select>
-                                </div>
                                 <div className="col-md">
                                     <label className="filter-label">YEAR OF INTRO</label>
                                     <select

@@ -88,17 +88,27 @@ class DACReportListCreateView(generics.ListCreateAPIView):
             
         return queryset
 
-    def perform_create(self, serializer):
-        user = self.request.user if self.request.user and not self.request.user.is_anonymous else None
-        
-        # If batch_id is a string year, resolve it
-        batch_id = self.request.data.get('batch_id')
-        if batch_id and isinstance(batch_id, str) and '-' in batch_id:
+    def create(self, request, *args, **kwargs):
+        # Intercept string batch_id (e.g. "2025 - 26") and map to pk before validation
+        data = request.data.copy()
+        batch_val = data.get('batch_id')
+        if batch_val and isinstance(batch_val, str) and '-' in batch_val:
             from academics.models import Batch
-            year = batch_id.split('-')[0].strip()
+            year = batch_val.split('-')[0].strip()
             batch = Batch.objects.filter(batch_year=year).first()
             if batch:
-                serializer.validated_data['batch_id'] = batch
+                data['batch_id'] = batch.pk
+            else:
+                data.pop('batch_id', None)
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        user = self.request.user if self.request.user and not self.request.user.is_anonymous else None
         
         instance = serializer.save(uploaded_by=user)
         

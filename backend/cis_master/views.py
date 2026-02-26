@@ -78,6 +78,7 @@ class DirectCISReportView(APIView):
     def get(self, request) -> HttpResponse:
         course_id = request.query_params.get('course_id')
         academic_year = request.query_params.get('academic_year')
+        batch_id = request.query_params.get('batch_id')
         
         if not course_id:
             return Response(
@@ -85,7 +86,7 @@ class DirectCISReportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        wb = generate_cis_report(course_id, academic_year)
+        wb = generate_cis_report(course_id, academic_year, batch_id)
         if not wb:
             return Response(
                 {"error": "Course not found or could not generate report"},

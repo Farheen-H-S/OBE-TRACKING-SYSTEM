@@ -12,9 +12,10 @@ import PlaceholderPage from "./pages/common/PlaceholderPage";
 import GlobalAlert from "./components/GlobalAlert";
 
 // Lazy Loaded Components
-// Common
 const Login = lazy(() => import("./pages/common/Login"));
 const Profile = lazy(() => import("./pages/common/Profile"));
+const ForgotPassword = lazy(() => import("./pages/common/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/common/ResetPassword"));
 
 // Admin
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboardHome"));
@@ -26,7 +27,7 @@ const AcademicSetup = lazy(() => import("./pages/admin/AcademicSetup"));
 const Auditlog = lazy(() => import("./pages/admin/Auditlog"));
 
 // Faculty
-const FacultyDashboard = lazy(() => import("./pages/faculty/FacultyDashboardHome"));
+const FacultyDashboard = lazy(() => import("./pages/hod/HodDashboardContent"));
 const Cisentry = lazy(() => import("./pages/faculty/cis/Cisentry"));
 const ViewCisEntries = lazy(() => import("./pages/faculty/cis/ViewCisEntries"));
 
@@ -51,7 +52,7 @@ const Stresscreate = lazy(() => import("./pages/hod/stress/Stresscreate"));
 const Stressreport = lazy(() => import("./pages/hod/stress/Stressreport"));
 
 // Auditor
-const AuditorDashboard = lazy(() => import("./pages/auditor/AuditorDashboardHome"));
+const AuditorDashboard = lazy(() => import("./pages/admin/AdminDashboardHome"));
 const AuditorViewReports = lazy(() => import("./pages/auditor/ViewReports"));
 const ViewRemark = lazy(() => import("./pages/auditor/ViewRemark"));
 
@@ -93,6 +94,9 @@ function App() {
             <Routes>
               {/* Login & Core */}
               <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:uidb64/:token" element={<ResetPassword />} />
               <Route path="/dashboard" element={<DashboardRedirect />} />
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
 
@@ -115,6 +119,7 @@ function App() {
 
               {/* HOD / Coordinator Routes - REFACTORED */}
               <Route path="/hod-dashboard" element={<Layout><HodDashboard /></Layout>} />
+              <Route path="/coordinator-dashboard" element={<Layout><HodDashboard /></Layout>} />
               <Route path="/peo-po-pso" element={<Layout><Statement1 /></Layout>} />
               <Route path="/statement2" element={<Layout><Statement2 /></Layout>} /> {/* Linked from Statement1 */}
               <Route path="/student-management" element={<Layout><StudentManagement /></Layout>} />

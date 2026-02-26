@@ -48,7 +48,7 @@ const GlobalAlert = () => {
 
     return (
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}>
-            <div className="bg-white p-5 rounded shadow d-flex flex-column align-items-center justify-content-center text-center px-4 py-5" style={{ maxWidth: '500px', width: '90%', minHeight: '300px', borderTop: isError ? '6px solid #d32f2f' : (isSuccess ? '6px solid #388e3c' : '6px solid #1976d2') }}>
+            <div className="bg-white p-5 rounded shadow d-flex flex-column align-items-center justify-content-center text-center px-4 py-5" style={{ maxWidth: '500px', width: '90%', minHeight: '300px', borderTop: isError ? '6px solid #d32f2f' : '6px solid #1976d2' }}>
 
                 {isSuccess && (
                     <div className="mb-4">
@@ -68,7 +68,7 @@ const GlobalAlert = () => {
                     </div>
                 )}
 
-                <h4 className={`mb-4 fw-bold ${isError ? 'text-danger' : (isSuccess ? 'text-success' : 'text-primary')}`} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                <h4 className={`mb-4 fw-bold ${isError ? 'text-danger' : 'text-primary'}`} style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                     {alertData.message}
                 </h4>
 
@@ -76,7 +76,7 @@ const GlobalAlert = () => {
                     onClick={closePopup}
                     className={`btn px-4 py-2 mt-2 fw-bold`}
                     style={{
-                        backgroundColor: isError ? '#d32f2f' : (isSuccess ? '#388e3c' : '#1976d2'),
+                        backgroundColor: isError ? '#d32f2f' : '#1976d2',
                         color: 'white',
                         border: 'none',
                         borderRadius: '6px',

@@ -25,13 +25,13 @@ class AdminDashboardAPIView(APIView):
  
         # 2. Global/Department User Metrics
         if role == 'ADMIN':
-            user_base = User.objects.all()
+            user_base = User.objects.exclude(role_id__role_name__iexact='Student')
             total_departments = Program.objects.filter(is_active=True).count()
         else:
             # HOD/Coordinator - Filter by department
             if not user.department:
                 return Response({"error": "User department not assigned"}, status=400)
-            user_base = User.objects.filter(department=user.department)
+            user_base = User.objects.filter(department=user.department).exclude(role_id__role_name__iexact='Student')
             total_departments = 1
  
         total_users = user_base.count()
@@ -40,12 +40,12 @@ class AdminDashboardAPIView(APIView):
  
         # 3. Role-wise Distribution
         if role == 'ADMIN':
-            role_counts = UserRole.objects.annotate(
+            role_counts = UserRole.objects.exclude(role_name__iexact='Student').annotate(
                 total=Count('user'),
                 active=Count('user', filter=Q(user__is_active=True))
             )
         else:
-            role_counts = UserRole.objects.filter(user__department=user.department).annotate(
+            role_counts = UserRole.objects.exclude(role_name__iexact='Student').filter(user__department=user.department).annotate(
                 total=Count('user', filter=Q(user__department=user.department)),
                 active=Count('user', filter=Q(user__department=user.department, user__is_active=True))
             ).distinct()
@@ -60,7 +60,7 @@ class AdminDashboardAPIView(APIView):
         if role == 'ADMIN':
             programs = Program.objects.filter(is_active=True)
             for prog in programs:
-                roles_in_dept = UserRole.objects.filter(user__department=prog).annotate(
+                roles_in_dept = UserRole.objects.exclude(role_name__iexact='Student').filter(user__department=prog).annotate(
                     total=Count('user', filter=Q(user__department=prog)),
                     active=Count('user', filter=Q(user__department=prog, user__is_active=True))
                 ).distinct()

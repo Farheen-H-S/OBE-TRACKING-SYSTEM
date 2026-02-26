@@ -1,6 +1,6 @@
 import './Login.css';
 import { logo } from "../../assets/images";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { login } from "../../services/authService";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -104,7 +104,9 @@ function Login() {
         {error && <p className="text-danger text-center mt-2">{error}</p>}
 
         {/* Forgot Password */}
-        <p className="forgot text-center mt-3">Forgot password ?</p>
+        <p className="forgot text-center mt-3">
+          <Link to="/forgot-password" style={{ textDecoration: 'none' }}>Forgot password?</Link>
+        </p>
 
       </div>
     </div>

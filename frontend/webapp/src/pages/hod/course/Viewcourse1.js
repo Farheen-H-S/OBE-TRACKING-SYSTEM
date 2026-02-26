@@ -36,7 +36,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const user = getLoggedInUser();
     const userRole = (user?.role || user?.role_name || "").toLowerCase();
-    const isAuthorizedToEdit = ['hod', 'coordinator', 'admin'].includes(userRole);
+    const isAuthorizedToEdit = ['hod', 'coordinator'].includes(userRole);
 
     useEffect(() => {
         fetchAcademicSetup();

@@ -13,6 +13,7 @@ const Dacreview = () => {
         years,
         selectedDept, setSelectedDept,
         selectedBatch, setSelectedBatch,
+        selectedYear, setSelectedYear,
         selectedClass, setSelectedClass,
         selectedSemester, setSelectedSemester
     } = useFilters();
@@ -41,7 +42,7 @@ const Dacreview = () => {
 
     useEffect(() => {
         loadReports();
-    }, [selectedDept, selectedBatch, selectedClass, selectedSemester]);
+    }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSemester]);
 
     const loadReports = async () => {
         setLoading(true);
@@ -49,6 +50,7 @@ const Dacreview = () => {
             const params = {};
             if (selectedDept && selectedDept !== 'All') params.program_id = selectedDept;
             if (selectedBatch && selectedBatch !== 'All') params.batch_id = selectedBatch;
+            if (selectedYear && selectedYear !== 'All') params.academic_year = selectedYear;
             if (selectedClass && selectedClass !== 'All') params.class_name = selectedClass;
             if (selectedSemester && selectedSemester !== 'All') params.semester = selectedSemester;
 
@@ -75,7 +77,7 @@ const Dacreview = () => {
         }
 
         if (isUploadDisabled) {
-            alert("Please select Department, Batch, Class, and Semester before uploading.");
+            alert("Please select Department, Batch, Academic Year, Class, and Semester before uploading.");
             return;
         }
 
@@ -83,22 +85,12 @@ const Dacreview = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('program_id', selectedDept);
-
-        // Find academic year from setup
-        const setupKey = 'academicSetup';
-        const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
-        let currentAy = '2025 - 26';
-        if (setup.academic_year) {
-            currentAy = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
-        }
-        formData.append('academic_year', currentAy);
-
+        formData.append('academic_year', selectedYear);
         formData.append('batch_id', selectedBatch);
         formData.append('class_name', selectedClass);
         formData.append('semester', selectedSemester);
 
         // Required API values, handling missing context for some values:
-        // Note: the backend requires academic_year. I am adding a default value here for now.
 
         try {
             await api.post('/reports/dac-reports/', formData, {
@@ -143,6 +135,7 @@ const Dacreview = () => {
     const isUploadDisabled = loading ||
         !selectedDept || selectedDept === 'All' ||
         !selectedBatch || selectedBatch === 'All' ||
+        !selectedYear || selectedYear === 'All' ||
         !selectedClass || selectedClass === 'All' ||
         !selectedSemester || selectedSemester === 'All';
 
@@ -178,7 +171,7 @@ const Dacreview = () => {
                     {/* Filters Section */}
                     <div className="filters-grid mb-4 p-3 bg-light rounded shadow-sm">
                         <div className="row g-3">
-                            <div className="col-md" style={{ maxWidth: '250px' }}>
+                            <div className="col-md" style={{ maxWidth: '200px' }}>
                                 <label className="form-label small fw-bold text-uppercase">Batch</label>
                                 <select
                                     className="form-select form-select-sm shadow-none"
@@ -186,6 +179,17 @@ const Dacreview = () => {
                                     onChange={(e) => setSelectedBatch(e.target.value)}
                                 >
                                     <option value="">All Batches</option>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-md" style={{ maxWidth: '200px' }}>
+                                <label className="form-label small fw-bold text-uppercase">Academic Year</label>
+                                <select
+                                    className="form-select form-select-sm shadow-none"
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                >
+                                    <option value="">All Years</option>
                                     {years.map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>

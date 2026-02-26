@@ -31,15 +31,16 @@ const Header = ({ onToggleSidebar }) => {
   const searchItems = [
     { name: "HOD Dashboard", path: "/hod-dashboard", category: "Navigation", keywords: ["hod", "home"], allowedRoles: ["Admin", "HOD"] },
     { name: "Faculty Dashboard", path: "/faculty-dashboard", category: "Navigation", keywords: ["faculty", "home"], allowedRoles: ["Admin", "Faculty"] },
+    { name: "Coordinator Dashboard", path: "/coordinator-dashboard", category: "Navigation", keywords: ["coordinator", "home"], allowedRoles: ["Admin", "Coordinator"] },
     { name: "Auditor Dashboard", path: "/auditor-dashboard", category: "Navigation", keywords: ["auditor", "home"], allowedRoles: ["Admin", "Auditor"] },
     { name: "Create User", path: "/create-user", category: "Admin", keywords: ["add user", "new user"], allowedRoles: ["Admin"] },
     { name: "User Management", path: "/view-user", category: "Admin", keywords: ["view users", "edit user", "update user", "list users", "delete user"], allowedRoles: ["Admin"] },
     { name: "Academic Setup", path: "/academic-setup", category: "Admin", keywords: ["defaults", "configuration", "semester", "year"], allowedRoles: ["Admin"] },
     { name: "Department Management", path: "/academic-setup", category: "Admin", keywords: ["department", "management", "programs", "manage departments", "add department", "academic setup"], allowedRoles: ["Admin"] },
     { name: "System Activity Log", path: "/activity-log", category: "Admin", keywords: ["activity", "history", "logs", "audit"], allowedRoles: ["Admin"] },
-    { name: "PO Statement", path: "/po-statement", category: "Academics", keywords: ["outcome"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
-    { name: "PSO Statement", path: "/pso-statement", category: "Academics", keywords: ["specific outcome"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
-    { name: "Course Exit Survey", path: "/stress-create", category: "HOD", keywords: ["survey", "test", "ces", "course exit"], allowedRoles: ["HOD", "Coordinator"] },
+    { name: "PO Statement", path: "/peo-po-pso", category: "Academics", keywords: ["outcome"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
+    { name: "PSO Statement", path: "/peo-po-pso", category: "Academics", keywords: ["specific outcome"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
+    { name: "Course Exit Survey", path: "/course-exit-survey", category: "HOD", keywords: ["survey", "test", "ces", "course exit"], allowedRoles: ["HOD", "Coordinator"] },
     { name: "Target Management", path: "/target-management", category: "Assessment", keywords: ["target", "setting", "goal"], allowedRoles: ["HOD", "Coordinator", "Faculty"] },
     { name: "Indirect Attainment", path: "/indirect-attainment", category: "Reports", keywords: ["indirect", "attainment", "surveys", "report"], allowedRoles: ["HOD", "Coordinator"] },
     { name: "PO & PSO Attainment", path: "/po-pso-attainment", category: "Reports", keywords: ["po", "pso", "attainment", "report"], allowedRoles: ["HOD", "Coordinator"] },
@@ -82,8 +83,9 @@ const Header = ({ onToggleSidebar }) => {
     const role = (user?.role || user?.role_name || "").toUpperCase();
     if (role === 'ADMIN') navigate("/admin-dashboard");
     else if (role === 'HOD') navigate("/hod-dashboard");
-    else if (role === 'FACULTY') navigate("/faculty-dashboard");
-    else if (role === 'AUDITOR') navigate("/auditor-dashboard");
+    else if (role === 'FACULTY') navigate("/hod-dashboard");
+    else if (role === 'COORDINATOR') navigate("/hod-dashboard");
+    else if (role === 'AUDITOR') navigate("/admin-dashboard");
     else navigate("/dashboard");
   };
 

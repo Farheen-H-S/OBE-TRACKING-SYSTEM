@@ -383,7 +383,7 @@ class RequestATRAPIView(APIView):
         # we pull the newest or active one by default.
         assignment = FacultyCourseAssignment.objects.filter(course_id=course, is_active=True).first()
         
-        if not assignment or !assignment.faculty_id:
+        if not assignment or not assignment.faculty_id:
             return Response(
                 {"error": "No faculty is assigned to this course, so the notification cannot be sent."}, 
                 status=status.HTTP_404_NOT_FOUND

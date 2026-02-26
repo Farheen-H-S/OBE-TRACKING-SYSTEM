@@ -1431,7 +1431,7 @@ def create_mapping_sheet(wb, course, academic_year, faculty_name, index=9):
     ws.row_dimensions[2].height = 25 # College Name
     ws.row_dimensions[3].height = 20 # Program Name
 
-def generate_cis_report(course_id, academic_year=None):
+def generate_cis_report(course_id, academic_year=None, batch_id=None):
     try:
         course = Course.objects.get(pk=course_id)
     except (Course.DoesNotExist, ValueError):
@@ -1455,19 +1455,29 @@ def generate_cis_report(course_id, academic_year=None):
     faculty_name = assignment.faculty_id.name if assignment and assignment.faculty_id else "Not Assigned"
 
     # Robust student fetching: prioritize matching semester, fallback to class_year if possible
-    students = Student.objects.filter(
-        program_id=course.program_id, 
-        semester=course.semester, 
-        is_active=True
-    ).order_by('roll_no')
+    student_filters = {
+        'program_id': course.program_id,
+        'semester': course.semester,
+        'is_active': True
+    }
+    
+    if batch_id and batch_id != 'All':
+        if isinstance(batch_id, str) and '-' in batch_id:
+            from academics.models import Batch
+            year = batch_id.split('-')[0].strip()
+            batch = Batch.objects.filter(batch_year=year).first()
+            if batch:
+                student_filters['batch_id'] = batch.batch_id
+        else:
+            student_filters['batch_id'] = batch_id
+
+    students = Student.objects.filter(**student_filters).order_by('roll_no')
     
     if not students.exists():
         # If no students in current semester, try class_year (rough approximation)
-        students = Student.objects.filter(
-            program_id=course.program_id,
-            class_year=course.class_year,
-            is_active=True
-        ).order_by('roll_no')
+        student_filters.pop('semester', None)
+        student_filters['class_year'] = course.class_year
+        students = Student.objects.filter(**student_filters).order_by('roll_no')
 
     wb = openpyxl.Workbook()
     wb.remove(wb.active) 

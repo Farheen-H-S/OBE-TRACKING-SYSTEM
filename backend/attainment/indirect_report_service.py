@@ -251,3 +251,53 @@ class IndirectReportService:
         wb.save(output)
         output.seek(0)
         return output
+
+    @staticmethod
+    def get_indirect_attainment_summary_data(program_id, batch_id):
+        program = Program.objects.get(program_id=program_id)
+        pos = list(PO.objects.filter(program_id=program_id).order_by('po_number'))
+        psos = list(PSO.objects.filter(program_id=program_id).order_by('pso_number'))
+        outcomes = pos + psos
+        
+        batch_years = IndirectReportService._get_batch_years(batch_id)
+        
+        categories = [
+            ("Overall Curricular and Extra Curricular Activities", ["EL", "IV", "VAP"], ["Expert Lecture", "Co-curricular", "Visit"]),
+            ("Programme Exit Feedback", [], ["Exit", "Programme Exit"]),
+            ("Feedback from Alumni", [], ["Alumni"]),
+            ("Resource person feedback", ["Resource Person"], ["Resource Person"])
+        ]
+        
+        summary = []
+        for outcome in outcomes:
+            category_vals = []
+            for (label, types, keywords) in categories:
+                survey_ids = SurveyMaster.objects.filter(
+                    program_id=program,
+                    academic_year__in=batch_years
+                ).filter(
+                    models.Q(activity_type__in=types) | 
+                    models.Q(survey_name__iregex=r'|'.join(keywords))
+                ).values_list('survey_id', flat=True)
+                
+                query = {'question_id__survey_id__in': survey_ids}
+                if isinstance(outcome, PO):
+                    query['question_id__po_id'] = outcome
+                else:
+                    query['question_id__pso_id'] = outcome
+                    
+                avg = SurveyAnswer.objects.filter(**query).aggregate(Avg('answer_value'))['answer_value__avg']
+                if avg is not None and avg > 0:
+                    category_vals.append(avg)
+            
+            outcome_final_avg = sum(category_vals) / len(category_vals) if len(category_vals) > 0 else 0
+            
+            summary.append({
+                'id': outcome.po_id if isinstance(outcome, PO) else outcome.pso_id,
+                'type': 'PO' if isinstance(outcome, PO) else 'PSO',
+                'number': outcome.po_number if isinstance(outcome, PO) else outcome.pso_number,
+                'label': f"PO {outcome.po_number}" if isinstance(outcome, PO) else f"PSO {outcome.pso_number}",
+                'achieved': round(outcome_final_avg, 2)
+            })
+            
+        return summary

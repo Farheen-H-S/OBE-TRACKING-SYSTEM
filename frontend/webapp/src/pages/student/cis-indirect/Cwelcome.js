@@ -50,9 +50,17 @@ const Cwelcome = () => {
 
     return (
         <div className="container-fluid p-0 cwelcome-container">
-            <div className="cwelcome-header-section d-flex align-items-center mb-0">
+            <div className="cwelcome-header-section d-flex align-items-center mb-0 position-relative">
                 <img src={redbg} alt="Background" className="cwelcome-bg-img" />
-                <h2 className="cwelcome-title ms-3">
+                <button
+                    className="btn btn-light rounded-circle shadow-sm ms-3 me-2"
+                    style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                    onClick={() => navigate(-1)}
+                    title="Go Back"
+                >
+                    <i className="bi bi-arrow-left fs-5"></i>
+                </button>
+                <h2 className="cwelcome-title mb-0">
                     Welcome to Course Exit Survey (CES)
                 </h2>
             </div>

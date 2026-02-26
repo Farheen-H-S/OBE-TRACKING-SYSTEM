@@ -5,6 +5,14 @@ import { Modal, Button, Table } from 'react-bootstrap';
 import { BsEyeFill, BsFileEarmarkExcelFill } from 'react-icons/bs';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { useFilters } from '../../../context/FilterContext';
+import { Chart } from 'react-google-charts';
+
+const STATUS_COLOR = (achieved, target) => {
+    if (achieved === null || achieved === undefined) return '#9e9e9e';
+    return achieved >= target ? '#2e7d32' : '#c62828';
+};
+
+const GAP_COLOR = (gap) => parseFloat(gap) <= 0 ? '#388e3c' : '#d32f2f';
 
 const SURVEY_TOOLS = [
     { id: 'co-curricular', label: 'Co-curricular / Extra Curricular Activity Feedback', short: 'Co-curricular' },
@@ -43,13 +51,63 @@ export default function IndirectAttainment() {
     // Survey rows derived from localStorage
     const [rows, setRows] = useState([]);
 
+    // Chart Summary State
+    const [chartData, setChartData] = useState([]);
+    const [loadingCharts, setLoadingCharts] = useState(false);
+
     // Modal state
     const [showModal, setShowModal] = useState(false);
     const [modalTool, setModalTool] = useState(null);
     const [modalRows, setModalRows] = useState([]);
     const [modalStmts, setModalStmts] = useState([]);
 
-    useEffect(() => { if (selectedDept) buildRows(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
+    useEffect(() => {
+        if (selectedDept) {
+            buildRows();
+            fetchSummaryData();
+        }
+    }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
+
+    const fetchSummaryData = async () => {
+        if (!selectedDept || selectedDept === 'All') return;
+        setLoadingCharts(true);
+        try {
+            const academic_year = selectedYear.replace(/\s/g, '');
+            const params = { program_id: selectedDept, batch_id: selectedBatch, academic_year };
+
+            const [summaryRes, targetsRes] = await Promise.allSettled([
+                api.get('/attainment/indirect-summary/', { params }),
+                api.get('/academics/targets/', { params: { academic_year } }),
+            ]);
+
+            const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : [];
+            const targets = targetsRes.status === 'fulfilled' ? targetsRes.value.data : {};
+
+            const poTargetMap = {};
+            const psoTargetMap = {};
+            (targets.po_targets || []).forEach(t => poTargetMap[String(t.po_id)] = t.target_value);
+            (targets.pso_targets || []).forEach(t => psoTargetMap[String(t.pso_id)] = t.target_value);
+
+            const combined = summary.map(a => {
+                const targetVal = a.type === 'PO' ? poTargetMap[String(a.id)] : psoTargetMap[String(a.id)];
+                const target = parseFloat(targetVal || 2.86);
+                const achieved = parseFloat(a.achieved || 0);
+                const gap = target - achieved;
+                return {
+                    label: a.label,
+                    achieved: achieved,
+                    target: target,
+                    gap: gap
+                };
+            });
+
+            setChartData(combined);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingCharts(false);
+        }
+    };
 
     const buildRows = () => {
         const built = SURVEY_TOOLS.map(tool => {
@@ -130,6 +188,49 @@ export default function IndirectAttainment() {
         }
     };
 
+    // ── Chart data ──────────────────────────────────────────────────────────
+    const buildAttainmentChartData = () => {
+        if (!chartData.length) return null;
+        const header = ['PO / PSO', 'Achieved', { role: 'style' }, 'Target', { role: 'style' }];
+        const rows = chartData.map(r => [
+            r.label,
+            r.achieved,
+            STATUS_COLOR(r.achieved, r.target),
+            r.target,
+            'color: #1565c0; opacity: .35',
+        ]);
+        return [header, ...rows];
+    };
+
+    const buildGapChartData = () => {
+        if (!chartData.length) return null;
+        const header = ['PO / PSO', 'Gap', { role: 'style' }];
+        const rows = chartData.map(r => [
+            r.label,
+            r.gap,
+            GAP_COLOR(r.gap),
+        ]);
+        return [header, ...rows];
+    };
+
+    const chartOptions = {
+        legend: 'none',
+        bar: { groupWidth: '55%' },
+        vAxis: { minValue: 0, maxValue: 3, title: 'Attainment (0–3)' },
+        hAxis: { title: 'PO / PSO' },
+        chartArea: { width: '75%', height: '65%' },
+        backgroundColor: 'transparent',
+    };
+
+    const gapChartOptions = {
+        ...chartOptions,
+        vAxis: { title: 'Gap (Target − Achieved)' },
+        seriesType: 'bars',
+    };
+
+    const attainChartData = buildAttainmentChartData();
+    const gapChartData = buildGapChartData();
+
     return (
         <div className="indir-wrapper">
             <div className="indir-card">
@@ -137,12 +238,6 @@ export default function IndirectAttainment() {
                 {/* Filter bar */}
                 <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                     <div className="row g-3">
-                        <div className="col-md">
-                            <label className="filter-label">DEPARTMENT</label>
-                            <select className="form-select filter-select" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
-                                {departments.map(d => <option key={d.program_id} value={d.program_id}>{d.program_abbr || d.program_name}</option>)}
-                            </select>
-                        </div>
                         <div className="col-md">
                             <label className="filter-label">BATCH</label>
                             <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
@@ -179,59 +274,58 @@ export default function IndirectAttainment() {
                     </Button>
                 </div>
 
-                {/* Survey tools table */}
-                <div className="table-responsive">
-                    <table className="table table-bordered table-hover shadow-sm" style={{ backgroundColor: '#fff', borderRadius: 8, overflow: 'hidden' }}>
-                        <thead className="table-light">
-                            <tr>
-                                <th className="py-3 text-start indir-th">#</th>
-                                <th className="py-3 text-start indir-th">SURVEY TOOL</th>
-                                <th className="py-3 text-center indir-th">STATUS</th>
-                                <th className="py-3 text-center indir-th">RESPONDENTS</th>
-                                <th className="py-3 text-center indir-th">AVG. ATTAINMENT</th>
-                                <th className="py-3 text-center indir-th">ACTION</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((row, i) => {
-                                const stmtCount = 0; // stmts loaded lazily in modal
-                                return (
-                                    <tr key={row.tool.id} style={{ verticalAlign: 'middle' }}>
-                                        <td className="text-center fw-bold text-muted small">{i + 1}</td>
-                                        <td className="fw-bold text-dark">{row.tool.label}</td>
-                                        <td className="text-center">
-                                            {row.count === 0
-                                                ? <span className="badge bg-secondary">No Data</span>
-                                                : <span className="badge bg-success">Responses Available</span>}
-                                        </td>
-                                        <td className="text-center fw-bold">{row.count || '—'}</td>
-                                        <td className="text-center">
-                                            {row.count === 0
-                                                ? <span className="text-muted">—</span>
-                                                : <span className="badge bg-info text-dark">
-                                                    {statusIcon(row.count)} Compute on View
-                                                </span>}
-                                        </td>
-                                        <td className="text-center">
-                                            <button
-                                                className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2"
-                                                style={{ borderRadius: 6, fontWeight: 600 }}
-                                                onClick={() => handleView(row)}
-                                                disabled={row.count === 0}
-                                                title={row.count === 0 ? 'No responses collected yet' : 'View statistics'}
-                                            >
-                                                <BsEyeFill size={14} /> View
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
+                {/* Charts Area */}
+                {loadingCharts ? (
+                    <div className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
+                        <div className="text-muted mt-2">Loading Visualization Dashboard...</div>
+                    </div>
+                ) : (
+                    attainChartData && gapChartData && (
+                        <div className="row g-4 mb-4">
+                            <div className="col-lg-6">
+                                <div className="card shadow-sm h-100 border-0">
+                                    <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                        <h5 className="card-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                                            A. PO / PSO Attainment vs Target
+                                        </h5>
+                                    </div>
+                                    <div className="card-body p-0" style={{ height: 350 }}>
+                                        <Chart
+                                            chartType="ColumnChart"
+                                            width="100%"
+                                            height="100%"
+                                            data={attainChartData}
+                                            options={chartOptions}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-lg-6">
+                                <div className="card shadow-sm h-100 border-0">
+                                    <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                        <h5 className="card-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                                            B. Gap Analysis
+                                        </h5>
+                                    </div>
+                                    <div className="card-body p-0" style={{ height: 350 }}>
+                                        <Chart
+                                            chartType="ColumnChart"
+                                            width="100%"
+                                            height="100%"
+                                            data={gapChartData}
+                                            options={gapChartOptions}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                )}
                 <p className="text-muted small fst-italic mt-2">
-                    * Responses are collected from the OIT student survey links generated in <strong>Other Indirect Tools</strong>.
+                    * Responses are collected from the student survey links generated in <strong>Other Indirect Tools</strong>.
                 </p>
             </div>
 
