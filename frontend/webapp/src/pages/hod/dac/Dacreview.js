@@ -262,7 +262,10 @@ const Dacreview = () => {
                                                 <div className="d-flex justify-content-center gap-2">
                                                     <button
                                                         className="btn btn-sm btn-outline-primary"
-                                                        onClick={() => window.open(`http://127.0.0.1:8000${file.file}`, '_blank')}
+                                                        onClick={() => {
+                                                            const url = file.file.startsWith('http') ? file.file : `http://127.0.0.1:8000${file.file}`;
+                                                            window.open(url, '_blank');
+                                                        }}
                                                         title="Download/View File"
                                                     >
                                                         <FaDownload />

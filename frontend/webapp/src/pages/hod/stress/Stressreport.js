@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Spinner, Modal, Badge } from 'react-bootstrap';
-import Header from '../../../components/header/Header';
-import Sidebar from '../../../components/sidebar/HodSide';
+// Replaced internal Header/Sidebar with Layout from App.js
 import { getStressSurveys, exportStressReport, previewReport } from '../../../services/stressService';
 
 const Stressreport = () => {

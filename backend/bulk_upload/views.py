@@ -27,7 +27,7 @@ class DownloadStudentTemplateView(APIView):
     Serves the pre-generated Excel template for student bulk upload.
     """
     def get(self, request):
-        file_path = os.path.join(settings.BASE_DIR, 'Student_Bulk_Upload_Template.xlsx')
+        file_path = os.path.join(settings.BASE_DIR, 'bulk_upload', 'template', 'Student_Bulk_Upload_Template.xlsx')
         if not os.path.exists(file_path):
             return Response({"error": "Template file not found. Please contact administrator."}, status=404)
         

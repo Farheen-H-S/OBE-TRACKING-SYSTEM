@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import './Reportverifiy.css';
 import { FaCheck, FaTimes, FaEye, FaSearch, FaFilter } from 'react-icons/fa';
 import api from '../../utils/axios';
+import { getLoggedInUser } from '../../utils/auth';
 
 const Reportverifiy = () => {
+    const user = getLoggedInUser();
+    const isFaculty = user?.role?.toLowerCase() === 'faculty';
     const [reports, setReports] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
@@ -147,7 +150,7 @@ const Reportverifiy = () => {
                                     <th>Submitted By</th>
                                     <th className="text-center">View</th>
                                     <th className="text-center">Status</th>
-                                    <th className="text-center">Actions</th>
+                                    {!isFaculty && <th className="text-center">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -179,24 +182,26 @@ const Reportverifiy = () => {
                                                     {report.status}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <div className="d-flex gap-2 justify-content-center">
-                                                    <button
-                                                        className={`btn btn-success btn-sm btn-action ${(report.status === 'Approved' || report.status === 'Verified') ? 'disabled' : ''}`}
-                                                        title="Approve"
-                                                        onClick={() => handleAction(report.report_id, 'Approved')}
-                                                    >
-                                                        ✓
-                                                    </button>
-                                                    <button
-                                                        className={`btn btn-danger btn-sm btn-action ${report.status === 'Rejected' ? 'disabled' : ''}`}
-                                                        title="Reject"
-                                                        onClick={() => handleAction(report.report_id, 'Rejected')}
-                                                    >
-                                                        ✗
-                                                    </button>
-                                                </div>
-                                            </td>
+                                            {!isFaculty && (
+                                                <td>
+                                                    <div className="d-flex gap-2 justify-content-center">
+                                                        <button
+                                                            className={`btn btn-success btn-sm btn-action ${(report.status === 'Approved' || report.status === 'Verified') ? 'disabled' : ''}`}
+                                                            title="Approve"
+                                                            onClick={() => handleAction(report.report_id, 'Approved')}
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                        <button
+                                                            className={`btn btn-danger btn-sm btn-action ${report.status === 'Rejected' ? 'disabled' : ''}`}
+                                                            title="Reject"
+                                                            onClick={() => handleAction(report.report_id, 'Rejected')}
+                                                        >
+                                                            ✗
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 ) : (

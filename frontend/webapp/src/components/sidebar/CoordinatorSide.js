@@ -54,6 +54,7 @@ const CoordinatorSide = ({ isOpen, onClose, user: propUser }) => {
                     name: "CIS",
                     subItems: [
                         { name: "Marks Entry", path: "/marks-entry" },
+                        { name: "View CIS Marks Entry", path: "/view-cis-entries" },
                         { name: "Course Exit Survey", path: "/course-exit-survey" },
                         { name: "Other Indirect Tools", path: "/other-indirect-tools" }
                     ]
@@ -76,13 +77,6 @@ const CoordinatorSide = ({ isOpen, onClose, user: propUser }) => {
                 { name: "Attainment Backtracking", path: "/attainment-backtracking" }
             ]
         },
-        {
-            title: "Stress & Feedback",
-            items: [
-                { name: "Stress Survey Report", path: "/stress-report" },
-                { name: "Teacher Feedback Report", path: "/teacher-feedback-report" }
-            ]
-        }
     ];
 
     const handleNavigation = (path) => {

@@ -114,7 +114,9 @@ class BatchListAPIView(APIView):
         program_id = request.query_params.get('program_id')
         batches = Batch.objects.all() if show_all else Batch.objects.filter(is_active=True)
         if program_id:
-            batches = batches.filter(program_id=program_id)
+            # Batch model does not have program_id (batches are global).
+            # If program-specific filtering is needed, it must be done via Scheme/Course or Student mapping.
+            pass
         serializer = BatchSerializer(batches, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

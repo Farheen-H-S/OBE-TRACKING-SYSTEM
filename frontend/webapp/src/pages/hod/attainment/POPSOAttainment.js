@@ -28,9 +28,7 @@ export default function POPSOAttainment() {
     const [loading, setLoading] = useState(false);
     const [summary, setSummary] = useState({ achieved: 0, target: 0, gap: 0 });
 
-    const [showReport, setShowReport] = useState(false);
     const [admissionBatches, setAdmissionBatches] = useState([]);
-    const [selectedBatchId, setSelectedBatchId] = useState('');
     const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
@@ -45,8 +43,44 @@ export default function POPSOAttainment() {
         try {
             const res = await api.get('/academics/batches/list/', { params: { program_id } });
             setAdmissionBatches(res.data || []);
-            if (res.data?.length) setSelectedBatchId(String(res.data[0].batch_id));
         } catch (e) { console.error(e); }
+    };
+
+    const handleDownload = async () => {
+        if (!selectedDept || selectedDept === 'All') return alert('Please select a department');
+        if (!selectedBatch || selectedBatch === 'All') return alert('Please select a batch from the filters');
+
+        // Extract start year from "2025 - 26" or "2025-26"
+        const match = selectedBatch.match(/\d{4}/);
+        if (!match) return alert('Invalid batch format in filter');
+        const startYear = parseInt(match[0]);
+
+        // Find matching admission batch
+        const batch = admissionBatches.find(b => b.batch_year === startYear);
+        if (!batch) {
+            return alert(`No admission batch found for year ${startYear}. Please ensure the batch is created in Academic Setup.`);
+        }
+
+        setDownloading(true);
+        try {
+            const response = await api.get('/attainment/batch-report/', {
+                params: { program_id: selectedDept, batch_id: batch.batch_id },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Result_of_Evaluation_Batch_${batch.batch_year}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to generate report. Ensure data is available for this batch.');
+        } finally {
+            setDownloading(false);
+        }
     };
 
     const fetchData = async () => {
@@ -197,10 +231,15 @@ export default function POPSOAttainment() {
                     </div>
                     <button
                         className="btn btn-success d-flex align-items-center gap-2"
-                        onClick={() => setShowReport(true)}
-                        disabled={!tableData.length}
+                        onClick={handleDownload}
+                        disabled={!tableData.length || downloading}
                     >
-                        <BsFileEarmarkExcelFill size={16} /> Generate Report
+                        {downloading ? (
+                            <div className="spinner-border spinner-border-sm" />
+                        ) : (
+                            <BsFileEarmarkExcelFill size={16} />
+                        )}
+                        {downloading ? 'Downloading...' : 'Generate Report'}
                     </button>
                 </div>
 
@@ -296,95 +335,6 @@ export default function POPSOAttainment() {
                     </div>
                 </>)}
             </div>
-
-            {/* ── Report Preview Modal ── */}
-            <Modal show={showReport} onHide={() => setShowReport(false)} size="lg" centered>
-                <Modal.Header closeButton className="bg-light">
-                    <Modal.Title className="fw-bold text-primary">
-                        PO / PSO Attainment Report Preview
-                    </Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="ppo-report-preview p-3">
-                        <h6 className="fw-bold mb-1">{selectedClass} &nbsp;|&nbsp; Academic Year: {selectedYear}</h6>
-                        <hr />
-                        <table className="table table-bordered table-sm text-center mt-3" style={{ fontSize: '.82rem' }}>
-                            <thead style={{ background: '#1a237e', color: '#fff' }}>
-                                <tr>
-                                    <th>PO / PSO</th>
-                                    <th>Level Achieved</th>
-                                    <th>Target</th>
-                                    <th>Gap</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tableData.map((r, i) => (
-                                    <tr key={i}>
-                                        <td className="fw-bold">{r.label}</td>
-                                        <td>{r.achieved}</td>
-                                        <td>{r.target}</td>
-                                        <td className={parseFloat(r.gap) <= 0 ? 'text-success fw-bold' : 'text-danger fw-bold'}>{r.gap}</td>
-                                        <td><span className={`badge ${parseFloat(r.gap) <= 0 ? 'bg-success' : 'bg-danger'}`}>{parseFloat(r.gap) <= 0 ? 'Met' : 'Not Met'}</span></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="mt-3 p-3 bg-light border rounded small text-muted">
-                            <strong>Note:</strong> Full Excel report generation is cohort-wise. Please select the admission batch to generate the aggregate "Result of Evaluation" report.
-
-                            <div className="mt-2">
-                                <label className="fw-bold small mb-1">SELECT ADMISSION BATCH</label>
-                                <select
-                                    className="form-select form-select-sm"
-                                    value={selectedBatchId}
-                                    onChange={e => setSelectedBatchId(e.target.value)}
-                                >
-                                    <option value="">Select Batch</option>
-                                    {admissionBatches.map(b => (
-                                        <option key={b.batch_id} value={b.batch_id}>
-                                            Batch {b.batch_year} - {b.scheme_name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer className="bg-light">
-                    <Button variant="secondary" onClick={() => setShowReport(false)}>Close</Button>
-                    <Button
-                        variant="success"
-                        className="d-flex align-items-center gap-2"
-                        onClick={async () => {
-                            if (!selectedBatchId) return alert('Please select a batch');
-                            setDownloading(true);
-                            try {
-                                const response = await api.get('/attainment/batch-report/', {
-                                    params: { program_id: selectedDept, batch_id: selectedBatchId },
-                                    responseType: 'blob'
-                                });
-                                const url = window.URL.createObjectURL(new Blob([response.data]));
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.setAttribute('download', `Result_of_Evaluation_Batch_${selectedBatchId}.xlsx`);
-                                document.body.appendChild(link);
-                                link.click();
-                                window.URL.revokeObjectURL(url);
-                            } catch (e) {
-                                console.error(e);
-                                alert('Failed to generate report');
-                            } finally {
-                                setDownloading(false);
-                            }
-                        }}
-                        disabled={downloading || !selectedBatchId}
-                    >
-                        {downloading ? <div className="spinner-border spinner-border-sm" /> : <BsFileEarmarkExcelFill size={15} />}
-                        {downloading ? 'Generating...' : 'Download Excel'}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
         </div>
     );
 }

@@ -113,8 +113,8 @@ function App() {
               <Route path="/faculty-dashboard" element={<Layout><FacultyDashboard /></Layout>} />
               <Route path="/my-courses" element={<Layout><Viewcourse1 isMyCourses={true} /></Layout>} />
               <Route path="/teaching-plan" element={<Layout><PlaceholderPage title="Teaching Plan" /></Layout>} />
-              <Route path="/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
-              <Route path="/stress-survey-report" element={<Layout><PlaceholderPage title="Stress Survey Report" /></Layout>} />
+              <Route path="/view-reports" element={<Layout><Reportverifiy /></Layout>} />
+              <Route path="/stress-survey-report" element={<Layout><Stressreport /></Layout>} />
               <Route path="/view-cis-entries" element={<Layout><ViewCisEntries /></Layout>} />
 
               {/* HOD / Coordinator Routes - REFACTORED */}
