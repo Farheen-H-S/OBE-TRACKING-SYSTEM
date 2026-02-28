@@ -182,97 +182,15 @@ export default function Cisdirectrep() {
                 <div className="cisdirectrep-main">
                     <div className="cisdirectrep-card">
 
-                        <div className="filter-row-v2 mb-4 p-3 bg-light rounded shadow-none border">
-                            <div className="row g-3">
-                                <div className="col-md">
-                                    <label className="filter-label">YEAR OF INTRO</label>
-                                    <select
-                                        className="form-select filter-select"
-                                        value={selectedIntroYear}
-                                        onChange={(e) => setSelectedIntroYear(e.target.value)}
-                                    >
-                                        <option value="All">All</option>
-                                        {years.map(y => (
-                                            <option key={y} value={y}>{y}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md">
-                                    <label className="filter-label">BATCH</label>
-                                    <select
-                                        className="form-select filter-select"
-                                        value={selectedBatch}
-                                        onChange={(e) => setSelectedBatch(e.target.value)}
-                                    >
-                                        <option value="All">All</option>
-                                        {years.map(y => (
-                                            <option key={y} value={y}>{y}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md">
-                                    <label className="filter-label">ACADEMIC YEAR</label>
-                                    <select
-                                        className="form-select filter-select"
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(e.target.value)}
-                                    >
-                                        <option value="All">All</option>
-                                        {years.map(y => (
-                                            <option key={y} value={y}>{y}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md" style={{ maxWidth: '120px' }}>
-                                    <label className="filter-label">CLASS</label>
-                                    <select
-                                        className="form-select filter-select"
-                                        value={selectedClass}
-                                        onChange={(e) => setSelectedClass(e.target.value)}
-                                    >
-                                        <option value="All">All</option>
-                                        {CLASS_OPTIONS.map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md" style={{ maxWidth: '80px' }}>
-                                    <label className="filter-label">DIV</label>
-                                    <select
-                                        className="form-select filter-select"
-                                        value={selectedDivision}
-                                        onChange={(e) => setSelectedDivision(e.target.value)}
-                                    >
-                                        <option value="All">All</option>
-                                        {['A', 'B', 'C', 'D'].map(d => (
-                                            <option key={d} value={d}>{d}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-md" style={{ maxWidth: '100px' }}>
-                                    <label className="filter-label">SEM</label>
-                                    <select
-                                        className="form-select filter-select"
-                                        value={selectedSem}
-                                        onChange={(e) => setSelectedSem(e.target.value)}
-                                    >
-                                        <option value="All">All</option>
-                                        {semesterOptions.map(s => (
-                                            <option key={s} value={s.toString()}>{s}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="mt-3">
-                                <input
-                                    type="text"
-                                    className="form-control search-input-v2"
-                                    placeholder="Search course by code, name, title or abbreviation..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ width: '100%', borderRadius: '8px' }}
-                                />
-                            </div>
+                        <div className="search-section mb-4 p-3 bg-light rounded shadow-none border">
+                            <input
+                                type="text"
+                                className="form-control search-input-v2"
+                                placeholder="Search course by code, name, title or abbreviation..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ width: '100%', borderRadius: '8px' }}
+                            />
                         </div>
 
                         <div className="d-flex justify-content-between align-items-center mb-4">

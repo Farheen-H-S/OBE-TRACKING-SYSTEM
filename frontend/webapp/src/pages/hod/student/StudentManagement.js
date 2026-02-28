@@ -3,88 +3,48 @@ import api from '../../../utils/axios';
 import { BsPlusCircleFill, BsDashCircleFill, BsPencilFill, BsCheckCircleFill, BsXCircleFill, BsArrowRepeat } from "react-icons/bs";
 import { Table, Form, Button, Spinner, Alert } from 'react-bootstrap';
 import './StudentManagement.css';
+import { useFilters } from '../../../context/FilterContext';
 
 const StudentManagement = () => {
+    const {
+        selectedDept: selectedProgram,
+        selectedBatch,
+        selectedClass,
+        selectedDivision,
+        selectedSemester: selectedSem,
+        selectedYear: selectedAcademicYear
+    } = useFilters();
+
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [programs, setPrograms] = useState([]);
-    const [batches, setBatches] = useState([]);
-    const [selectedProgram, setSelectedProgram] = useState('');
-    const [selectedBatch, setSelectedBatch] = useState('');
-    const [selectedClass, setSelectedClass] = useState('FY');
-    const [selectedDivision, setSelectedDivision] = useState('A');
-    const [selectedSem, setSelectedSem] = useState('1');
-    const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
     const [isEditMode, setIsEditMode] = useState(false);
 
     // UI States
-    const [editingId, setEditingId] = useState(null); // ID of student being edited
-    const [newStudent, setNewStudent] = useState(null); // Data for row being added
+    const [newStudent, setNewStudent] = useState(null);
     const [uploadResults, setUploadResults] = useState(null);
     const [showResultsModal, setShowResultsModal] = useState(false);
 
-    // Dynamic Options
-    const batchYears = Array.from({ length: 13 }, (_, i) => {
-        const start = 2019 + i;
-        const end = (start + 1).toString().slice(-2);
-        return `${start}-${end}`;
-    });
-    const academicYears = [...batchYears];
-
     useEffect(() => {
-        fetchFilters();
-    }, []);
-
-    useEffect(() => {
-        if (selectedProgram && selectedBatch) {
+        if (selectedBatch && selectedProgram) {
             fetchStudents();
+        } else {
+            setStudents([]);
         }
     }, [selectedProgram, selectedBatch, selectedClass, selectedDivision, selectedAcademicYear, selectedSem]);
 
-    // Handle Class change to update Semester options
-    const handleClassChange = (newClass) => {
-        setSelectedClass(newClass);
-        if (newClass === 'FY') setSelectedSem('1');
-        else if (newClass === 'SY') setSelectedSem('3');
-        else if (newClass === 'TY') setSelectedSem('5');
-    };
-
-    const getSemesterOptions = () => {
-        if (selectedClass === 'FY') return ['1', '2'];
-        if (selectedClass === 'SY') return ['3', '4'];
-        if (selectedClass === 'TY') return ['5', '6'];
-        return ['1', '2', '3', '4', '5', '6'];
-    };
-
-    const fetchFilters = async () => {
-        try {
-            const [progRes, batchRes, setupRes] = await Promise.all([
-                api.get('academics/programs/'),
-                api.get('academics/batches/list/'),
-                api.get('academics/academic-setup/')
-            ]);
-            setPrograms(progRes.data);
-            setBatches(batchRes.data);
-
-            if (progRes.data.length > 0) setSelectedProgram(progRes.data[0].program_id);
-            if (batchRes.data.length > 0) setSelectedBatch(batchRes.data[0].batch_id);
-            if (setupRes.data && setupRes.data.academic_year) setSelectedAcademicYear(setupRes.data.academic_year);
-            setSelectedSem('1');
-        } catch (err) {
-            console.error("Error fetching filters:", err);
-        }
-    };
-
     const fetchStudents = async () => {
+        if (!selectedBatch) {
+            setStudents([]);
+            return;
+        }
         setLoading(true);
         try {
             const params = {
-                // program_id: selectedProgram,
                 batch_id: selectedBatch,
                 class_year: selectedClass,
                 division: selectedDivision,
                 academic_year: selectedAcademicYear,
-                semester: selectedSem
+                semester: selectedSem === 'All' ? undefined : selectedSem
             };
             const res = await api.get('users/students/', { params });
             setStudents(res.data);
@@ -100,9 +60,8 @@ const StudentManagement = () => {
             enrollment_no: '',
             roll_no: '',
             name: '',
-            // program_id: selectedProgram,
             batch_id: selectedBatch,
-            semester: selectedSem || '1',
+            semester: selectedSem === 'All' ? '1' : selectedSem,
             class_year: selectedClass,
             division: selectedDivision,
             academic_year: selectedAcademicYear
@@ -124,7 +83,6 @@ const StudentManagement = () => {
         try {
             const res = await api.put(`users/students/${student.student_id}/`, student);
             setStudents(students.map(s => s.student_id === student.student_id ? res.data : s));
-            setEditingId(null);
         } catch (err) {
             alert("Error updating student");
         }
@@ -141,12 +99,12 @@ const StudentManagement = () => {
     };
 
     const handleCarryForward = async () => {
-        if (!selectedBatch || !selectedSem || selectedSem === '1') {
-            alert("Please select a Semester (greater than 1) and Batch to carry forward students.");
+        if (!selectedBatch || !selectedSem || selectedSem === 'All') {
+            alert("Please select a Semester (numeric) and Batch to carry forward students.");
             return;
         }
 
-        if (!window.confirm(`This will move all students from Semester ${parseInt(selectedSem) - 1} to current selection (Sem ${selectedSem}). Continue?`)) return;
+        if (!window.confirm(`This will move all students from previous semester to current selection (Sem ${selectedSem}). Continue?`)) return;
 
         setLoading(true);
         try {
@@ -180,7 +138,6 @@ const StudentManagement = () => {
                             <h2 className="m-0 text-primary fw-bold">Student Management</h2>
                         </div>
 
-                        {/* Upload Results Modal */}
                         {showResultsModal && uploadResults && (
                             <Alert variant={uploadResults.errors.length > 0 ? "warning" : "success"} dismissible onClose={() => setShowResultsModal(false)}>
                                 <Alert.Heading>Upload Complete</Alert.Heading>
@@ -200,52 +157,6 @@ const StudentManagement = () => {
                                 )}
                             </Alert>
                         )}
-
-                        {/* Filters */}
-                        <div className="row g-3 mb-4 bg-light p-3 rounded border">
-                            <div className="col-md-2">
-                                <Form.Label className="small fw-bold">BATCH</Form.Label>
-                                <Form.Select value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                    <option value="">Select Batch</option>
-                                    {batchYears.map(year => {
-                                        const b = batches.find(batch => batch.display_batch === year || batch.batch_year.toString() === year.split('-')[0]);
-                                        return <option key={year} value={b ? b.batch_id : ""}>{year}</option>;
-                                    })}
-                                </Form.Select>
-                            </div>
-                            <div className="col-md-3">
-                                <Form.Label className="small fw-bold">ACADEMIC YEAR</Form.Label>
-                                <Form.Select value={selectedAcademicYear} onChange={e => setSelectedAcademicYear(e.target.value)}>
-                                    <option value="">Select Year</option>
-                                    {academicYears.map(ay => <option key={ay} value={ay}>{ay}</option>)}
-                                </Form.Select>
-                            </div>
-                            <div className="col-md-2">
-                                <Form.Label className="small fw-bold">CLASS</Form.Label>
-                                <Form.Select value={selectedClass} onChange={e => handleClassChange(e.target.value)}>
-                                    <option value="FY">FY</option>
-                                    <option value="SY">SY</option>
-                                    <option value="TY">TY</option>
-                                </Form.Select>
-                            </div>
-                            <div className="col-md-2">
-                                <Form.Label className="small fw-bold">SEMESTER</Form.Label>
-                                <Form.Select value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                    {getSemesterOptions().map(s => <option key={s} value={s}>{s}</option>)}
-                                </Form.Select>
-                            </div>
-                            <div className="col-md-3">
-                                <Form.Label className="small fw-bold">DIVISION</Form.Label>
-                                <Form.Select
-                                    value={selectedDivision}
-                                    onChange={e => setSelectedDivision(e.target.value)}
-                                >
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                </Form.Select>
-                            </div>
-                        </div>
 
                         <div className="d-flex justify-content-end gap-2 mb-4">
                             <Button variant={isEditMode ? "success" : "outline-primary"} onClick={() => isEditMode ? handleBulkSave() : setIsEditMode(true)}>
@@ -272,7 +183,6 @@ const StudentManagement = () => {
 
                                     const formData = new FormData();
                                     formData.append('file', file);
-                                    // Include current filter values as defaults
                                     formData.append('batch_id', selectedBatch);
                                     formData.append('academic_year', selectedAcademicYear);
                                     formData.append('semester', selectedSem);
@@ -301,7 +211,7 @@ const StudentManagement = () => {
                                         }
                                     } finally {
                                         setLoading(false);
-                                        e.target.value = null; // Reset input
+                                        e.target.value = null;
                                     }
                                 }}
                             />
@@ -318,7 +228,7 @@ const StudentManagement = () => {
                                             <th style={{ width: '25%' }}>Enrollment No.</th>
                                             <th style={{ width: '15%' }}>Roll No.</th>
                                             <th style={{ width: '50%' }}>Student Name</th>
-                                            <th style={{ width: '5%' }}></th>
+                                            <th style={{ width: '15%' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -379,7 +289,6 @@ const StudentManagement = () => {
                                             </tr>
                                         ))}
 
-                                        {/* New Row Logic */}
                                         {newStudent && (
                                             <tr className="table-info">
                                                 <td className="text-center">New</td>

@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../utils/axios';
 import './Assigntarget.css';
-import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
 import { Modal, Button, Form } from 'react-bootstrap';
-import { FaEdit, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { useFilters } from '../../../context/FilterContext';
 
 const Assigntarget = () => {
+  const {
+    selectedDept,
+    selectedScheme,
+    selectedYear,
+    selectedBatch,
+    selectedClass,
+    selectedSemester: selectedSem,
+    loadingFilters
+  } = useFilters();
+
   const [courses, setCourses] = useState([]);
   const [pos, setPos] = useState([]);
   const [psos, setPsos] = useState([]);
@@ -17,91 +26,13 @@ const Assigntarget = () => {
   const [selectedCourseAtr, setSelectedCourseAtr] = useState(null);
   const [atrText, setAtrText] = useState('');
   const [savingAtr, setSavingAtr] = useState(false);
-
-
-  // New Filter States
-  const [departments, setDepartments] = useState([]);
-  const [schemes, setSchemes] = useState([]);
-
-  const years = [];
-  for (let i = 2019; i <= 2030; i++) {
-    years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-  }
-
-  const [selectedDept, setSelectedDept] = useState('');
-  const [selectedScheme, setSelectedScheme] = useState('');
-  const [selectedYear, setSelectedYear] = useState('2025 - 26');
-  const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSem, setSelectedSem] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const CLASS_OPTIONS = ['FY', 'SY', 'TY'];
-
-  // getSemesterOptions replaced by semesterUtils
-  const [semesterOptions, setSemesterOptions] = useState(['1', '2', '3', '4', '5', '6']);
-
   useEffect(() => {
-    if (selectedClass) {
-      const semType = getCachedSemesterType();
-      setSelectedSem(getDefaultSemester(selectedClass, semType));
-    }
-  }, [selectedClass]);
-
-  useEffect(() => {
-    fetchInitialFilters();
-  }, []);
-
-  useEffect(() => {
-    // fetchData should run if dept and year are present, scheme can be empty (meaning 'All')
     if (selectedDept && selectedYear) {
       fetchData();
     }
   }, [selectedDept, selectedScheme, selectedYear]);
-
-  const fetchInitialFilters = async () => {
-    try {
-      const [deptRes, schemeRes] = await Promise.all([
-        api.get('/academics/programs/'),
-        api.get('/academics/schemes/list/')
-      ]);
-      setDepartments(deptRes.data);
-      setSchemes(schemeRes.data);
-
-      const user = JSON.parse(localStorage.getItem('user'));
-      const userDeptValue = user?.department || user?.department_id;
-
-      let foundDeptId = '';
-      if (userDeptValue) {
-        // Find the numeric ID if the value is a name or existing ID
-        const dept = deptRes.data.find(d =>
-          String(d.program_id) === String(userDeptValue) ||
-          d.program_name === userDeptValue
-        );
-        if (dept) foundDeptId = dept.program_id;
-      }
-
-      if (foundDeptId) {
-        setSelectedDept(foundDeptId);
-      } else if (deptRes.data.length > 0) {
-        setSelectedDept(deptRes.data[0].program_id);
-      }
-
-      // Default to "All Schemes" initially to show more courses
-      setSelectedScheme('');
-
-      const currYear = new Date().getFullYear();
-      const currMonth = new Date().getMonth();
-      const ay = currMonth < 5 ? `${currYear - 1} - ${currYear.toString().slice(-2)}` : `${currYear} - ${(currYear + 1).toString().slice(-2)}`;
-
-      setSelectedYear(ay);
-      setSelectedClass('');
-      setSemesterOptions([]);
-      setSelectedSem('');
-    } catch (err) {
-      console.error("Error fetching filters:", err);
-    }
-  };
 
 
   const fetchData = async () => {
@@ -400,58 +331,8 @@ const Assigntarget = () => {
           </div>
 
           <div className="card shadow-sm border-0 p-4 mb-4">
-            {/* Filter Section */}
-            <div className="filter-row-v2 mb-3 p-3 bg-light rounded border">
-              <div className="row g-3">
-                <div className="col-md">
-                  <label className="filter-label">BATCH</label>
-                  <select
-                    className="form-select filter-select"
-                    value={selectedBatch}
-                    onChange={(e) => setSelectedBatch(e.target.value)}
-                  >
-                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
+            {/* Context Filters - Handled by GlobalFilterBar */}
 
-                {viewMode === 'course' && (
-                  <>
-                    <div className="col-md">
-                      <label className="filter-label">ACADEMIC YEAR</label>
-                      <select
-                        className="form-select filter-select"
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                      >
-                        {years.map(y => <option key={y} value={y}>{y}</option>)}
-                      </select>
-                    </div>
-                    <div className="col-md" style={{ maxWidth: '100px' }}>
-                      <label className="filter-label">CLASS</label>
-                      <select
-                        className="form-select filter-select"
-                        value={selectedClass}
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                      >
-                        <option value="">All</option>
-                        {CLASS_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="col-md" style={{ maxWidth: '100px' }}>
-                      <label className="filter-label">SEM</label>
-                      <select
-                        className="form-select filter-select"
-                        value={selectedSem}
-                        onChange={(e) => setSelectedSem(e.target.value)}
-                      >
-                        <option value="">All</option>
-                        {semesterOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
 
             {/* Search Bar */}
             <div className="mb-0">

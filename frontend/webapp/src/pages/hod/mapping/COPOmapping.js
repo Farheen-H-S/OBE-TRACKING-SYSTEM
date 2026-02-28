@@ -2,73 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Form, Row, Col, Card } from 'react-bootstrap';
 import api from '../../../utils/axios';
 import './COPOmapping.css';
+import { useFilters } from '../../../context/FilterContext';
 
 const COPOmapping = () => {
+    const {
+        selectedDept,
+        selectedScheme,
+        selectedIntroYear,
+        years,
+        schemes,
+        programs
+    } = useFilters();
+
     // Data states
-    const [programs, setPrograms] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [schemes, setSchemes] = useState([]);
     const [pos, setPos] = useState([]);
     const [psos, setPsos] = useState([]);
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [average, setAverage] = useState({});
     const [isEditing, setIsEditing] = useState(false);
-
-    // Filter states
-    const { selectedDept, selectedScheme } = JSON.parse(localStorage.getItem('academicSetup') || '{}');
-    const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
-
-    const years = [];
-    for (let i = 2019; i <= 2030; i++) {
-        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [existingCoursesAll, setExistingCoursesAll] = useState([]);
 
     useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                setLoading(true);
+                // Fetch all courses for search bar
+                const courseRes = await api.get('/academics/courses/');
+                setExistingCoursesAll(courseRes.data);
+                setLoading(false);
+            } catch (err) {
+                console.error("Error fetching mapping data:", err);
+                setLoading(false);
+            }
+        };
         fetchInitialData();
     }, []);
 
-    const fetchInitialData = async () => {
-        try {
-            const [progRes, schemeRes, setupRes] = await Promise.all([
-                api.get('/academics/programs/'),
-                api.get('/academics/schemes/list/'),
-                api.get('/academics/academic-setup/')
-            ]);
-            setPrograms(progRes.data);
-            setSchemes(schemeRes.data);
-            if (setupRes.data) {
-                const ay = setupRes.data.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
-                setSelectedIntroYear(ay);
-                localStorage.setItem('academicSetup', JSON.stringify(setupRes.data));
-            }
-
-            setLoading(false);
-
-            // Fetch all courses for search bar
-            const courseRes = await api.get('/academics/courses/');
-            setExistingCoursesAll(courseRes.data);
-        } catch (err) {
-            console.error("Error fetching mapping data:", err);
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
         fetchCourses();
-    }, [selectedIntroYear]);
-
+    }, [selectedIntroYear, selectedDept, selectedScheme]);
 
     const fetchCourses = async () => {
         try {
-            const setup = JSON.parse(localStorage.getItem('academicSetup') || '{}');
             const response = await api.get('/academics/courses/', {
                 params: {
-                    program_id: setup.program_id,
-                    scheme_id: setup.scheme_id,
+                    program_id: selectedDept,
+                    scheme_id: selectedScheme,
                     intro_year: selectedIntroYear
                 }
             });
@@ -231,22 +214,9 @@ const COPOmapping = () => {
                         <h4 className="text-left mb-3" style={{ color: '#1a237e', fontWeight: 'bold' }}>3.1 Establish correlation between courses and the POs & PSOs (20)</h4>
                         <h5 className="text-left mb-4" style={{ color: '#3949ab', fontWeight: '600' }}>3.1.2 CO-PO matrices of courses selected in 3.1.1 (5)</h5>
 
-                        {/* Filter Section */}
+                        {/* Filter Section - Handled by GlobalFilterBar */}
                         <Card className="border-0 bg-light mb-4 p-3 shadow-sm rounded">
-                            <Row className="g-3 align-items-end">
-                                <Col md={4}>
-                                    <span className="filter-label">YEAR OF INTRODUCTION</span>
-                                    <Form.Select
-                                        className="filter-select"
-                                        value={selectedIntroYear}
-                                        onChange={(e) => setSelectedIntroYear(e.target.value)}
-                                    >
-                                        {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                    </Form.Select>
-                                </Col>
-                            </Row>
-
-                            <Row className="mt-3">
+                            <Row>
                                 <Col md={12}>
                                     <div className="search-container-v2">
                                         <Form.Control
@@ -254,13 +224,7 @@ const COPOmapping = () => {
                                             placeholder="Search course..."
                                             className="course-search-input-v2"
                                             value={searchTerm}
-                                            onChange={(e) => {
-                                                setSearchTerm(e.target.value);
-                                                // If we search, we might find a course not in current filters.
-                                                // The dropdown logic remains, but we search globally if needed?
-                                                // Actually the user said "if user searches a course then if that course belong to..."
-                                                // So I should search across ALL courses, not just current filtered ones.
-                                            }}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
                                         />
                                         {searchTerm && (
                                             <div className="search-results-overlay shadow-sm" style={{ maxHeight: '300px', overflowY: 'auto', zIndex: 1000 }}>

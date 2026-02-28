@@ -15,13 +15,11 @@ const GAP_COLOR = (gap) => parseFloat(gap) <= 0 ? '#388e3c' : '#d32f2f';
 
 export default function POPSOAttainment() {
     const {
-        selectedDept, setSelectedDept,
-        selectedBatch, setSelectedBatch,
-        selectedYear, setSelectedYear,
-        selectedClass, setSelectedClass,
-        selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
-        programs: departments,
-        years
+        selectedDept,
+        selectedBatch,
+        selectedYear,
+        selectedClass,
+        selectedSemester: selectedSem
     } = useFilters();
 
     const [tableData, setTableData] = useState([]);
@@ -188,40 +186,8 @@ export default function POPSOAttainment() {
     return (
         <div className="ppo-wrapper">
             <div className="ppo-card">
+                {/* Context Filters - Handled by GlobalFilterBar */}
 
-                {/* Filters */}
-                <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
-                    <div className="row g-3">
-                        <div className="col-md">
-                            <label className="filter-label">BATCH</label>
-                            <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                <option value="All">All</option>
-                                {years.map(y => <option key={y} value={y}>{y}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md">
-                            <label className="filter-label">ACADEMIC YEAR</label>
-                            <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                                <option value="All">All</option>
-                                {years.map(y => <option key={y} value={y}>{y}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md" style={{ maxWidth: 100 }}>
-                            <label className="filter-label">CLASS</label>
-                            <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                <option value="All">All</option>
-                                {['FY', 'SY', 'TY'].map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md" style={{ maxWidth: 100 }}>
-                            <label className="filter-label">SEM</label>
-                            <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                <option value="All">All</option>
-                                {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s.toString()}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Page title + generate button */}
                 <div className="d-flex justify-content-between align-items-center mb-4">

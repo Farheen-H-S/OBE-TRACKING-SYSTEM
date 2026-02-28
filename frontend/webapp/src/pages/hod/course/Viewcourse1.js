@@ -22,17 +22,12 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const {
-        selectedDept, selectedScheme,
-        selectedYear, setSelectedYear,
-        departments, schemes
+        selectedDept,
+        selectedScheme,
+        selectedIntroYear,
+        years,
+        schemes
     } = useFilters();
-
-    const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
-
-    const years = [];
-    for (let i = 2019; i <= 2030; i++) {
-        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
 
     const user = getLoggedInUser();
     const userRole = (user?.role || user?.role_name || "").toLowerCase();
@@ -158,21 +153,8 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                         </div>
                     </div>
 
-                    {/* Filter Section */}
-                    <div className="filter-row-v1 mb-4" style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-                        <div className="filter-group-v1">
-                            <label>YEAR OF INTRODUCTION</label>
-                            <select
-                                className="filter-select-v1"
-                                value={selectedIntroYear}
-                                onChange={(e) => setSelectedIntroYear(e.target.value)}
-                            >
-                                {years.map(y => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                    {/* Context Filters - Handled by GlobalFilterBar */}
+
 
                     {/* All Courses Row */}
                     <div className="courses-header-row-v1 mb-3">

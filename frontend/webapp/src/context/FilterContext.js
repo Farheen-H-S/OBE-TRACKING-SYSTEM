@@ -5,21 +5,67 @@ import { getLoggedInUser } from '../utils/auth';
 
 const FilterContext = createContext();
 
+const CONTEXT_STORAGE_KEY = 'obe_academic_context';
+
 export const FilterProvider = ({ children }) => {
-    const [selectedDept, setSelectedDept] = useState('');
-    const [selectedScheme, setSelectedScheme] = useState('');
-    const [selectedBatch, setSelectedBatch] = useState('2025-26');
-    const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('TY');
-    const [selectedIntroYear, setSelectedIntroYear] = useState('2025-26');
-    const [selectedSemester, setSelectedSemester] = useState('All');
-    const [selectedDivision, setSelectedDivision] = useState('All');
+    // Load initial state from localStorage or defaults
+    const getInitialState = () => {
+        const saved = localStorage.getItem(CONTEXT_STORAGE_KEY);
+        const defaults = {
+            selectedDept: '',
+            selectedScheme: '',
+            selectedBatch: '2025-26',
+            selectedYear: '2025 - 26',
+            selectedClass: 'TY',
+            selectedSemester: 'All',
+            selectedDivision: 'All',
+            selectedIntroYear: '2025-26'
+        };
+
+        if (saved) {
+            try {
+                return { ...defaults, ...JSON.parse(saved) };
+            } catch (e) {
+                console.error("Error parsing saved context:", e);
+                return defaults;
+            }
+        }
+        return defaults;
+    };
+
+    const initialState = getInitialState();
+
+    const [selectedDept, setSelectedDept] = useState(initialState.selectedDept);
+    const [selectedScheme, setSelectedScheme] = useState(initialState.selectedScheme);
+    const [selectedBatch, setSelectedBatch] = useState(initialState.selectedBatch);
+    const [selectedYear, setSelectedYear] = useState(initialState.selectedYear);
+    const [selectedClass, setSelectedClass] = useState(initialState.selectedClass);
+    const [selectedSemester, setSelectedSemester] = useState(initialState.selectedSemester);
+    const [selectedDivision, setSelectedDivision] = useState(initialState.selectedDivision);
+    const [selectedIntroYear, setSelectedIntroYear] = useState(initialState.selectedIntroYear);
+
     const [departments, setDepartments] = useState([]);
     const [schemes, setSchemes] = useState([]);
+    const [batches, setBatches] = useState([]);
     const [loadingFilters, setLoadingFilters] = useState(true);
     const location = useLocation();
 
-    // Generate academic years for components that depend on it
+    // Persist to localStorage whenever context changes
+    useEffect(() => {
+        const context = {
+            selectedDept,
+            selectedScheme,
+            selectedBatch,
+            selectedYear,
+            selectedClass,
+            selectedSemester,
+            selectedDivision,
+            selectedIntroYear
+        };
+        localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
+    }, [selectedDept, selectedScheme, selectedBatch, selectedYear, selectedClass, selectedSemester, selectedDivision, selectedIntroYear]);
+
+    // Generate academic years (fallback if API fails)
     const years = [];
     for (let i = 2018; i <= 2030; i++) {
         years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
@@ -33,28 +79,31 @@ export const FilterProvider = ({ children }) => {
         }
 
         try {
-            const [deptRes, schemeRes, setupRes] = await Promise.all([
+            const [deptRes, schemeRes, batchRes, setupRes] = await Promise.all([
                 api.get('academics/programs/'),
                 api.get('academics/schemes/list/'),
+                api.get('academics/batches/list/'),
                 api.get('academics/academic-setup/').catch(() => ({ data: null }))
             ]);
 
             if (deptRes.data) setDepartments(deptRes.data);
             if (schemeRes.data) setSchemes(schemeRes.data);
+            if (batchRes.data) setBatches(batchRes.data);
 
-            if (setupRes && setupRes.data) {
+            // Only set defaults if state is currently empty
+            if (setupRes && setupRes.data && !selectedYear) {
                 const ay = setupRes.data.academic_year;
                 if (ay) setSelectedYear(ay);
             }
 
-            // Set default department from user
+            // Set default department from user if not already set
             const userDept = user.department_id || user.department;
-            if (userDept) {
+            if (userDept && !selectedDept) {
                 setSelectedDept(userDept.toString());
             }
 
-            // Set default scheme if available
-            if (schemeRes.data && schemeRes.data.length > 0) {
+            // Set default scheme if not already set
+            if (schemeRes.data && schemeRes.data.length > 0 && !selectedScheme) {
                 setSelectedScheme(schemeRes.data[0].scheme_id.toString());
             }
 
@@ -65,7 +114,7 @@ export const FilterProvider = ({ children }) => {
                 setLoadingFilters(false);
             }
         }
-    }, []);
+    }, [selectedDept, selectedScheme, selectedYear]);
 
     // Initial load and re-fetch on navigation if data is missing
     useEffect(() => {
@@ -85,8 +134,9 @@ export const FilterProvider = ({ children }) => {
             selectedSemester, setSelectedSemester,
             selectedDivision, setSelectedDivision,
             departments,
-            programs: departments, // Alias for backwards compatibility with some components
-            years, // Providing years array globally
+            programs: departments,
+            batches,
+            years,
             schemes,
             loadingFilters
         }}>

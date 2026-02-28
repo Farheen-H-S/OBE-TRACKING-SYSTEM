@@ -12,6 +12,7 @@ import "./Layout.css";
 
 import { getLoggedInUser } from "../utils/auth";
 import api from "../utils/axios";
+import GlobalFilterBar from "./filters/GlobalFilterBar";
 
 const Layout = ({ children, role }) => {
     const user = getLoggedInUser();
@@ -89,7 +90,8 @@ const Layout = ({ children, role }) => {
                     </div>
                 )}
 
-                <div className="dashboard-content flex-grow-1" style={{ minWidth: 0 }}>
+                <div className="dashboard-content flex-grow-1" style={{ minWidth: 0, padding: '1rem' }}>
+                    {effectiveRole !== 'ADMIN' && <GlobalFilterBar />}
                     {children}
                 </div>
             </div>

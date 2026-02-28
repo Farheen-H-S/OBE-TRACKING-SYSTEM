@@ -188,40 +188,8 @@ const Header = ({ onToggleSidebar }) => {
             )}
           </div>
 
-          {/* Global Filters - Hidden for Admin */}
-          {userRole !== 'admin' && (
-            <div className="header-filters d-none d-xl-flex align-items-center gap-3">
-              <select
-                className="header-select"
-                style={{ minWidth: '150px' }}
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                disabled={loadingFilters}
-              >
-                <option value="">All Departments</option>
-                {departments.map(dept => (
-                  <option key={dept.program_id} value={dept.program_id}>
-                    {dept.program_abbr || dept.program_name}
-                  </option>
-                ))}
-              </select>
+          {/* Global Filters - Moved to GlobalFilterBar in Layout.js */}
 
-              <select
-                className="header-select"
-                style={{ minWidth: '80px' }}
-                value={selectedScheme}
-                onChange={(e) => setSelectedScheme(e.target.value)}
-                disabled={loadingFilters}
-              >
-                <option value="">All Schemes</option>
-                {schemes.map(scheme => (
-                  <option key={scheme.scheme_id} value={scheme.scheme_id}>
-                    {scheme.scheme_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div className="notification-container" ref={downloadRef}>
             <FaDownload

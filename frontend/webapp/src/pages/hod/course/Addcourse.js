@@ -8,10 +8,13 @@ const Addcourse = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const {
-        selectedBatch, setSelectedBatch,
-        selectedYear, setSelectedYear,
-        selectedClass: filterClass, setSelectedClass: setFilterClass,
-        selectedSemester: filterSem, setSelectedSemester: setFilterSem,
+        selectedDept,
+        selectedScheme,
+        selectedBatch,
+        selectedYear,
+        years,
+        programs,
+        schemes
     } = useFilters();
 
     const [isViewMode, setIsViewMode] = useState(false);
@@ -24,8 +27,8 @@ const Addcourse = () => {
         course_name_suffix: '',
         courseTitle: '',
         courseAbbr: '',
-        scheme: '',
-        program_id: '',
+        scheme: selectedScheme,
+        program_id: selectedDept,
         class: '',
         semester: '',
         faculty: '',
@@ -51,38 +54,7 @@ const Addcourse = () => {
         });
     };
 
-    const loadCourseData = async (data) => {
-        setIsViewMode(true);
-        try {
-            const coRes = await api.get(`/academics/courses/${data.course_id}/cos/`);
-            const cos = coRes.data.length > 0 ? coRes.data.map(c => ({ no: c.co_number, text: c.description, co_id: c.co_id })) : [{ no: 'CO1', text: '' }];
-            setFormData({
-                courseId: data.course_id,
-                courseCode: data.course_code,
-                courseTitle: data.course_title,
-                courseAbbr: data.course_abbr,
-                scheme: data.scheme_id,
-                program_id: data.program_id,
-                class: data.class_year,
-                semester: data.semester,
-                faculty: data.faculty_assigned || '',
-                assessmentTools: data.assessment_tools || formData.assessmentTools,
-                courseOutcomes: cos,
-                course_name_suffix: data.course_name ? (data.course_abbr ? data.course_name.replace(`${data.course_abbr}-`, '') : data.course_name) : ''
-            });
-        } catch (err) {
-            console.error("Error loading course data:", err);
-        }
-    };
-
-    const years = [];
-    for (let i = 2019; i <= 2030; i++) {
-        years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-    }
-
     const [faculties, setFaculties] = useState([]);
-    const [programs, setPrograms] = useState([]);
-    const [schemes, setSchemes] = useState([]);
     const [existingCourses, setExistingCourses] = useState([]);
 
     useEffect(() => {
@@ -90,18 +62,6 @@ const Addcourse = () => {
         const fetchData = async () => {
             const user = JSON.parse(localStorage.getItem('user'));
             const userDept = user?.department || user?.department_id;
-
-            try {
-                // Fetch programs and schemes (not necessarily filtered)
-                const [progRes, schemeRes] = await Promise.all([
-                    api.get('/academics/programs/'),
-                    api.get('/academics/schemes/list/')
-                ]);
-                setPrograms(progRes.data);
-                setSchemes(schemeRes.data);
-            } catch (err) {
-                console.error("Error fetching programs/schemes:", err);
-            }
 
             try {
                 // Fetch faculty filtered by department if possible
@@ -118,11 +78,6 @@ const Addcourse = () => {
                 setExistingCourses(courseRes.data);
             } catch (err) {
                 console.error("Error fetching courses:", err);
-            }
-
-            // Default program if HOD/Coordinator
-            if (userDept) {
-                setFormData(prev => ({ ...prev, program_id: userDept }));
             }
         };
 
@@ -144,7 +99,7 @@ const Addcourse = () => {
                     const cos = coRes.data.length > 0 ? coRes.data.map(c => ({ no: c.co_number, text: c.description, co_id: c.co_id })) : [{ no: 'CO1', text: '' }];
                     setFormData(prev => ({
                         ...prev,
-                        courseId: data.course_id, // Changed from course_id to courseId to match state
+                        courseId: data.course_id,
                         courseCode: data.course_code,
                         courseTitle: data.course_title,
                         courseAbbr: data.course_abbr,
@@ -155,7 +110,7 @@ const Addcourse = () => {
                         faculty: data.faculty_assigned || '',
                         assessmentTools: data.assessment_tools || prev.assessmentTools,
                         courseOutcomes: cos,
-                        course_name_suffix: data.course_name ? data.course_name.replace(`${data.course_abbr}-`, '') : ''
+                        course_name_suffix: data.course_name ? (data.course_abbr ? data.course_name.replace(`${data.course_abbr}-`, '') : data.course_name) : ''
                     }));
                 } catch (err) {
                     console.error("Error fetching COs:", err);
@@ -258,7 +213,7 @@ const Addcourse = () => {
         e.preventDefault();
         try {
             // Validate required fields
-            const requiredFields = ['courseCode', 'course_name_suffix', 'scheme', 'program_id', 'class', 'semester', 'faculty'];
+            const requiredFields = ['courseCode', 'course_name_suffix', 'faculty'];
             for (let field of requiredFields) {
                 if (!formData[field]) {
                     alert(`Please fill in ${field}`);
@@ -266,13 +221,14 @@ const Addcourse = () => {
                 }
             }
 
+            // Program and Scheme from context
             const payload = {
                 course_code: formData.courseCode,
                 course_name: formData.courseAbbr ? `${formData.courseAbbr}-${formData.course_name_suffix}` : formData.course_name_suffix,
                 course_title: formData.courseTitle,
                 course_abbr: formData.courseAbbr,
-                scheme_id: formData.scheme,
-                program_id: formData.program_id,
+                scheme_id: selectedScheme,
+                program_id: selectedDept,
                 class_year: formData.class,
                 semester: formData.semester,
                 faculty_assigned: formData.faculty,

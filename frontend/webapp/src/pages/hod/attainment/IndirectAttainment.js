@@ -201,37 +201,6 @@ export default function IndirectAttainment() {
         <div className="indir-wrapper">
             <div className="indir-card">
 
-                {/* Filter bar */}
-                <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
-                    <div className="row g-3">
-                        <div className="col-md">
-                            <label className="filter-label">BATCH</label>
-                            <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                {years.map(y => <option key={y} value={y}>{y}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md">
-                            <label className="filter-label">ACADEMIC YEAR</label>
-                            <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                                {years.map(y => <option key={y} value={y}>{y}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md" style={{ maxWidth: 100 }}>
-                            <label className="filter-label">CLASS</label>
-                            <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                <option value="All">All</option>
-                                {['FY', 'SY', 'TY'].map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-md" style={{ maxWidth: 100 }}>
-                            <label className="filter-label">SEM</label>
-                            <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                <option value="All">All</option>
-                                {['1', '2', '3', '4', '5', '6'].map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <h2 className="indir-title mb-0">Report : Indirect Attainment</h2>

@@ -11,8 +11,29 @@ import { getDefaultSemester, getCachedSemesterType, getSemesterOptions as comput
 const Cisentry = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // Global Filters from Context
-  const { selectedDept: selectedProgram, setSelectedDept: setSelectedProgram, selectedScheme, setSelectedScheme, departments: programs, schemes } = useFilters();
+  const {
+    selectedDept: selectedProgram,
+    setSelectedDept: setSelectedProgram,
+    selectedScheme,
+    setSelectedScheme,
+    selectedBatch,
+    setSelectedBatch,
+    selectedAcademicYear,
+    setSelectedAcademicYear,
+    selectedClass,
+    setSelectedClass,
+    selectedSemester,
+    setSelectedSemester,
+    selectedDivision,
+    setSelectedDivision,
+    departments: programs,
+    schemes,
+    years,
+    batches
+  } = useFilters();
+
+  const selectedYear = selectedAcademicYear; // Alias for compatibility
+  const selectedIntroYear = selectedScheme;   // Alias for compatibility
 
   // State for dynamic data
   const [courses, setCourses] = useState([]);
@@ -28,18 +49,8 @@ const Cisentry = () => {
 
 
   // Selection state
-  const [selectedYear, setSelectedYear] = useState('2025 - 26');
-  const [selectedIntroYear, setSelectedIntroYear] = useState('2025 - 26');
-  const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
   const [assessmentTools, setAssessmentTools] = useState({});
-  const [selectedClass, setSelectedClass] = useState('FY');
-  const [selectedDivision, setSelectedDivision] = useState('A');
-  const [selectedSemester, setSelectedSemester] = useState(() => getDefaultSemester('FY', getCachedSemesterType()));
 
-  const years = [];
-  for (let i = 2019; i <= 2030; i++) {
-    years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-  }
   const [selectedCourse, setSelectedCourse] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [allCourses, setAllCourses] = useState([]);
@@ -200,31 +211,9 @@ const Cisentry = () => {
       if (setupRes.data) {
         const ay = setupRes.data.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
         setAcademicYear(ay);
-        setSelectedYear(ay);
-        setSelectedIntroYear(ay);
-        // setSelectedScheme(setupRes.data.scheme_id); // Removed to avoid overriding global filter
 
         // Cache globally so other components can use semester_type
         localStorage.setItem('academicSetup', JSON.stringify(setupRes.data));
-        // Set semester based on current class + admin's semester_type
-        setSelectedSemester(getDefaultSemester(selectedClass, setupRes.data.semester_type || 'Odd'));
-      }
-      if (progRes.data.length > 0) {
-        const user = JSON.parse(localStorage.getItem('user'));
-        const userDept = user?.department_id || user?.department;
-
-        // Try numeric match first
-        let matched = progRes.data.find(p => p.program_id === parseInt(userDept));
-        // Fallback to name match if department was stored as name string
-        if (!matched && typeof userDept === 'string') {
-          matched = progRes.data.find(p => p.program_name.toLowerCase() === userDept.toLowerCase());
-        }
-
-        if (matched) {
-          setSelectedProgram(matched.program_id);
-        } else if (progRes.data.length > 0) {
-          setSelectedProgram(progRes.data[0].program_id);
-        }
       }
     } catch (error) {
       console.error("Error fetching initial academic data:", error);
@@ -1435,56 +1424,9 @@ const Cisentry = () => {
 
   return (
     <div className="p-4" style={{ backgroundColor: '#f0f8ff', minHeight: '100vh' }}>
-      {/* Card 1: Localized Filters */}
+      {/* Card 1: Search and Info */}
       <div className="bg-white p-4 rounded shadow-sm mb-4">
-        <div className="filters-section bg-light p-3 rounded shadow-sm" style={{ border: '1px solid #adcaf8' }}>
-          <div className="row g-3 mb-3 text-start">
-            <div className="row g-3 mb-3 text-start">
-              <div className="col-md-2" style={{ width: '180px' }}>
-                <label className="filter-label">YEAR OF INTRODUCTION</label>
-                <select className="form-select border-primary-subtle" value={selectedIntroYear} onChange={(e) => setSelectedIntroYear(e.target.value)}>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-              <div className="col-md-2" style={{ width: '150px' }}>
-                <label className="filter-label">BATCH</label>
-                <select className="form-select border-primary-subtle" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)}>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-              <div className="col-md-2" style={{ width: '150px' }}>
-                <label className="filter-label">ACADEMIC YEAR</label>
-                <select className="form-select border-primary-subtle" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
-              <div className="col-md-2" style={{ width: '100px' }}>
-                <label className="filter-label">CLASS</label>
-                <select
-                  className="form-select border-primary-subtle"
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                >
-                  <option value="FY">FY</option>
-                  <option value="SY">SY</option>
-                  <option value="TY">TY</option>
-                </select>
-              </div>
-              <div className="col-md-1" style={{ width: '80px' }}>
-                <label className="filter-label">DIV</label>
-                <select className="form-select border-primary-subtle" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
-                  {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="col-md-2" style={{ width: '100px' }}>
-                <label className="filter-label">SEM</label>
-                <select className="form-select border-primary-subtle" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
-                  {getSemesterOptions().map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
+        <div className="search-section bg-light p-3 rounded shadow-sm" style={{ border: '1px solid #adcaf8' }}>
           <div className="row g-3">
             <div className="col-md-12">
               <div className="search-container-v2 position-relative">

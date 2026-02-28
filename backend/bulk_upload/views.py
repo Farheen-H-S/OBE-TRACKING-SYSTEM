@@ -151,6 +151,11 @@ class BulkStudentUploadView(APIView):
         default_division = request.data.get('division')
         default_program_id = request.data.get('program_id')
 
+        # --- PRE-VALIDATION ---
+        # If IDs are passed as empty strings, treat them as None
+        if not str(default_batch_id).strip(): default_batch_id = None
+        if not str(default_program_id).strip(): default_program_id = None
+
         # 1. Validate extension
         if not (file_obj.name.endswith('.xlsx') or file_obj.name.endswith('.xls')):
             return Response({"error": "Only Excel files (.xlsx, .xls) are allowed"}, status=status.HTTP_400_BAD_REQUEST)
@@ -366,6 +371,7 @@ class BulkStudentUploadView(APIView):
                         div = get_num_val('division') or default_division
                         is_active = str(row.get('is_active', '')).strip().lower() != 'false'
 
+                        # --- MAPPING ---
                         prog_input = get_num_val('program_name')
                         program = Program.objects.filter(program_name__iexact=prog_input).first() if prog_input else def_prog
                         
@@ -375,11 +381,22 @@ class BulkStudentUploadView(APIView):
                             try:
                                 b_year_clean = int(batch_input.split('-')[0]) if '-' in batch_input else int(float(batch_input))
                                 batch = Batch.objects.filter(batch_year=b_year_clean).first()
-                            except: pass
-                        if not batch: batch = def_batch
+                            except: 
+                                pass
+                        
+                        if not batch: 
+                            batch = def_batch
 
-                        if not program or not batch:
-                            results["errors"].append(f"Row {row_num}: Program or Batch mapping failed.")
+                        # Validate Program
+                        if not program:
+                            err_val = prog_input if prog_input else "(No Program Selected)"
+                            results["errors"].append(f"Row {row_num}: Program mapping failed for '{err_val}'.")
+                            continue
+                            
+                        # Validate Batch
+                        if not batch:
+                            err_val = batch_input if batch_input else "(No Batch Selected)"
+                            results["errors"].append(f"Row {row_num}: Batch mapping failed for '{err_val}'.")
                             continue
 
                         # --- Aggressive Overwrite and Resolution ---
