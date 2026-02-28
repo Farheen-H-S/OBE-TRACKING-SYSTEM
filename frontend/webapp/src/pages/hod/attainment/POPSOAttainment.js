@@ -19,8 +19,12 @@ export default function POPSOAttainment() {
         selectedBatch,
         selectedYear,
         selectedClass,
-        selectedSemester: selectedSem
+        selectedSemester: selectedSem,
+        validateContext
     } = useFilters();
+
+    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester'];
+    const { isValid, missingFields } = validateContext(requiredFields);
 
     const [tableData, setTableData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -186,120 +190,130 @@ export default function POPSOAttainment() {
     return (
         <div className="ppo-wrapper">
             <div className="ppo-card">
-                {/* Context Filters - Handled by GlobalFilterBar */}
-
-
-                {/* Page title + generate button */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 className="ppo-title mb-0">PO &amp; PSO Attainment</h2>
-                        <p className="text-muted small mb-0">{selectedClass} &nbsp;|&nbsp; {selectedYear}</p>
-                    </div>
-                    <button
-                        className="btn btn-success d-flex align-items-center gap-2"
-                        onClick={handleDownload}
-                        disabled={!tableData.length || downloading}
-                    >
-                        {downloading ? (
-                            <div className="spinner-border spinner-border-sm" />
-                        ) : (
-                            <BsFileEarmarkExcelFill size={16} />
-                        )}
-                        {downloading ? 'Downloading...' : 'Generate Report'}
-                    </button>
-                </div>
-
-                {/* Summary cards */}
-                <div className="ppo-summary-row mb-4">
-                    {[
-                        { label: 'Attainment Achieved', value: summary.achieved, cls: 'ppo-card-achieved', valClass: '' },
-                        { label: 'Target Attainment', value: summary.target, cls: 'ppo-card-target', valClass: '' },
-                        { label: 'Gap', value: summary.gap, cls: 'ppo-card-gap', valClass: parseFloat(summary.gap) <= 0 ? 'text-success' : 'text-danger' },
-                    ].map(c => (
-                        <div key={c.label} className={`ppo-summary-card ${c.cls}`}>
-                            <div className="ppo-card-label">{c.label}</div>
-                            <div className={`ppo-card-value ${c.valClass}`}>{loading ? '…' : c.value}</div>
+                {!isValid ? (
+                    <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+                        <BsFileEarmarkExcelFill className="text-warning fs-3" />
+                        <div>
+                            <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                            <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
                         </div>
-                    ))}
-                </div>
-
-                {loading ? (
-                    <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
-                ) : tableData.length === 0 ? (
-                    <div className="text-center py-5 text-muted">
-                        <p>No attainment data found for the selected filters.</p>
-                        <small>Make sure CIS entries have been saved and attainment has been computed.</small>
                     </div>
-                ) : (<>
-
-                    {/* ── Section A: Attainment Chart ── */}
-                    <div className="ppo-section mb-5">
-                        <h5 className="ppo-section-title">A. PO / PSO Attainment vs Target</h5>
-                        <p className="text-muted small mb-3">
-                            Green bars = target met &nbsp;|&nbsp; Red bars = target not met &nbsp;|&nbsp; Blue = target value
-                        </p>
-                        {attainChartData && (
-                            <Chart
-                                chartType="ColumnChart"
-                                data={attainChartData}
-                                options={chartOptions}
-                                width="100%"
-                                height="340px"
-                            />
-                        )}
-                    </div>
-
-                    {/* ── Section B: Gap Chart ── */}
-                    <div className="ppo-section mb-5">
-                        <h5 className="ppo-section-title">B. Gap Analysis (Target − Achieved)</h5>
-                        <p className="text-muted small mb-3">
-                            Green bars = no gap (or surplus) &nbsp;|&nbsp; Red bars = gap exists
-                        </p>
-                        {gapChartData && (
-                            <Chart
-                                chartType="ColumnChart"
-                                data={gapChartData}
-                                options={gapChartOptions}
-                                width="100%"
-                                height="300px"
-                            />
-                        )}
-                    </div>
-
-                    {/* ── Section C: Table ── */}
-                    <div className="ppo-section">
-                        <h5 className="ppo-section-title">C. Attainment Summary Table</h5>
-                        <div className="table-responsive" style={{ maxWidth: 680 }}>
-                            <table className="table table-bordered shadow-sm text-center" style={{ fontSize: '.85rem' }}>
-                                <thead>
-                                    <tr style={{ background: '#1a237e', color: '#fff' }}>
-                                        <th className="py-3">PO / PSO</th>
-                                        <th>Achieved</th>
-                                        <th>Target</th>
-                                        <th>Gap</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {tableData.map((r, i) => (
-                                        <tr key={i} className="align-middle">
-                                            <td className="fw-bold bg-light">{r.label}</td>
-                                            <td className="text-primary fw-bold">{r.achieved}</td>
-                                            <td className="text-secondary">{r.target}</td>
-                                            <td className={`fw-bold ${parseFloat(r.gap) <= 0 ? 'text-success' : 'text-danger'}`}>{r.gap}</td>
-                                            <td>
-                                                <span className={`badge ${parseFloat(r.gap) <= 0 ? 'bg-success' : 'bg-danger'}`}>
-                                                    {parseFloat(r.gap) <= 0 ? 'Met' : 'Not Met'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                ) : (
+                    <>
+                        {/* Page title + generate button */}
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 className="ppo-title mb-0">PO &amp; PSO Attainment</h2>
+                                <p className="text-muted small mb-0">{selectedClass} &nbsp;|&nbsp; {selectedYear}</p>
+                            </div>
+                            <button
+                                className="btn btn-success d-flex align-items-center gap-2"
+                                onClick={handleDownload}
+                                disabled={!tableData.length || downloading}
+                            >
+                                {downloading ? (
+                                    <div className="spinner-border spinner-border-sm" />
+                                ) : (
+                                    <BsFileEarmarkExcelFill size={16} />
+                                )}
+                                {downloading ? 'Downloading...' : 'Generate Report'}
+                            </button>
                         </div>
-                        <p className="text-muted small mt-2 fst-italic">* One report per class — individual PO reports are not generated separately.</p>
-                    </div>
-                </>)}
+
+                        {/* Summary cards */}
+                        <div className="ppo-summary-row mb-4">
+                            {[
+                                { label: 'Attainment Achieved', value: summary.achieved, cls: 'ppo-card-achieved', valClass: '' },
+                                { label: 'Target Attainment', value: summary.target, cls: 'ppo-card-target', valClass: '' },
+                                { label: 'Gap', value: summary.gap, cls: 'ppo-card-gap', valClass: parseFloat(summary.gap) <= 0 ? 'text-success' : 'text-danger' },
+                            ].map(c => (
+                                <div key={c.label} className={`ppo-summary-card ${c.cls}`}>
+                                    <div className="ppo-card-label">{c.label}</div>
+                                    <div className={`ppo-card-value ${c.valClass}`}>{loading ? '…' : c.value}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {loading ? (
+                            <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
+                        ) : tableData.length === 0 ? (
+                            <div className="text-center py-5 text-muted">
+                                <p>No attainment data found for the selected filters.</p>
+                                <small>Make sure CIS entries have been saved and attainment has been computed.</small>
+                            </div>
+                        ) : (<>
+
+                            {/* ── Section A: Attainment Chart ── */}
+                            <div className="ppo-section mb-5">
+                                <h5 className="ppo-section-title">A. PO / PSO Attainment vs Target</h5>
+                                <p className="text-muted small mb-3">
+                                    Green bars = target met &nbsp;|&nbsp; Red bars = target not met &nbsp;|&nbsp; Blue = target value
+                                </p>
+                                {attainChartData && (
+                                    <Chart
+                                        chartType="ColumnChart"
+                                        data={attainChartData}
+                                        options={chartOptions}
+                                        width="100%"
+                                        height="340px"
+                                    />
+                                )}
+                            </div>
+
+                            {/* ── Section B: Gap Chart ── */}
+                            <div className="ppo-section mb-5">
+                                <h5 className="ppo-section-title">B. Gap Analysis (Target − Achieved)</h5>
+                                <p className="text-muted small mb-3">
+                                    Green bars = no gap (or surplus) &nbsp;|&nbsp; Red bars = gap exists
+                                </p>
+                                {gapChartData && (
+                                    <Chart
+                                        chartType="ColumnChart"
+                                        data={gapChartData}
+                                        options={gapChartOptions}
+                                        width="100%"
+                                        height="300px"
+                                    />
+                                )}
+                            </div>
+
+                            {/* ── Section C: Table ── */}
+                            <div className="ppo-section">
+                                <h5 className="ppo-section-title">C. Attainment Summary Table</h5>
+                                <div className="table-responsive" style={{ maxWidth: 680 }}>
+                                    <table className="table table-bordered shadow-sm text-center" style={{ fontSize: '.85rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#1a237e', color: '#fff' }}>
+                                                <th className="py-3">PO / PSO</th>
+                                                <th>Achieved</th>
+                                                <th>Target</th>
+                                                <th>Gap</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tableData.map((r, i) => (
+                                                <tr key={i} className="align-middle">
+                                                    <td className="fw-bold bg-light">{r.label}</td>
+                                                    <td className="text-primary fw-bold">{r.achieved}</td>
+                                                    <td className="text-secondary">{r.target}</td>
+                                                    <td className={`fw-bold ${parseFloat(r.gap) <= 0 ? 'text-success' : 'text-danger'}`}>{r.gap}</td>
+                                                    <td>
+                                                        <span className={`badge ${parseFloat(r.gap) <= 0 ? 'bg-success' : 'bg-danger'}`}>
+                                                            {parseFloat(r.gap) <= 0 ? 'Met' : 'Not Met'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p className="text-muted small mt-2 fst-italic">* One report per class — individual PO reports are not generated separately.</p>
+                            </div>
+                        </>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );

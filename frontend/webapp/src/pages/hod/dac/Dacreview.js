@@ -15,8 +15,12 @@ const Dacreview = () => {
         selectedBatch, setSelectedBatch,
         selectedYear, setSelectedYear,
         selectedClass, setSelectedClass,
-        selectedSemester, setSelectedSemester
+        selectedSemester, setSelectedSemester,
+        validateContext
     } = useFilters();
+
+    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester'];
+    const { isValid, missingFields } = validateContext(requiredFields);
 
     const [loading, setLoading] = useState(false);
     const classes = ['FY', 'SY', 'TY'];
@@ -168,130 +172,93 @@ const Dacreview = () => {
                         </div>
                     </div>
 
-                    {/* Filters Section */}
-                    <div className="filters-grid mb-4 p-3 bg-light rounded shadow-sm">
-                        <div className="row g-3">
-                            <div className="col-md" style={{ maxWidth: '200px' }}>
-                                <label className="form-label small fw-bold text-uppercase">Batch</label>
-                                <select
-                                    className="form-select form-select-sm shadow-none"
-                                    value={selectedBatch}
-                                    onChange={(e) => setSelectedBatch(e.target.value)}
-                                >
-                                    <option value="">All Batches</option>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '200px' }}>
-                                <label className="form-label small fw-bold text-uppercase">Academic Year</label>
-                                <select
-                                    className="form-select form-select-sm shadow-none"
-                                    value={selectedYear}
-                                    onChange={(e) => setSelectedYear(e.target.value)}
-                                >
-                                    <option value="">All Years</option>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="form-label small fw-bold text-uppercase">Class</label>
-                                <select
-                                    className="form-select form-select-sm shadow-none"
-                                    value={selectedClass}
-                                    onChange={(e) => setSelectedClass(e.target.value)}
-                                >
-                                    <option value="">All</option>
-                                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="form-label small fw-bold text-uppercase">Sem</label>
-                                <select
-                                    className="form-select form-select-sm shadow-none"
-                                    value={selectedSemester}
-                                    onChange={(e) => setSelectedSemester(e.target.value)}
-                                >
-                                    <option value="">All</option>
-                                    {availableSemesters.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                    {!isValid ? (
+                        <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+                            <FaExclamationCircle className="text-warning fs-3" />
+                            <div>
+                                <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                                <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <>
 
-                    <div className="table-responsive">
-                        <table className="table table-hover file-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '35%' }}>Report Name</th>
-                                    <th>Program / Details</th>
-                                    <th>Date Modified</th>
-                                    <th>Size</th>
-                                    <th className="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="5" className="text-center py-5">
-                                            Loading...
-                                        </td>
-                                    </tr>
-                                ) : reports.length > 0 ? (
-                                    reports.map((file) => (
-                                        <tr key={file.dac_report_id}>
-                                            <td>
-                                                <div className="d-flex align-items-center">
-                                                    {file.file.endsWith('.pdf') ?
-                                                        <FaFilePdf className="file-icon text-danger me-2" /> :
-                                                        <FaFileExcel className="file-icon text-success me-2" />
-                                                    }
-                                                    <span className="file-name text-truncate" style={{ maxWidth: '250px' }} title={file.file.split('/').pop()}>
-                                                        {file.file.split('/').pop()}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="small text-muted">
-                                                    <div>{file.program_name}</div>
-                                                    <div>{file.academic_year} {file.class_name ? `| ${file.class_name}` : ''} {file.semester ? `| Sem ${file.semester}` : ''}</div>
-                                                </div>
-                                            </td>
-                                            <td className="text-secondary small">{new Date(file.uploaded_at).toLocaleString()}</td>
-                                            <td className="text-secondary small">-</td>
-                                            <td className="text-center">
-                                                <div className="d-flex justify-content-center gap-2">
-                                                    <button
-                                                        className="btn btn-sm btn-outline-primary"
-                                                        onClick={() => {
-                                                            const url = file.file.startsWith('http') ? file.file : `http://127.0.0.1:8000${file.file}`;
-                                                            window.open(url, '_blank');
-                                                        }}
-                                                        title="Download/View File"
-                                                    >
-                                                        <FaDownload />
-                                                    </button>
-                                                    {canUpload && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-danger"
-                                                            onClick={() => handleDelete(file.dac_report_id)}
-                                                        >
-                                                            <FaTrash />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
+                            <div className="table-responsive">
+                                <table className="table table-hover file-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '35%' }}>Report Name</th>
+                                            <th>Program / Details</th>
+                                            <th>Date Modified</th>
+                                            <th>Size</th>
+                                            <th className="text-center">Action</th>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="5" className="text-center py-5 text-muted">
-                                            No reports found for the selected filters.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    </thead>
+                                    <tbody>
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-5">
+                                                    Loading...
+                                                </td>
+                                            </tr>
+                                        ) : reports.length > 0 ? (
+                                            reports.map((file) => (
+                                                <tr key={file.dac_report_id}>
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
+                                                            {file.file.endsWith('.pdf') ?
+                                                                <FaFilePdf className="file-icon text-danger me-2" /> :
+                                                                <FaFileExcel className="file-icon text-success me-2" />
+                                                            }
+                                                            <span className="file-name text-truncate" style={{ maxWidth: '250px' }} title={file.file.split('/').pop()}>
+                                                                {file.file.split('/').pop()}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="small text-muted">
+                                                            <div>{file.program_name}</div>
+                                                            <div>{file.academic_year} {file.class_name ? `| ${file.class_name}` : ''} {file.semester ? `| Sem ${file.semester}` : ''}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="text-secondary small">{new Date(file.uploaded_at).toLocaleString()}</td>
+                                                    <td className="text-secondary small">-</td>
+                                                    <td className="text-center">
+                                                        <div className="d-flex justify-content-center gap-2">
+                                                            <button
+                                                                className="btn btn-sm btn-outline-primary"
+                                                                onClick={() => {
+                                                                    const url = file.file.startsWith('http') ? file.file : `http://127.0.0.1:8000${file.file}`;
+                                                                    window.open(url, '_blank');
+                                                                }}
+                                                                title="Download/View File"
+                                                            >
+                                                                <FaDownload />
+                                                            </button>
+                                                            {canUpload && (
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => handleDelete(file.dac_report_id)}
+                                                                >
+                                                                    <FaTrash />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-5 text-muted">
+                                                    No reports found for the selected filters.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

@@ -13,14 +13,63 @@ import "./Layout.css";
 import { getLoggedInUser } from "../utils/auth";
 import api from "../utils/axios";
 import GlobalFilterBar from "./filters/GlobalFilterBar";
+import { useLocation } from "react-router-dom";
 
 const Layout = ({ children, role }) => {
     const user = getLoggedInUser();
+    const location = useLocation();
     const rawRole = role || user?.role || user?.role_name || "ADMIN";
     const effectiveRole = rawRole.toUpperCase();
 
     const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1200);
     const [currentUser, setCurrentUser] = useState(user);
+
+    // Filter Visibility Rules
+    const getVisibleFilters = () => {
+        const path = location.pathname;
+
+        // Hidden Group
+        if (effectiveRole === 'ADMIN' ||
+            effectiveRole === 'AUDITOR' ||
+            path === '/profile' ||
+            path.includes('/dashboard') ||
+            path === '/add-course' ||
+            path.startsWith('/auditor/')) {
+            return [];
+        }
+
+        // Dept Only Group
+        if (path === '/peo-po-pso' || path === '/statement2') {
+            return ['dept'];
+        }
+
+        // Course Layer Group
+        if (path === '/course-management' || path === '/co-po-pso-mapping' || path === '/my-courses') {
+            return ['dept', 'scheme', 'year'];
+        }
+
+        // Full (No Div) Group
+        if (path === '/target-management' || path === '/dac-reports') {
+            return ['dept', 'scheme', 'batch', 'year', 'class', 'semester'];
+        }
+
+        // Full Context Group (Default for other faculty/hod pages)
+        const fullContextPages = [
+            '/student-management', '/marks-entry', '/course-exit-survey',
+            '/other-indirect-tools', '/direct-attainment', '/indirect-attainment',
+            '/po-pso-attainment', '/report-verification', '/attainment-backtracking',
+            '/stress-create', '/stress-report', '/view-reports', '/stress-survey-report',
+            '/view-cis-entries'
+        ];
+
+        if (fullContextPages.includes(path)) {
+            return ['dept', 'scheme', 'batch', 'year', 'class', 'semester', 'division'];
+        }
+
+        return []; // Default hidden
+    };
+
+    const visibleFilters = getVisibleFilters();
 
     useEffect(() => {
         const syncUser = async () => {
@@ -91,7 +140,7 @@ const Layout = ({ children, role }) => {
                 )}
 
                 <div className="dashboard-content flex-grow-1" style={{ minWidth: 0, padding: '1rem' }}>
-                    {effectiveRole !== 'ADMIN' && <GlobalFilterBar />}
+                    <GlobalFilterBar visibleFilters={visibleFilters} />
                     {children}
                 </div>
             </div>

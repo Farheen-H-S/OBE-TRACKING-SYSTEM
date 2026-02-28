@@ -123,6 +123,26 @@ export const FilterProvider = ({ children }) => {
         }
     }, [location.pathname, fetchFilters, departments.length]);
 
+    const validateContext = useCallback((requiredFields = []) => {
+        const context = {
+            dept: selectedDept,
+            scheme: selectedScheme,
+            batch: selectedBatch,
+            year: selectedYear,
+            class: selectedClass,
+            semester: selectedSemester,
+            division: selectedDivision,
+            introYear: selectedIntroYear
+        };
+
+        const missingFields = requiredFields.filter(field => !context[field] || context[field] === 'All' || context[field] === '');
+
+        return {
+            isValid: missingFields.length === 0,
+            missingFields
+        };
+    }, [selectedDept, selectedScheme, selectedBatch, selectedYear, selectedClass, selectedSemester, selectedDivision, selectedIntroYear]);
+
     return (
         <FilterContext.Provider value={{
             selectedDept, setSelectedDept,
@@ -138,7 +158,8 @@ export const FilterProvider = ({ children }) => {
             batches,
             years,
             schemes,
-            loadingFilters
+            loadingFilters,
+            validateContext
         }}>
             {children}
         </FilterContext.Provider>

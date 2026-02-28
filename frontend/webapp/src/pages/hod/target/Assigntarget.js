@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../utils/axios';
 import './Assigntarget.css';
 import { Modal, Button, Form } from 'react-bootstrap';
+import { BsFileEarmarkExcelFill } from 'react-icons/bs';
 import { useFilters } from '../../../context/FilterContext';
 
 const Assigntarget = () => {
@@ -12,8 +13,12 @@ const Assigntarget = () => {
     selectedBatch,
     selectedClass,
     selectedSemester: selectedSem,
-    loadingFilters
+    loadingFilters,
+    validateContext
   } = useFilters();
+
+  const requiredFields = ['dept', 'year'];
+  const { isValid, missingFields } = validateContext(requiredFields);
 
   const [courses, setCourses] = useState([]);
   const [pos, setPos] = useState([]);
@@ -334,17 +339,28 @@ const Assigntarget = () => {
             {/* Context Filters - Handled by GlobalFilterBar */}
 
 
-            {/* Search Bar */}
-            <div className="mb-0">
-              <input
-                type="text"
-                className="form-control search-input-v2"
-                placeholder="Search course..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: '100%', borderRadius: '8px' }}
-              />
-            </div>
+            {!isValid ? (
+              <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-0">
+                <BsFileEarmarkExcelFill className="text-warning fs-3" />
+                <div>
+                  <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                  <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-0">
+                  <input
+                    type="text"
+                    className="form-control search-input-v2"
+                    placeholder="Search course..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: '100%', borderRadius: '8px' }}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {showAttainmentTables && (

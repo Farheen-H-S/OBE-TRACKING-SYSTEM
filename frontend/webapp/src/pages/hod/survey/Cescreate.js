@@ -14,8 +14,12 @@ const Cescreate = () => {
         selectedClass, setSelectedClass,
         selectedSemester, setSelectedSemester,
         selectedDivision, setSelectedDivision,
-        departments: programs, schemes
+        departments: programs, schemes,
+        validateContext
     } = useFilters();
+
+    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester', 'division'];
+    const { isValid, missingFields } = validateContext(requiredFields);
 
     // Dynamic years list
     const years = [];
@@ -484,162 +488,134 @@ const Cescreate = () => {
                         </div>
                     )}
 
-                    <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
-                        <div className="row g-3">
-                            <div className="col-md">
-                                <label className="filter-label">BATCH</label>
-                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="filter-label">ACADEMIC YEAR</label>
-                                <select className="form-select filter-select" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="filter-label">CLASS</label>
-                                <select className="form-select filter-select" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
-                                    <option value="All">All Classes</option>
-                                    <option value="FY">FY</option>
-                                    <option value="SY">SY</option>
-                                    <option value="TY">TY</option>
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="filter-label">DIV</label>
-                                <select className="form-select filter-select" value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {['A', 'B', 'C', 'D'].map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="filter-label">SEM</label>
-                                <select className="form-select filter-select" value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {semesterOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                    {!isValid ? (
+                        <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+                            <FaExclamationCircle className="text-warning fs-3" />
+                            <div>
+                                <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                                <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
                             </div>
                         </div>
-                        <div className="search-bar-row mt-4">
-                            <input
-                                type="text"
-                                className="form-control search-input-pill"
-                                placeholder="Search course by code, name, title or abbreviation..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="search-bar-row mb-4">
+                                <input
+                                    type="text"
+                                    className="form-control search-input-pill"
+                                    placeholder="Search course by code, name, title or abbreviation..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
 
-                    <h5 className="fw-bold text-dark mb-4 d-flex align-items-center justify-content-between">
-                        Question Sets
-                        <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => setShowActiveModal(true)}
-                        >
-                            View All Active Surveys
-                        </button>
-                    </h5>
+                            <h5 className="fw-bold text-dark mb-4 d-flex align-items-center justify-content-between">
+                                Question Sets
+                                <button
+                                    className="btn btn-sm btn-outline-secondary"
+                                    onClick={() => setShowActiveModal(true)}
+                                >
+                                    View All Active Surveys
+                                </button>
+                            </h5>
 
-                    <div className="course-sets-container">
-                        {coursesLoading ? (
-                            <div className="text-center py-5"><div className="spinner-border text-primary"></div></div>
-                        ) : filteredCourses.length > 0 ? (
-                            filteredCourses.map(course => (
-                                <div key={course.course_id} className="course-detail-card mb-4 border rounded p-4 shadow-sm bg-white">
-                                    <div className="d-flex justify-content-between align-items-start mb-2">
-                                        <div className="course-header-left">
-                                            <h3 className="course-main-code fw-bold mb-0">{course.course_code}</h3>
-                                            <p className="text-muted small mb-2">{course.course_name}</p>
-                                            <div className="course-info-row d-flex gap-4">
-                                                <p className="mb-0 small fw-bold">Scheme: <span className="text-dark fw-semibold ms-1">{schemes.find(s => s.scheme_id === course.scheme_id)?.scheme_name || '--'}</span></p>
-                                                <p className="mb-0 small fw-bold">Faculty: <span className="text-dark fw-semibold ms-1">{course.faculty_assigned_name || 'Not Assigned'}</span></p>
-                                            </div>
-                                        </div>
-                                        <div className="course-header-right">
-                                            <span className={`status-badge-compact ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'approved' : surveyStates[course.course_id]?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
-                                                {surveyStates[course.course_id]?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
-                                                {surveyStates[course.course_id]?.status || 'DRAFT'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {!showStats[course.course_id] ? (
-                                        <div className="questions-section mt-3 pt-3 border-top">
-                                            <h6 className="uppercase small fw-bold text-secondary mb-3">QUESTIONS:</h6>
-                                            <div className="questions-list">
-                                                {courseCos[course.course_id]?.map((co, idx) => (
-                                                    <div key={co.co_id} className="question-item mb-2 d-flex gap-3">
-                                                        {editingCourseId === course.course_id ? (
-                                                            <div className="w-100 d-flex gap-2">
-                                                                <span className="fw-bold text-primary">Q{idx + 1}</span>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-control form-control-sm"
-                                                                    value={tempQuestions[course.course_id]?.[idx] || ''}
-                                                                    onChange={(e) => handleQuestionChange(course.course_id, idx, e.target.value)}
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            <span className="question-text text-dark">{formatQuestion(co.description, co.co_number, course.course_code, idx, course)}</span>
-                                                        )}
+                            <div className="course-sets-container">
+                                {coursesLoading ? (
+                                    <div className="text-center py-5"><div className="spinner-border text-primary"></div></div>
+                                ) : filteredCourses.length > 0 ? (
+                                    filteredCourses.map(course => (
+                                        <div key={course.course_id} className="course-detail-card mb-4 border rounded p-4 shadow-sm bg-white">
+                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                                <div className="course-header-left">
+                                                    <h3 className="course-main-code fw-bold mb-0">{course.course_code}</h3>
+                                                    <p className="text-muted small mb-2">{course.course_name}</p>
+                                                    <div className="course-info-row d-flex gap-4">
+                                                        <p className="mb-0 small fw-bold">Scheme: <span className="text-dark fw-semibold ms-1">{schemes.find(s => s.scheme_id === course.scheme_id)?.scheme_name || '--'}</span></p>
+                                                        <p className="mb-0 small fw-bold">Faculty: <span className="text-dark fw-semibold ms-1">{course.faculty_assigned_name || 'Not Assigned'}</span></p>
                                                     </div>
-                                                ))}
+                                                </div>
+                                                <div className="course-header-right">
+                                                    <span className={`status-badge-compact ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'approved' : surveyStates[course.course_id]?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
+                                                        {surveyStates[course.course_id]?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
+                                                        {surveyStates[course.course_id]?.status || 'DRAFT'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {!showStats[course.course_id] ? (
+                                                <div className="questions-section mt-3 pt-3 border-top">
+                                                    <h6 className="uppercase small fw-bold text-secondary mb-3">QUESTIONS:</h6>
+                                                    <div className="questions-list">
+                                                        {courseCos[course.course_id]?.map((co, idx) => (
+                                                            <div key={co.co_id} className="question-item mb-2 d-flex gap-3">
+                                                                {editingCourseId === course.course_id ? (
+                                                                    <div className="w-100 d-flex gap-2">
+                                                                        <span className="fw-bold text-primary">Q{idx + 1}</span>
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control form-control-sm"
+                                                                            value={tempQuestions[course.course_id]?.[idx] || ''}
+                                                                            onChange={(e) => handleQuestionChange(course.course_id, idx, e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="question-text text-dark">{formatQuestion(co.description, co.co_number, course.course_code, idx, course)}</span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <ResponseTable courseId={course.course_id} surveyId={surveyStates[course.course_id]?.survey_id} />
+                                            )}
+
+                                            <div className="action-row mt-4 d-flex align-items-center gap-3">
+                                                {(surveyStates[course.course_id]?.status === 'APPROVED' || surveyStates[course.course_id]?.status === 'CLOSED') && (
+                                                    <button
+                                                        className="btn btn-sm btn-info text-white"
+                                                        onClick={() => {
+                                                            const isShowing = !showStats[course.course_id];
+                                                            setShowStats(prev => ({ ...prev, [course.course_id]: isShowing }));
+                                                            if (isShowing) fetchResponses(course.course_id, surveyStates[course.course_id].survey_id);
+                                                        }}
+                                                    >
+                                                        {showStats[course.course_id] ? 'Show Questions' : 'Show Statistics'}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className={`btn btn-outline-primary btn-sm px-4 ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'disabled' : ''}`}
+                                                    onClick={() => handleEditToggle(course.course_id, courseCos[course.course_id])}
+                                                    disabled={surveyStates[course.course_id]?.status === 'APPROVED'}
+                                                >
+                                                    {editingCourseId === course.course_id ? 'Save' : 'Edit'}
+                                                </button>
+                                                <select
+                                                    className="form-select form-select-sm w-auto"
+                                                    value={surveyStates[course.course_id]?.duration || '7'}
+                                                    onChange={(e) => handleDurationChange(course.course_id, e.target.value)}
+                                                    disabled={surveyStates[course.course_id]?.status === 'APPROVED'}
+                                                >
+                                                    <option value="3">3 Days</option>
+                                                    <option value="7">7 Days</option>
+                                                    <option value="15">15 Days</option>
+                                                </select>
+                                                <button
+                                                    className={`btn btn-sm px-5 ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
+                                                    onClick={() => handleApprove(course.course_id, course.course_name, course.course_code)}
+                                                >
+                                                    {surveyStates[course.course_id]?.status === 'APPROVED' ? 'Close Early' : 'Approve'}
+                                                </button>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <ResponseTable courseId={course.course_id} surveyId={surveyStates[course.course_id]?.survey_id} />
-                                    )}
-
-                                    <div className="action-row mt-4 d-flex align-items-center gap-3">
-                                        {(surveyStates[course.course_id]?.status === 'APPROVED' || surveyStates[course.course_id]?.status === 'CLOSED') && (
-                                            <button
-                                                className="btn btn-sm btn-info text-white"
-                                                onClick={() => {
-                                                    const isShowing = !showStats[course.course_id];
-                                                    setShowStats(prev => ({ ...prev, [course.course_id]: isShowing }));
-                                                    if (isShowing) fetchResponses(course.course_id, surveyStates[course.course_id].survey_id);
-                                                }}
-                                            >
-                                                {showStats[course.course_id] ? 'Show Questions' : 'Show Statistics'}
-                                            </button>
-                                        )}
-                                        <button
-                                            className={`btn btn-outline-primary btn-sm px-4 ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'disabled' : ''}`}
-                                            onClick={() => handleEditToggle(course.course_id, courseCos[course.course_id])}
-                                            disabled={surveyStates[course.course_id]?.status === 'APPROVED'}
-                                        >
-                                            {editingCourseId === course.course_id ? 'Save' : 'Edit'}
-                                        </button>
-                                        <select
-                                            className="form-select form-select-sm w-auto"
-                                            value={surveyStates[course.course_id]?.duration || '7'}
-                                            onChange={(e) => handleDurationChange(course.course_id, e.target.value)}
-                                            disabled={surveyStates[course.course_id]?.status === 'APPROVED'}
-                                        >
-                                            <option value="3">3 Days</option>
-                                            <option value="7">7 Days</option>
-                                            <option value="15">15 Days</option>
-                                        </select>
-                                        <button
-                                            className={`btn btn-sm px-5 ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
-                                            onClick={() => handleApprove(course.course_id, course.course_name, course.course_code)}
-                                        >
-                                            {surveyStates[course.course_id]?.status === 'APPROVED' ? 'Close Early' : 'Approve'}
-                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="empty-state text-center py-5 rounded bg-light border-dashed">
+                                        <FaExclamationCircle className="text-muted mb-3" size={30} />
+                                        <h6>No courses found for selected filters</h6>
                                     </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="empty-state text-center py-5 rounded bg-light border-dashed">
-                                <FaExclamationCircle className="text-muted mb-3" size={30} />
-                                <h6>No courses found for selected filters</h6>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

@@ -221,14 +221,14 @@ const Addcourse = () => {
                 }
             }
 
-            // Program and Scheme from context
+            // Use local form data for program and scheme
             const payload = {
                 course_code: formData.courseCode,
                 course_name: formData.courseAbbr ? `${formData.courseAbbr}-${formData.course_name_suffix}` : formData.course_name_suffix,
                 course_title: formData.courseTitle,
                 course_abbr: formData.courseAbbr,
-                scheme_id: selectedScheme,
-                program_id: selectedDept,
+                scheme_id: formData.scheme,
+                program_id: formData.program_id,
                 class_year: formData.class,
                 semester: formData.semester,
                 faculty_assigned: formData.faculty,
@@ -292,7 +292,36 @@ const Addcourse = () => {
 
                         <form onSubmit={handleSave}>
                             <div className="row g-4">
-                                {/* Department and Scheme removed from form as they are global */}
+                                <div className="col-md-6">
+                                    <label className="form-label fw-bold">Department</label>
+                                    <select
+                                        className="form-select"
+                                        name="program_id"
+                                        value={formData.program_id}
+                                        onChange={handleChange}
+                                        disabled={isViewMode}
+                                    >
+                                        <option value="">Select Department</option>
+                                        {programs.map(p => (
+                                            <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-md-6">
+                                    <label className="form-label fw-bold">Scheme</label>
+                                    <select
+                                        className="form-select"
+                                        name="scheme"
+                                        value={formData.scheme}
+                                        onChange={handleChange}
+                                        disabled={isViewMode}
+                                    >
+                                        <option value="">Select Scheme</option>
+                                        {schemes.map(s => (
+                                            <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
                                 <div className="col-md-4">
                                     <label className="form-label fw-bold">Course Code</label>

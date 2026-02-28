@@ -29,8 +29,12 @@ const Cisentry = () => {
     departments: programs,
     schemes,
     years,
-    batches
+    batches,
+    validateContext
   } = useFilters();
+
+  const requiredFields = ['dept', 'scheme', 'batch', 'year', 'class', 'semester', 'division'];
+  const { isValid, missingFields } = validateContext(requiredFields);
 
   const selectedYear = selectedAcademicYear; // Alias for compatibility
   const selectedIntroYear = selectedScheme;   // Alias for compatibility
@@ -1424,625 +1428,638 @@ const Cisentry = () => {
 
   return (
     <div className="p-4" style={{ backgroundColor: '#f0f8ff', minHeight: '100vh' }}>
-      {/* Card 1: Search and Info */}
-      <div className="bg-white p-4 rounded shadow-sm mb-4">
-        <div className="search-section bg-light p-3 rounded shadow-sm" style={{ border: '1px solid #adcaf8' }}>
-          <div className="row g-3">
-            <div className="col-md-12">
-              <div className="search-container-v2 position-relative">
-                <input
-                  type="text"
-                  placeholder="Search course by name or code..."
-                  className="form-control border-primary-subtle py-2 ps-4 rounded-pill"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
-                />
-                {searchTerm && (
-                  <div className="search-results-overlay shadow border rounded mt-1 bg-white" style={{ position: 'absolute', zIndex: 1000, width: '100%', maxHeight: '300px', overflowY: 'auto' }}>
-                    {allCourses
-                      .filter(c =>
-                        (c.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.course_code.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                        !['TEST101', 'CS101'].includes(c.course_code)
-                      )
-                      .slice(0, 10)
-                      .map(c => (
-                        <div
+      {!isValid && (
+        <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+          <FaExclamationCircle className="text-warning fs-3" />
+          <div>
+            <h5 className="fw-bold mb-1">Academic Context Required</h5>
+            <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
+          </div>
+        </div>
+      )}
+
+      {isValid && (
+        <>
+          {/* Card 1: Search and Info */}
+          <div className="bg-white p-4 rounded shadow-sm mb-4">
+            <div className="search-section bg-light p-3 rounded shadow-sm" style={{ border: '1px solid #adcaf8' }}>
+              <div className="row g-3">
+                <div className="col-md-12">
+                  <div className="search-container-v2 position-relative">
+                    <input
+                      type="text"
+                      placeholder="Search course by name or code..."
+                      className="form-control border-primary-subtle py-2 ps-4 rounded-pill"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
+                    />
+                    {searchTerm && (
+                      <div className="search-results-overlay shadow border rounded mt-1 bg-white" style={{ position: 'absolute', zIndex: 1000, width: '100%', maxHeight: '300px', overflowY: 'auto' }}>
+                        {allCourses
+                          .filter(c =>
+                            (c.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              c.course_code.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                            !['TEST101', 'CS101'].includes(c.course_code)
+                          )
+                          .slice(0, 10)
+                          .map(c => (
+                            <div
+                              key={c.course_id}
+                              className="p-3 border-bottom search-result-item hover-bg-light cursor-pointer text-start"
+                              onClick={() => handleCourseClick(c.course_id)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <span className="fw-bold text-primary">{c.course_code}</span> - {c.course_name}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {selectedCourse && (
+              <div className="mt-4 p-3 rounded text-start" style={{ backgroundColor: '#f8fbff', border: '1px solid #adcaf8' }}>
+                <h5 className="small fw-bold text-primary text-uppercase mb-3" style={{ letterSpacing: '1px' }}>Course Outcome (CO) Statements</h5>
+                <div className="row g-3">
+                  {courseOutcomes.length > 0 ? (
+                    courseOutcomes.map((co, idx) => (
+                      <div key={idx} className="col-md-12 d-flex gap-3">
+                        <span className="badge rounded-pill bg-primary d-flex align-items-center justify-content-center" style={{ width: 'auto', minWidth: '80px', height: '28px', padding: '0 12px', fontSize: '13px' }}>
+                          {formatCO(co.co_number)}
+                        </span>
+                        <p className="mb-0 small text-muted" style={{ lineHeight: '1.5' }}>{co.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="small text-muted mb-0 ms-3">No Course Outcomes defined for this course.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!selectedCourse ? (
+            <div className="bg-white p-4 rounded shadow-sm">
+              <h5 className="mb-4 fw-bold text-secondary border-bottom pb-2 text-start">Courses matching filters:</h5>
+              <div className="table-responsive">
+                <table className="table table-hover border align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th className="text-start ps-3">CODE</th>
+                      <th className="text-start">NAME</th>
+                      <th className="text-start">TITLE</th>
+                      <th>ABBR.</th>
+                      <th>SCHEME</th>
+                      <th>CO STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coursesLoading ? (
+                      <tr><td colSpan="6" className="text-center py-5"><div className="spinner-border text-primary" role="status"></div><div className="mt-2 text-muted fw-bold">Loading courses...</div></td></tr>
+                    ) : courses.length > 0 ? (
+                      courses.map(c => (
+                        <tr
                           key={c.course_id}
-                          className="p-3 border-bottom search-result-item hover-bg-light cursor-pointer text-start"
                           onClick={() => handleCourseClick(c.course_id)}
+                          className="cursor-pointer hover-bg-light"
                           style={{ cursor: 'pointer' }}
                         >
-                          <span className="fw-bold text-primary">{c.course_code}</span> - {c.course_name}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {selectedCourse && (
-          <div className="mt-4 p-3 rounded text-start" style={{ backgroundColor: '#f8fbff', border: '1px solid #adcaf8' }}>
-            <h5 className="small fw-bold text-primary text-uppercase mb-3" style={{ letterSpacing: '1px' }}>Course Outcome (CO) Statements</h5>
-            <div className="row g-3">
-              {courseOutcomes.length > 0 ? (
-                courseOutcomes.map((co, idx) => (
-                  <div key={idx} className="col-md-12 d-flex gap-3">
-                    <span className="badge rounded-pill bg-primary d-flex align-items-center justify-content-center" style={{ width: 'auto', minWidth: '80px', height: '28px', padding: '0 12px', fontSize: '13px' }}>
-                      {formatCO(co.co_number)}
-                    </span>
-                    <p className="mb-0 small text-muted" style={{ lineHeight: '1.5' }}>{co.description}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="small text-muted mb-0 ms-3">No Course Outcomes defined for this course.</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {!selectedCourse ? (
-        <div className="bg-white p-4 rounded shadow-sm">
-          <h5 className="mb-4 fw-bold text-secondary border-bottom pb-2 text-start">Courses matching filters:</h5>
-          <div className="table-responsive">
-            <table className="table table-hover border align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th className="text-start ps-3">CODE</th>
-                  <th className="text-start">NAME</th>
-                  <th className="text-start">TITLE</th>
-                  <th>ABBR.</th>
-                  <th>SCHEME</th>
-                  <th>CO STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {coursesLoading ? (
-                  <tr><td colSpan="6" className="text-center py-5"><div className="spinner-border text-primary" role="status"></div><div className="mt-2 text-muted fw-bold">Loading courses...</div></td></tr>
-                ) : courses.length > 0 ? (
-                  courses.map(c => (
-                    <tr
-                      key={c.course_id}
-                      onClick={() => handleCourseClick(c.course_id)}
-                      className="cursor-pointer hover-bg-light"
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td className="fw-bold text-primary text-start ps-3">{c.course_code}</td>
-                      <td className="text-start">{c.course_name}</td>
-                      <td className="small text-start">{c.course_title}</td>
-                      <td>{c.course_abbr}</td>
-                      <td>{schemes.find(s => s.scheme_id === c.scheme_id)?.scheme_name || "-"}</td>
-                      <td>
-                        <span className={`badge ${c.co_status?.toLowerCase() === 'completed' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}`}>
-                          {c.co_status || 'PENDING'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan="6" className="text-center py-5 text-muted">No courses found matching selected filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Card 2: Section Header & Tool Selection */}
-          <div className="bg-white p-4 rounded shadow-sm mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-              <div className="text-start">
-                <h5 className="fw-bold m-0" style={{ color: '#1a237e' }}>
-                  Course: <span className="text-primary">{allCourses.find(c => c.course_id === parseInt(selectedCourse))?.course_code} - {allCourses.find(c => c.course_id === parseInt(selectedCourse))?.course_name}</span>
-                </h5>
-                <p className="small text-muted mb-0">Select tool and enter marks below</p>
-              </div>
-              <button
-                className="btn btn-outline-secondary btn-sm fw-bold d-flex align-items-center gap-1 shadow-sm px-3"
-                onClick={() => setSelectedCourse('')}
-                style={{ borderRadius: '20px' }}
-              >
-                Back to Course List
-              </button>
-            </div>
-
-            <h2 className="text-center mb-4 section-title" style={{ color: '#2c3e50', fontWeight: 'bold', fontSize: 26 }}>
-              CIS Assessment - Marks Entry
-            </h2>
-
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 bg-light p-3 rounded shadow-sm border">
-              <div className="d-flex gap-2 bg-white p-1 rounded border shadow-sm">
-                <button
-                  className={`btn btn-sm px-4 py-2 fw-bold transition-all ${assessmentType === 'Internal' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
-                  onClick={() => handleAssessmentTypeChange('Internal')}
-                  style={{ borderRadius: '5px' }}
-                >
-                  Internal
-                </button>
-                <button
-                  className={`btn btn-sm px-4 py-2 fw-bold transition-all ${assessmentType === 'External' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
-                  onClick={() => handleAssessmentTypeChange('External')}
-                  style={{ borderRadius: '5px' }}
-                >
-                  External
-                </button>
-              </div>
-
-              <div className="d-flex align-items-end gap-3 text-start" style={{ width: '100%', maxWidth: '550px' }}>
-                <div className="flex-grow-1">
-                  <label className="form-label fw-bold mb-1 text-muted small text-uppercase" style={{ color: '#2c3e50', letterSpacing: '0.5px' }}>
-                    Select Assessment Tool
-                  </label>
-                  <select
-                    className="form-select shadow-sm"
-                    value={selectedTool}
-                    onChange={(e) => setSelectedTool(e.target.value)}
-                    style={{ borderRadius: '6px', border: '1px solid #dee2e6' }}
-                  >
-                    {toolOptions[assessmentType].map(tool => (
-                      <option key={tool.value} value={tool.value}>{tool.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <input
-                  type="file"
-                  accept=".csv, .xlsx, .xls"
-                  ref={bulkUploadRef}
-                  onChange={handleBulkUpload}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  className="btn btn-outline-primary fw-bold d-flex align-items-center gap-2 shadow-sm"
-                  style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '6px' }}
-                  onClick={() => bulkUploadRef.current.click()}
-                >
-                  <FaCloudUploadAlt /> Bulk Upload
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Table and Actions */}
-          <div className="bg-white p-4 rounded shadow-sm">
-            {(selectedTool === 'FA-TH-CT1' || selectedTool === 'FA-TH-CT2') && (
-              <>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>{selectedTool === 'FA-TH-CT1' ? 'Class Test 1 (FA-TH)' : 'Class Test 2 (FA-TH)'}</h4>
-                  <div className="d-flex align-items-center gap-4 pe-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
-                      <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
-                    </div>
-                    {viewMode !== 'view' && (
-                      <div className="d-flex gap-2 align-items-center border-start ps-3">
-                        <FaPlus
-                          className="text-success cursor-pointer hover-opacity"
-                          onClick={addColumn}
-                          style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
-                          title="Add Column"
-                        />
-                        <FaMinus
-                          className="text-danger cursor-pointer hover-opacity"
-                          onClick={removeColumn}
-                          style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
-                          title="Remove Column"
-                        />
-                      </div>
+                          <td className="fw-bold text-primary text-start ps-3">{c.course_code}</td>
+                          <td className="text-start">{c.course_name}</td>
+                          <td className="small text-start">{c.course_title}</td>
+                          <td>{c.course_abbr}</td>
+                          <td>{schemes.find(s => s.scheme_id === c.scheme_id)?.scheme_name || "-"}</td>
+                          <td>
+                            <span className={`badge ${c.co_status?.toLowerCase() === 'completed' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}`}>
+                              {c.co_status || 'PENDING'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="6" className="text-center py-5 text-muted">No courses found matching selected filters.</td></tr>
                     )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Card 2: Section Header & Tool Selection */}
+              <div className="bg-white p-4 rounded shadow-sm mb-4">
+                <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                  <div className="text-start">
+                    <h5 className="fw-bold m-0" style={{ color: '#1a237e' }}>
+                      Course: <span className="text-primary">{allCourses.find(c => c.course_id === parseInt(selectedCourse))?.course_code} - {allCourses.find(c => c.course_id === parseInt(selectedCourse))?.course_name}</span>
+                    </h5>
+                    <p className="small text-muted mb-0">Select tool and enter marks below</p>
                   </div>
+                  <button
+                    className="btn btn-outline-secondary btn-sm fw-bold d-flex align-items-center gap-1 shadow-sm px-3"
+                    onClick={() => setSelectedCourse('')}
+                    style={{ borderRadius: '20px' }}
+                  >
+                    Back to Course List
+                  </button>
                 </div>
 
-                <div className="table-responsive cis-table-container">
-                  <table className="table table-bordered cis-table text-center align-middle mb-0">
-                    {renderTableHeaders(selectedTool)}
-                    <tbody>
-                      {students.map((student, rowIndex) => (
-                        <tr key={rowIndex}>
-                          <td className="bg-light">{student.enrollment_no}</td>
-                          <td className="bg-light">{student.roll_no}</td>
-                          <td className="text-start ps-3 bg-light">{student.name}</td>
-                          <td className="blue-col-cell" style={{ backgroundColor: '#6c8ebf' }}></td>
-                          {questions.map((_, colIndex) => (
-                            <td key={colIndex} className="p-0">
-                              {viewMode === 'view' ? (
-                                <div className="p-2 text-center fw-bold" style={{ backgroundColor: isMarkExcluded(student.enrollment_no, colIndex) ? '#ffcccc' : 'transparent' }}>
-                                  {marksData[student.enrollment_no]?.[colIndex] || '-'}
-                                </div>
-                              ) : (
+                <h2 className="text-center mb-4 section-title" style={{ color: '#2c3e50', fontWeight: 'bold', fontSize: 26 }}>
+                  CIS Assessment - Marks Entry
+                </h2>
+
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 bg-light p-3 rounded shadow-sm border">
+                  <div className="d-flex gap-2 bg-white p-1 rounded border shadow-sm">
+                    <button
+                      className={`btn btn-sm px-4 py-2 fw-bold transition-all ${assessmentType === 'Internal' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
+                      onClick={() => handleAssessmentTypeChange('Internal')}
+                      style={{ borderRadius: '5px' }}
+                    >
+                      Internal
+                    </button>
+                    <button
+                      className={`btn btn-sm px-4 py-2 fw-bold transition-all ${assessmentType === 'External' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
+                      onClick={() => handleAssessmentTypeChange('External')}
+                      style={{ borderRadius: '5px' }}
+                    >
+                      External
+                    </button>
+                  </div>
+
+                  <div className="d-flex align-items-end gap-3 text-start" style={{ width: '100%', maxWidth: '550px' }}>
+                    <div className="flex-grow-1">
+                      <label className="form-label fw-bold mb-1 text-muted small text-uppercase" style={{ color: '#2c3e50', letterSpacing: '0.5px' }}>
+                        Select Assessment Tool
+                      </label>
+                      <select
+                        className="form-select shadow-sm"
+                        value={selectedTool}
+                        onChange={(e) => setSelectedTool(e.target.value)}
+                        style={{ borderRadius: '6px', border: '1px solid #dee2e6' }}
+                      >
+                        {toolOptions[assessmentType].map(tool => (
+                          <option key={tool.value} value={tool.value}>{tool.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <input
+                      type="file"
+                      accept=".csv, .xlsx, .xls"
+                      ref={bulkUploadRef}
+                      onChange={handleBulkUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      className="btn btn-outline-primary fw-bold d-flex align-items-center gap-2 shadow-sm"
+                      style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '6px' }}
+                      onClick={() => bulkUploadRef.current.click()}
+                    >
+                      <FaCloudUploadAlt /> Bulk Upload
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Table and Actions */}
+              <div className="bg-white p-4 rounded shadow-sm">
+                {(selectedTool === 'FA-TH-CT1' || selectedTool === 'FA-TH-CT2') && (
+                  <>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>{selectedTool === 'FA-TH-CT1' ? 'Class Test 1 (FA-TH)' : 'Class Test 2 (FA-TH)'}</h4>
+                      <div className="d-flex align-items-center gap-4 pe-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
+                          <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                        </div>
+                        {viewMode !== 'view' && (
+                          <div className="d-flex gap-2 align-items-center border-start ps-3">
+                            <FaPlus
+                              className="text-success cursor-pointer hover-opacity"
+                              onClick={addColumn}
+                              style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
+                              title="Add Column"
+                            />
+                            <FaMinus
+                              className="text-danger cursor-pointer hover-opacity"
+                              onClick={removeColumn}
+                              style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
+                              title="Remove Column"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="table-responsive cis-table-container">
+                      <table className="table table-bordered cis-table text-center align-middle mb-0">
+                        {renderTableHeaders(selectedTool)}
+                        <tbody>
+                          {students.map((student, rowIndex) => (
+                            <tr key={rowIndex}>
+                              <td className="bg-light">{student.enrollment_no}</td>
+                              <td className="bg-light">{student.roll_no}</td>
+                              <td className="text-start ps-3 bg-light">{student.name}</td>
+                              <td className="blue-col-cell" style={{ backgroundColor: '#6c8ebf' }}></td>
+                              {questions.map((_, colIndex) => (
+                                <td key={colIndex} className="p-0">
+                                  {viewMode === 'view' ? (
+                                    <div className="p-2 text-center fw-bold" style={{ backgroundColor: isMarkExcluded(student.enrollment_no, colIndex) ? '#ffcccc' : 'transparent' }}>
+                                      {marksData[student.enrollment_no]?.[colIndex] || '-'}
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      className="form-control border-0 text-center table-input shadow-none"
+                                      style={{ borderRadius: 0, backgroundColor: isMarkExcluded(student.enrollment_no, colIndex) ? '#ffcccc' : 'transparent' }}
+                                      value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                      data-type="mark"
+                                      data-row={rowIndex}
+                                      data-col={colIndex}
+                                      onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
+                                      onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
+                                    />
+                                  )}
+                                </td>
+                              ))}
+                              <td className="bg-light"></td>
+                              <td className="p-0" style={{ backgroundColor: '#f0f7ff' }}>
                                 <input
                                   type="text"
-                                  className="form-control border-0 text-center table-input shadow-none"
-                                  style={{ borderRadius: 0, backgroundColor: isMarkExcluded(student.enrollment_no, colIndex) ? '#ffcccc' : 'transparent' }}
-                                  value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                  className="form-control border-0 text-center table-input shadow-none bg-transparent fw-bold"
+                                  style={{ borderRadius: 0 }}
+                                  value={marksData[student.enrollment_no]?.['total'] || ''}
+                                  readOnly
+                                />
+                              </td>
+                            </tr>
+                          ))}
+
+                          {/* Attainment Footer */}
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Number of students appeared</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.appeared.map((val, i) => (
+                              <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}</td>
+                            ))}
+                            <td colSpan="2" style={{ backgroundColor: '#e9f2fb' }}></td>
+                          </tr>
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Number of Students getting equal and more than average</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.equalOrMoreAvg.map((val, i) => (
+                              <td key={i} className="fw-bold small" style={{ backgroundColor: '#cfe2f3' }}>{val}</td>
+                            ))}
+                            <td colSpan="2" style={{ backgroundColor: '#cfe2f3' }}></td>
+                          </tr>
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student scored more than average</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.percentMoreAvg.map((val, i) => (
+                              <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>
+                            ))}
+                            <td colSpan="2" style={{ backgroundColor: '#e9f2fb' }}></td>
+                          </tr>
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.coAttainment.map((val, i) => {
+                              const percent = parseFloat(val);
+                              let level = 0.00;
+                              if (percent >= 80) level = 3.00;
+                              else if (percent >= 76) level = 2.75;
+                              else if (percent >= 71) level = 2.50;
+                              else if (percent >= 66) level = 2.25;
+                              else if (percent >= 61) level = 2.00;
+                              else if (percent >= 56) level = 1.75;
+                              else if (percent >= 51) level = 1.50;
+                              else if (percent >= 46) level = 1.25;
+                              else if (percent >= 20) level = 1.00;
+
+                              return (
+                                <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
+                                  {level.toFixed(2)} ({val}%)
+                                </td>
+                              );
+                            })}
+                            <td colSpan="2" style={{ backgroundColor: '#b4c7e7' }}></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    {renderActionFooter()}
+                  </>
+                )}
+
+                {(selectedTool === 'SLA' || selectedTool.startsWith('SLA-')) && (
+                  <>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>Self Learning Assessment (SLA)</h4>
+                      <div className="d-flex align-items-center gap-4 pe-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase">Max Total:</span>
+                          <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                        </div>
+                        {viewMode !== 'view' && (
+                          <div className="d-flex gap-2 align-items-center border-start ps-3">
+                            <FaPlus
+                              className="text-success cursor-pointer hover-opacity"
+                              onClick={addColumn}
+                              style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
+                              title="Add Column"
+                            />
+                            <FaMinus
+                              className="text-danger cursor-pointer hover-opacity"
+                              onClick={removeColumn}
+                              style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
+                              title="Remove Column"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="table-responsive cis-table-container">
+                      <table className="table table-bordered cis-table text-center align-middle mb-0">
+                        {renderTableHeaders('SLA')}
+                        <tbody>
+                          {students.map((student, rowIndex) => (
+                            <tr key={rowIndex}>
+                              <td>{student.enrollment_no}</td>
+                              <td>{student.roll_no}</td>
+                              <td className="text-start ps-3">{student.name}</td>
+                              <td style={{ backgroundColor: '#6c8ebf' }}></td>
+                              {questions.map((_, colIndex) => (
+                                <td key={colIndex} className="p-0">
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 text-center shadow-none text-center"
+                                    value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                    onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
+                                    readOnly={viewMode === 'view'}
+                                    data-type="mark"
+                                    data-row={rowIndex}
+                                    data-col={colIndex}
+                                    onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
+                                  />
+                                </td>
+                              ))}
+                              <td className="bg-light"></td>
+                              <td className="fw-bold" style={{ backgroundColor: '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Average Marks</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.averages.map((avg, i) => (
+                              <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{avg.toFixed(2)}</td>
+                            ))}
+                            <td colSpan="2"></td>
+                          </tr>
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.coAttainment.map((val, i) => {
+                              const percent = parseFloat(val);
+                              let level = 0.00;
+                              if (percent >= 80) level = 3.00;
+                              else if (percent >= 76) level = 2.75;
+                              else if (percent >= 71) level = 2.50;
+                              else if (percent >= 66) level = 2.25;
+                              else if (percent >= 61) level = 2.00;
+                              else if (percent >= 56) level = 1.75;
+                              else if (percent >= 51) level = 1.50;
+                              else if (percent >= 46) level = 1.25;
+                              else if (percent >= 20) level = 1.00;
+
+                              return (
+                                <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
+                                  {level.toFixed(2)} ({val}%)
+                                </td>
+                              );
+                            })}
+                            <td colSpan="2"></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    {renderActionFooter()}
+                  </>
+                )}
+
+                {selectedTool === 'FA-PR' && (
+                  <>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>FA PR (K3) - Manual Practical Assessment</h4>
+                      <div className="d-flex align-items-center gap-4 pe-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase">Max Total:</span>
+                          <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                        </div>
+                        {viewMode !== 'view' && (
+                          <div className="d-flex gap-2 align-items-center border-start ps-3">
+                            <FaPlus
+                              className="text-success cursor-pointer hover-opacity"
+                              onClick={addColumn}
+                              style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
+                              title="Add Column"
+                            />
+                            <FaMinus
+                              className="text-danger cursor-pointer hover-opacity"
+                              onClick={removeColumn}
+                              style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
+                              title="Remove Column"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="table-responsive cis-table-container">
+                      <table className="table table-bordered cis-table text-center align-middle mb-0">
+                        {renderTableHeaders('FA-PR')}
+                        <tbody>
+                          {students.map((student, rowIndex) => (
+                            <tr key={rowIndex}>
+                              <td>{student.enrollment_no}</td>
+                              <td>{student.roll_no}</td>
+                              <td className="text-start ps-3">{student.name}</td>
+                              <td style={{ backgroundColor: '#6c8ebf' }}></td>
+                              {questions.map((_, colIndex) => (
+                                <td key={colIndex} className="p-0">
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 text-center shadow-none text-center"
+                                    value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                    onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
+                                    readOnly={viewMode === 'view'}
+                                    data-type="mark"
+                                    data-row={rowIndex}
+                                    data-col={colIndex}
+                                    onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
+                                  />
+                                </td>
+                              ))}
+                              <td className="bg-light"></td>
+                              <td className="fw-bold" style={{ backgroundColor: '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Average Marks</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.averages.map((avg, i) => (
+                              <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{avg.toFixed(2)}</td>
+                            ))}
+                            <td colSpan="2"></td>
+                          </tr>
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.coAttainment.map((val, i) => {
+                              const percent = parseFloat(val);
+                              let level = 0.00;
+                              if (percent >= 80) level = 3.00;
+                              else if (percent >= 76) level = 2.75;
+                              else if (percent >= 71) level = 2.50;
+                              else if (percent >= 66) level = 2.25;
+                              else if (percent >= 61) level = 2.00;
+                              else if (percent >= 56) level = 1.75;
+                              else if (percent >= 51) level = 1.50;
+                              else if (percent >= 46) level = 1.25;
+                              else if (percent >= 20) level = 1.00;
+
+                              return (
+                                <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
+                                  {level.toFixed(2)} ({val}%)
+                                </td>
+                              );
+                            })}
+                            <td colSpan="2" style={{ backgroundColor: '#b4c7e7' }}></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    {renderActionFooter("Please upload practical records as evidence.")}
+                  </>
+                )}
+
+                {(selectedTool === 'SA-TH' || selectedTool === 'SA-PR') && (
+                  <>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>{selectedTool === 'SA-TH' ? 'Summative Assessment (Theory)' : 'Summative Assessment (Practical)'}</h4>
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
+                        <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                      </div>
+                    </div>
+                    <div className="table-responsive cis-table-container">
+                      <table className="table table-bordered cis-table text-center align-middle mb-0">
+                        {renderTableHeaders(selectedTool)}
+                        <tbody>
+                          {students.map((student, rowIndex) => (
+                            <tr key={rowIndex}>
+                              <td>{student.enrollment_no}</td>
+                              <td>{student.roll_no}</td>
+                              <td className="text-start ps-3">{student.name}</td>
+                              <td className="p-0">
+                                <input
+                                  type="text"
+                                  className="form-control border-0 text-center shadow-none fw-bold text-center"
+                                  value={marksData[student.enrollment_no]?.[0] || ''}
+                                  onChange={(e) => handleMarkChange(student.enrollment_no, 0, e.target.value)}
+                                  readOnly={viewMode === 'view'}
                                   data-type="mark"
                                   data-row={rowIndex}
-                                  data-col={colIndex}
-                                  onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
-                                  onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
+                                  data-col={0}
+                                  onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, 0)}
                                 />
-                              )}
-                            </td>
+                              </td>
+                            </tr>
                           ))}
-                          <td className="bg-light"></td>
-                          <td className="p-0" style={{ backgroundColor: '#f0f7ff' }}>
-                            <input
-                              type="text"
-                              className="form-control border-0 text-center table-input shadow-none bg-transparent fw-bold"
-                              style={{ borderRadius: 0 }}
-                              value={marksData[student.enrollment_no]?.['total'] || ''}
-                              readOnly
-                            />
-                          </td>
-                        </tr>
-                      ))}
-
-                      {/* Attainment Footer */}
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Number of students appeared</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.appeared.map((val, i) => (
-                          <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}</td>
-                        ))}
-                        <td colSpan="2" style={{ backgroundColor: '#e9f2fb' }}></td>
-                      </tr>
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Number of Students getting equal and more than average</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.equalOrMoreAvg.map((val, i) => (
-                          <td key={i} className="fw-bold small" style={{ backgroundColor: '#cfe2f3' }}>{val}</td>
-                        ))}
-                        <td colSpan="2" style={{ backgroundColor: '#cfe2f3' }}></td>
-                      </tr>
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student scored more than average</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.percentMoreAvg.map((val, i) => (
-                          <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>
-                        ))}
-                        <td colSpan="2" style={{ backgroundColor: '#e9f2fb' }}></td>
-                      </tr>
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.coAttainment.map((val, i) => {
-                          const percent = parseFloat(val);
-                          let level = 0.00;
-                          if (percent >= 80) level = 3.00;
-                          else if (percent >= 76) level = 2.75;
-                          else if (percent >= 71) level = 2.50;
-                          else if (percent >= 66) level = 2.25;
-                          else if (percent >= 61) level = 2.00;
-                          else if (percent >= 56) level = 1.75;
-                          else if (percent >= 51) level = 1.50;
-                          else if (percent >= 46) level = 1.25;
-                          else if (percent >= 20) level = 1.00;
-
-                          return (
-                            <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                              {level.toFixed(2)} ({val}%)
+                          <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
+                              {(() => {
+                                const val = attainmentStats.coAttainment[0] || '0.00';
+                                const percent = parseFloat(val);
+                                let level = 0.00;
+                                if (percent >= 80) level = 3.00;
+                                else if (percent >= 76) level = 2.75;
+                                else if (percent >= 71) level = 2.50;
+                                else if (percent >= 66) level = 2.25;
+                                else if (percent >= 61) level = 2.00;
+                                else if (percent >= 56) level = 1.75;
+                                else if (percent >= 51) level = 1.50;
+                                else if (percent >= 46) level = 1.25;
+                                else if (percent >= 20) level = 1.00;
+                                return `${level.toFixed(2)} (${val}%)`;
+                              })()}
                             </td>
-                          );
-                        })}
-                        <td colSpan="2" style={{ backgroundColor: '#b4c7e7' }}></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                {renderActionFooter()}
-              </>
-            )}
-
-            {(selectedTool === 'SLA' || selectedTool.startsWith('SLA-')) && (
-              <>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>Self Learning Assessment (SLA)</h4>
-                  <div className="d-flex align-items-center gap-4 pe-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="small text-muted fw-bold text-uppercase">Max Total:</span>
-                      <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
-                    {viewMode !== 'view' && (
-                      <div className="d-flex gap-2 align-items-center border-start ps-3">
-                        <FaPlus
-                          className="text-success cursor-pointer hover-opacity"
-                          onClick={addColumn}
-                          style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
-                          title="Add Column"
-                        />
-                        <FaMinus
-                          className="text-danger cursor-pointer hover-opacity"
-                          onClick={removeColumn}
-                          style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
-                          title="Remove Column"
-                        />
+                    {renderActionFooter(selectedTool === 'SA-TH' ? "Please upload 3-5 sample theory papers." : "Please upload practical exam records.")}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+
+          {showAtrModal && (
+            <div className="oit-modal-overlay">
+              <div className="oit-modal-content" style={{ maxWidth: '600px' }}>
+                <div className="oit-modal-header d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0 fw-bold">Action Taken Report (ATR) Required</h5>
+                  <button className="btn-close" onClick={() => setShowAtrModal(false)}></button>
+                </div>
+                <div className="oit-modal-body">
+                  <p className="text-danger fw-bold mb-3">
+                    <FaExclamationCircle className="me-2" />
+                    Attainment gap detected for the following Course Outcomes:
+                  </p>
+                  <div className="list-group mb-4">
+                    {pendingAtrCos.map((coNum, idx) => (
+                      <div key={idx} className="list-group-item">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <span className="fw-bold">CO {coNum}</span>
+                          <span className="badge bg-danger">Gap Detected</span>
+                        </div>
+                        <textarea
+                          className="form-control form-control-sm"
+                          placeholder="Enter proposed action for this gap..."
+                          rows="2"
+                          id={`atr-text-${coNum}`}
+                        ></textarea>
+                        <div className="text-end mt-2">
+                          <button
+                            className="btn btn-primary btn-sm"
+                            disabled={atrSubmitLoading}
+                            onClick={() => {
+                              const txt = document.getElementById(`atr-text-${coNum}`).value;
+                              if (!txt.trim()) return alert("Please enter action taken text.");
+                              submitAtr(coNum, txt);
+                            }}
+                          >
+                            {atrSubmitLoading ? 'Submitting...' : 'Submit ATR'}
+                          </button>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
+                  <p className="small text-muted">
+                    Note: A direct attainment report will be generated only after all gaps have proposed actions.
+                  </p>
                 </div>
-                <div className="table-responsive cis-table-container">
-                  <table className="table table-bordered cis-table text-center align-middle mb-0">
-                    {renderTableHeaders('SLA')}
-                    <tbody>
-                      {students.map((student, rowIndex) => (
-                        <tr key={rowIndex}>
-                          <td>{student.enrollment_no}</td>
-                          <td>{student.roll_no}</td>
-                          <td className="text-start ps-3">{student.name}</td>
-                          <td style={{ backgroundColor: '#6c8ebf' }}></td>
-                          {questions.map((_, colIndex) => (
-                            <td key={colIndex} className="p-0">
-                              <input
-                                type="text"
-                                className="form-control border-0 text-center shadow-none text-center"
-                                value={marksData[student.enrollment_no]?.[colIndex] || ''}
-                                onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
-                                readOnly={viewMode === 'view'}
-                                data-type="mark"
-                                data-row={rowIndex}
-                                data-col={colIndex}
-                                onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
-                              />
-                            </td>
-                          ))}
-                          <td className="bg-light"></td>
-                          <td className="fw-bold" style={{ backgroundColor: '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
-                        </tr>
-                      ))}
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Average Marks</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.averages.map((avg, i) => (
-                          <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{avg.toFixed(2)}</td>
-                        ))}
-                        <td colSpan="2"></td>
-                      </tr>
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.coAttainment.map((val, i) => {
-                          const percent = parseFloat(val);
-                          let level = 0.00;
-                          if (percent >= 80) level = 3.00;
-                          else if (percent >= 76) level = 2.75;
-                          else if (percent >= 71) level = 2.50;
-                          else if (percent >= 66) level = 2.25;
-                          else if (percent >= 61) level = 2.00;
-                          else if (percent >= 56) level = 1.75;
-                          else if (percent >= 51) level = 1.50;
-                          else if (percent >= 46) level = 1.25;
-                          else if (percent >= 20) level = 1.00;
-
-                          return (
-                            <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                              {level.toFixed(2)} ({val}%)
-                            </td>
-                          );
-                        })}
-                        <td colSpan="2"></td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div className="oit-modal-footer">
+                  <button className="btn btn-secondary w-100" onClick={() => setShowAtrModal(false)}>Ask me later</button>
                 </div>
-                {renderActionFooter()}
-              </>
-            )}
-
-            {selectedTool === 'FA-PR' && (
-              <>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>FA PR (K3) - Manual Practical Assessment</h4>
-                  <div className="d-flex align-items-center gap-4 pe-2">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="small text-muted fw-bold text-uppercase">Max Total:</span>
-                      <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
-                    </div>
-                    {viewMode !== 'view' && (
-                      <div className="d-flex gap-2 align-items-center border-start ps-3">
-                        <FaPlus
-                          className="text-success cursor-pointer hover-opacity"
-                          onClick={addColumn}
-                          style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
-                          title="Add Column"
-                        />
-                        <FaMinus
-                          className="text-danger cursor-pointer hover-opacity"
-                          onClick={removeColumn}
-                          style={{ fontSize: '1.2rem', transition: 'transform 0.2s' }}
-                          title="Remove Column"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="table-responsive cis-table-container">
-                  <table className="table table-bordered cis-table text-center align-middle mb-0">
-                    {renderTableHeaders('FA-PR')}
-                    <tbody>
-                      {students.map((student, rowIndex) => (
-                        <tr key={rowIndex}>
-                          <td>{student.enrollment_no}</td>
-                          <td>{student.roll_no}</td>
-                          <td className="text-start ps-3">{student.name}</td>
-                          <td style={{ backgroundColor: '#6c8ebf' }}></td>
-                          {questions.map((_, colIndex) => (
-                            <td key={colIndex} className="p-0">
-                              <input
-                                type="text"
-                                className="form-control border-0 text-center shadow-none text-center"
-                                value={marksData[student.enrollment_no]?.[colIndex] || ''}
-                                onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
-                                readOnly={viewMode === 'view'}
-                                data-type="mark"
-                                data-row={rowIndex}
-                                data-col={colIndex}
-                                onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
-                              />
-                            </td>
-                          ))}
-                          <td className="bg-light"></td>
-                          <td className="fw-bold" style={{ backgroundColor: '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
-                        </tr>
-                      ))}
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Average Marks</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.averages.map((avg, i) => (
-                          <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{avg.toFixed(2)}</td>
-                        ))}
-                        <td colSpan="2"></td>
-                      </tr>
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
-                        <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                        {attainmentStats.coAttainment.map((val, i) => {
-                          const percent = parseFloat(val);
-                          let level = 0.00;
-                          if (percent >= 80) level = 3.00;
-                          else if (percent >= 76) level = 2.75;
-                          else if (percent >= 71) level = 2.50;
-                          else if (percent >= 66) level = 2.25;
-                          else if (percent >= 61) level = 2.00;
-                          else if (percent >= 56) level = 1.75;
-                          else if (percent >= 51) level = 1.50;
-                          else if (percent >= 46) level = 1.25;
-                          else if (percent >= 20) level = 1.00;
-
-                          return (
-                            <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                              {level.toFixed(2)} ({val}%)
-                            </td>
-                          );
-                        })}
-                        <td colSpan="2" style={{ backgroundColor: '#b4c7e7' }}></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                {renderActionFooter("Please upload practical records as evidence.")}
-              </>
-            )}
-
-            {(selectedTool === 'SA-TH' || selectedTool === 'SA-PR') && (
-              <>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>{selectedTool === 'SA-TH' ? 'Summative Assessment (Theory)' : 'Summative Assessment (Practical)'}</h4>
-                  <div className="d-flex align-items-center gap-2">
-                    <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
-                    <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
-                  </div>
-                </div>
-                <div className="table-responsive cis-table-container">
-                  <table className="table table-bordered cis-table text-center align-middle mb-0">
-                    {renderTableHeaders(selectedTool)}
-                    <tbody>
-                      {students.map((student, rowIndex) => (
-                        <tr key={rowIndex}>
-                          <td>{student.enrollment_no}</td>
-                          <td>{student.roll_no}</td>
-                          <td className="text-start ps-3">{student.name}</td>
-                          <td className="p-0">
-                            <input
-                              type="text"
-                              className="form-control border-0 text-center shadow-none fw-bold text-center"
-                              value={marksData[student.enrollment_no]?.[0] || ''}
-                              onChange={(e) => handleMarkChange(student.enrollment_no, 0, e.target.value)}
-                              readOnly={viewMode === 'view'}
-                              data-type="mark"
-                              data-row={rowIndex}
-                              data-col={0}
-                              onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, 0)}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                      <tr className="bg-light">
-                        <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
-                        <td className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                          {(() => {
-                            const val = attainmentStats.coAttainment[0] || '0.00';
-                            const percent = parseFloat(val);
-                            let level = 0.00;
-                            if (percent >= 80) level = 3.00;
-                            else if (percent >= 76) level = 2.75;
-                            else if (percent >= 71) level = 2.50;
-                            else if (percent >= 66) level = 2.25;
-                            else if (percent >= 61) level = 2.00;
-                            else if (percent >= 56) level = 1.75;
-                            else if (percent >= 51) level = 1.50;
-                            else if (percent >= 46) level = 1.25;
-                            else if (percent >= 20) level = 1.00;
-                            return `${level.toFixed(2)} (${val}%)`;
-                          })()}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                {renderActionFooter(selectedTool === 'SA-TH' ? "Please upload 3-5 sample theory papers." : "Please upload practical exam records.")}
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
         </>
       )}
-
-      {showAtrModal && (
-        <div className="oit-modal-overlay">
-          <div className="oit-modal-content" style={{ maxWidth: '600px' }}>
-            <div className="oit-modal-header d-flex justify-content-between align-items-center">
-              <h5 className="mb-0 fw-bold">Action Taken Report (ATR) Required</h5>
-              <button className="btn-close" onClick={() => setShowAtrModal(false)}></button>
-            </div>
-            <div className="oit-modal-body">
-              <p className="text-danger fw-bold mb-3">
-                <FaExclamationCircle className="me-2" />
-                Attainment gap detected for the following Course Outcomes:
-              </p>
-              <div className="list-group mb-4">
-                {pendingAtrCos.map((coNum, idx) => (
-                  <div key={idx} className="list-group-item">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <span className="fw-bold">CO {coNum}</span>
-                      <span className="badge bg-danger">Gap Detected</span>
-                    </div>
-                    <textarea
-                      className="form-control form-control-sm"
-                      placeholder="Enter proposed action for this gap..."
-                      rows="2"
-                      id={`atr-text-${coNum}`}
-                    ></textarea>
-                    <div className="text-end mt-2">
-                      <button
-                        className="btn btn-primary btn-sm"
-                        disabled={atrSubmitLoading}
-                        onClick={() => {
-                          const txt = document.getElementById(`atr-text-${coNum}`).value;
-                          if (!txt.trim()) return alert("Please enter action taken text.");
-                          submitAtr(coNum, txt);
-                        }}
-                      >
-                        {atrSubmitLoading ? 'Submitting...' : 'Submit ATR'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="small text-muted">
-                Note: A direct attainment report will be generated only after all gaps have proposed actions.
-              </p>
-            </div>
-            <div className="oit-modal-footer">
-              <button className="btn btn-secondary w-100" onClick={() => setShowAtrModal(false)}>Ask me later</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-
   );
 };
 

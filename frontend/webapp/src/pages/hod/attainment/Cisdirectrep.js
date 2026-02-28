@@ -23,8 +23,12 @@ export default function Cisdirectrep() {
         selectedDivision, setSelectedDivision,
         programs: departments,
         schemes,
-        years
+        years,
+        validateContext
     } = useFilters();
+
+    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester', 'division'];
+    const { isValid, missingFields } = validateContext(requiredFields);
 
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState('');
@@ -182,161 +186,173 @@ export default function Cisdirectrep() {
                 <div className="cisdirectrep-main">
                     <div className="cisdirectrep-card">
 
-                        <div className="search-section mb-4 p-3 bg-light rounded shadow-none border">
-                            <input
-                                type="text"
-                                className="form-control search-input-v2"
-                                placeholder="Search course by code, name, title or abbreviation..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', borderRadius: '8px' }}
-                            />
-                        </div>
+                        {!isValid ? (
+                            <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+                                <BsEyeFill className="text-warning fs-3" />
+                                <div>
+                                    <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                                    <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="search-section mb-4 p-3 bg-light rounded shadow-none border">
+                                    <input
+                                        type="text"
+                                        className="form-control search-input-v2"
+                                        placeholder="Search course by code, name, title or abbreviation..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{ width: '100%', borderRadius: '8px' }}
+                                    />
+                                </div>
 
-                        <div className="d-flex justify-content-between align-items-center mb-4">
-                            <h2 className="cis-report-title m-0">CIS Report : Direct Attainment</h2>
-                        </div>
+                                <div className="d-flex justify-content-between align-items-center mb-4">
+                                    <h2 className="cis-report-title m-0">CIS Report : Direct Attainment</h2>
+                                </div>
 
-                        <div className="table-responsive">
-                            <table className="table table-bordered table-hover shadow-sm" style={{ backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' }}>
-                                <thead className="table-light">
-                                    <tr>
-                                        <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE CODE</th>
-                                        <th className="py-3 text-start" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE NAME</th>
-                                        <th className="py-3 text-start" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE TITLE</th>
-                                        <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ABBR.</th>
-                                        <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>SCHEME</th>
-                                        <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ACTION</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredCoursesDropdown.length > 0 ? (
-                                        filteredCoursesDropdown.map((c) => (
-                                            <tr key={c.course_id} style={{ verticalAlign: 'middle' }}>
-                                                <td className="text-center fw-bold text-secondary">{c.course_code}</td>
-                                                <td className="fw-bold text-dark">{c.course_name}</td>
-                                                <td className="text-secondary">{c.course_title || '-'}</td>
-                                                <td className="text-center">{c.course_abbr || '-'}</td>
-                                                <td className="text-center"><span className="badge bg-light text-dark border">{schemes.find(s => s.scheme_id === c.scheme_id)?.scheme_name || 'K'}</span></td>
-                                                <td className="text-center">
-                                                    <button
-                                                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2"
-                                                        onClick={() => handleViewAttainment(c)}
-                                                        style={{ borderRadius: '6px', fontWeight: '600' }}
-                                                    >
-                                                        <BsEyeFill size={14} />
-                                                        View
-                                                    </button>
-                                                </td>
+                                <div className="table-responsive">
+                                    <table className="table table-bordered table-hover shadow-sm" style={{ backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' }}>
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE CODE</th>
+                                                <th className="py-3 text-start" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE NAME</th>
+                                                <th className="py-3 text-start" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE TITLE</th>
+                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ABBR.</th>
+                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>SCHEME</th>
+                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ACTION</th>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="6" className="text-center py-5 text-muted">
-                                                No courses found matching the selected filters.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        </thead>
+                                        <tbody>
+                                            {filteredCoursesDropdown.length > 0 ? (
+                                                filteredCoursesDropdown.map((c) => (
+                                                    <tr key={c.course_id} style={{ verticalAlign: 'middle' }}>
+                                                        <td className="text-center fw-bold text-secondary">{c.course_code}</td>
+                                                        <td className="fw-bold text-dark">{c.course_name}</td>
+                                                        <td className="text-secondary">{c.course_title || '-'}</td>
+                                                        <td className="text-center">{c.course_abbr || '-'}</td>
+                                                        <td className="text-center"><span className="badge bg-light text-dark border">{schemes.find(s => s.scheme_id === c.scheme_id)?.scheme_name || 'K'}</span></td>
+                                                        <td className="text-center">
+                                                            <button
+                                                                className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2"
+                                                                onClick={() => handleViewAttainment(c)}
+                                                                style={{ borderRadius: '6px', fontWeight: '600' }}
+                                                            >
+                                                                <BsEyeFill size={14} />
+                                                                View
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="6" className="text-center py-5 text-muted">
+                                                        No courses found matching the selected filters.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
-            </div>
 
-            <Modal show={showPreview} onHide={() => setShowPreview(false)} size="xl" scrollable>
-                <Modal.Header closeButton className="bg-light">
-                    <Modal.Title className="text-primary fw-bold">
-                        Attainment Preview: {previewCourse?.course_name} ({previewCourse?.course_code})
-                    </Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {previewLoading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status"></div>
-                            <p className="mt-2 text-muted">Calculating attainment levels...</p>
-                        </div>
-                    ) : (
-                        <div className="preview-container">
-                            <Table bordered hover responsive className="attainment-preview-table mb-4 shadow-sm">
-                                <thead className="text-center align-middle border-bottom-2">
-                                    <tr className="bg-light">
-                                        <th rowSpan="2" style={{ minWidth: '80px', color: '#1a237e' }}>CO No.</th>
-                                        <th colSpan="2" style={{ color: '#1a237e' }}>FA-TH</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('FA-PR')}>FA-PR</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SLA')}>SLA</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SA-TH')}>SA-TH</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SA-PR')}>SA-PR</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }}>CES</th>
-                                        <th rowSpan="2" className="text-primary">Overall Att.</th>
-                                        <th rowSpan="2" style={{ color: '#1a237e' }}>Target</th>
-                                        <th rowSpan="2" className="text-danger">Gap</th>
-                                    </tr>
-                                    <tr className="bg-light header-navigable">
-                                        <th style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('CT1')}>CT1</th>
-                                        <th style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('CT2')}>CT2</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {previewData.map((item) => (
-                                        <tr key={item.co_id} className="text-center align-middle fw-semibold">
-                                            <td className="text-primary">{item.co_number.includes('.') ? item.co_number : `CO${item.co_number.replace(/[^0-9]/g, '')}`}</td>
-                                            <td className="cell-nav" onClick={() => handleToolNavigation('CT1')}>{item.tools.fa_th_1}</td>
-                                            <td className="cell-nav" onClick={() => handleToolNavigation('CT2')}>{item.tools.fa_th_2}</td>
-                                            <td className="cell-nav" onClick={() => handleToolNavigation('FA-PR')}>{item.tools.fa_pr}</td>
-                                            <td className="cell-nav" onClick={() => handleToolNavigation('SLA')}>{item.tools.sla}</td>
-                                            <td className="cell-nav" onClick={() => handleToolNavigation('SA-TH')}>{item.tools.sa_th}</td>
-                                            <td className="cell-nav" onClick={() => handleToolNavigation('SA-PR')}>{item.tools.sa_pr}</td>
-                                            <td>{item.tools.ces}</td>
-                                            <td className="fw-bold text-primary">{item.overall_attainment.toFixed(2)}</td>
-                                            <td>{item.target.toFixed(2)}</td>
-                                            <td className={`fw-bold ${item.gap > 0 ? 'text-danger' : 'text-success'}`}>
-                                                {item.gap.toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-
-                            <div className="atr-section mt-4 p-4 bg-white rounded border shadow-sm">
-                                <Form.Group>
-                                    <Form.Label className="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
-                                        <i className="bi bi-journal-text fs-5"></i>
-                                        ACTION TAKEN / PROPOSED REPORT (ATR)
-                                    </Form.Label>
-                                    <p className="text-muted small mb-3">
-                                        Optional: Provide an Action Taken Report (ATR) if gaps are detected, or if you want to propose improvements. If left blank, 'No ATR Submitted' will be recorded.
-                                    </p>
-                                    <Form.Control
-                                        as="textarea"
-                                        rows={4}
-                                        placeholder="Enter actions proposed (e.g., extra remedial classes, simplified notes...)"
-                                        value={atrInputs || ''}
-                                        onChange={(e) => setAtrInputs(e.target.value)}
-                                        className="shadow-none border-secondary-subtle"
-                                        style={{ fontSize: '15px', borderRadius: '8px' }}
-                                    />
-                                </Form.Group>
+                <Modal show={showPreview} onHide={() => setShowPreview(false)} size="xl" scrollable>
+                    <Modal.Header closeButton className="bg-light">
+                        <Modal.Title className="text-primary fw-bold">
+                            Attainment Preview: {previewCourse?.course_name} ({previewCourse?.course_code})
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {previewLoading ? (
+                            <div className="text-center py-5">
+                                <div className="spinner-border text-primary" role="status"></div>
+                                <p className="mt-2 text-muted">Calculating attainment levels...</p>
                             </div>
-                        </div>
-                    )}
-                </Modal.Body>
-                <Modal.Footer className="bg-light">
-                    <Button variant="secondary" onClick={() => setShowPreview(false)}>Close</Button>
-                    <Button
-                        variant="primary"
-                        onClick={handleGenerateReport}
-                        disabled={previewLoading || atrSaving || generatingCourseId}
-                        className="d-flex align-items-center gap-2"
-                    >
-                        {atrSaving || generatingCourseId ? (
-                            <><span className="spinner-border spinner-border-sm" role="status"></span> Processing...</>
                         ) : (
-                            <><BsDownload size={16} /> Submit & Download Report</>
+                            <div className="preview-container">
+                                <Table bordered hover responsive className="attainment-preview-table mb-4 shadow-sm">
+                                    <thead className="text-center align-middle border-bottom-2">
+                                        <tr className="bg-light">
+                                            <th rowSpan="2" style={{ minWidth: '80px', color: '#1a237e' }}>CO No.</th>
+                                            <th colSpan="2" style={{ color: '#1a237e' }}>FA-TH</th>
+                                            <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('FA-PR')}>FA-PR</th>
+                                            <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SLA')}>SLA</th>
+                                            <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SA-TH')}>SA-TH</th>
+                                            <th rowSpan="2" style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('SA-PR')}>SA-PR</th>
+                                            <th rowSpan="2" style={{ color: '#1a237e' }}>CES</th>
+                                            <th rowSpan="2" className="text-primary">Overall Att.</th>
+                                            <th rowSpan="2" style={{ color: '#1a237e' }}>Target</th>
+                                            <th rowSpan="2" className="text-danger">Gap</th>
+                                        </tr>
+                                        <tr className="bg-light header-navigable">
+                                            <th style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('CT1')}>CT1</th>
+                                            <th style={{ color: '#1a237e' }} className="tool-click" onClick={() => handleToolNavigation('CT2')}>CT2</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewData.map((item) => (
+                                            <tr key={item.co_id} className="text-center align-middle fw-semibold">
+                                                <td className="text-primary">{item.co_number.includes('.') ? item.co_number : `CO${item.co_number.replace(/[^0-9]/g, '')}`}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('CT1')}>{item.tools.fa_th_1}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('CT2')}>{item.tools.fa_th_2}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('FA-PR')}>{item.tools.fa_pr}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('SLA')}>{item.tools.sla}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('SA-TH')}>{item.tools.sa_th}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('SA-PR')}>{item.tools.sa_pr}</td>
+                                                <td>{item.tools.ces}</td>
+                                                <td className="fw-bold text-primary">{item.overall_attainment.toFixed(2)}</td>
+                                                <td>{item.target.toFixed(2)}</td>
+                                                <td className={`fw-bold ${item.gap > 0 ? 'text-danger' : 'text-success'}`}>
+                                                    {item.gap.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+
+                                <div className="atr-section mt-4 p-4 bg-white rounded border shadow-sm">
+                                    <Form.Group>
+                                        <Form.Label className="fw-bold text-primary mb-3 d-flex align-items-center gap-2">
+                                            <i className="bi bi-journal-text fs-5"></i>
+                                            ACTION TAKEN / PROPOSED REPORT (ATR)
+                                        </Form.Label>
+                                        <p className="text-muted small mb-3">
+                                            Optional: Provide an Action Taken Report (ATR) if gaps are detected, or if you want to propose improvements. If left blank, 'No ATR Submitted' will be recorded.
+                                        </p>
+                                        <Form.Control
+                                            as="textarea"
+                                            rows={4}
+                                            placeholder="Enter actions proposed (e.g., extra remedial classes, simplified notes...)"
+                                            value={atrInputs || ''}
+                                            onChange={(e) => setAtrInputs(e.target.value)}
+                                            className="shadow-none border-secondary-subtle"
+                                            style={{ fontSize: '15px', borderRadius: '8px' }}
+                                        />
+                                    </Form.Group>
+                                </div>
+                            </div>
                         )}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+                    </Modal.Body>
+                    <Modal.Footer className="bg-light">
+                        <Button variant="secondary" onClick={() => setShowPreview(false)}>Close</Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleGenerateReport}
+                            disabled={previewLoading || atrSaving || generatingCourseId}
+                            className="d-flex align-items-center gap-2"
+                        >
+                            {atrSaving || generatingCourseId ? (
+                                <><span className="spinner-border spinner-border-sm" role="status"></span> Processing...</>
+                            ) : (
+                                <><BsDownload size={16} /> Submit & Download Report</>
+                            )}
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+            </div>
         </div>
     );
 }

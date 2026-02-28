@@ -43,8 +43,13 @@ export default function IndirectAttainment() {
         selectedClass, setSelectedClass,
         selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
         programs: departments,
-        years
+        years,
+        validateContext
     } = useFilters();
+
+    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester'];
+    // Division is not always required for Indirect summary, but let's stick to the 5 key ones.
+    const { isValid, missingFields } = validateContext(requiredFields);
 
     // Survey rows derived from localStorage
     const [rows, setRows] = useState([]);
@@ -202,48 +207,60 @@ export default function IndirectAttainment() {
             <div className="indir-card">
 
 
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h2 className="indir-title mb-0">Report : Indirect Attainment</h2>
-                    <Button variant="success" onClick={handleGenerateReport} className="d-flex align-items-center gap-2">
-                        <BsFileEarmarkExcelFill size={18} /> Download Overall Report
-                    </Button>
-                </div>
-
-                {/* Charts Area */}
-                {loadingCharts ? (
-                    <div className="text-center py-5">
-                        <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Loading...</span>
+                {!isValid ? (
+                    <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+                        <BsEyeFill className="text-warning fs-3" />
+                        <div>
+                            <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                            <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
                         </div>
-                        <div className="text-muted mt-2">Loading Visualization Dashboard...</div>
                     </div>
                 ) : (
-                    attainChartData && (
-                        <div className="row g-4 mb-4">
-                            <div className="col-12">
-                                <div className="card shadow-sm h-100 border-0">
-                                    <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
-                                        <h5 className="card-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
-                                            Indirect Attainment Level
-                                        </h5>
-                                    </div>
-                                    <div className="card-body p-0" style={{ height: 350 }}>
-                                        <Chart
-                                            chartType="ColumnChart"
-                                            width="100%"
-                                            height="100%"
-                                            data={attainChartData}
-                                            options={chartOptions}
-                                        />
+                    <>
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h2 className="indir-title mb-0">Report : Indirect Attainment</h2>
+                            <Button variant="success" onClick={handleGenerateReport} className="d-flex align-items-center gap-2">
+                                <BsFileEarmarkExcelFill size={18} /> Download Overall Report
+                            </Button>
+                        </div>
+
+                        {/* Charts Area */}
+                        {loadingCharts ? (
+                            <div className="text-center py-5">
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                </div>
+                                <div className="text-muted mt-2">Loading Visualization Dashboard...</div>
+                            </div>
+                        ) : (
+                            attainChartData && (
+                                <div className="row g-4 mb-4">
+                                    <div className="col-12">
+                                        <div className="card shadow-sm h-100 border-0">
+                                            <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                                <h5 className="card-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                                                    Indirect Attainment Level
+                                                </h5>
+                                            </div>
+                                            <div className="card-body p-0" style={{ height: 350 }}>
+                                                <Chart
+                                                    chartType="ColumnChart"
+                                                    width="100%"
+                                                    height="100%"
+                                                    data={attainChartData}
+                                                    options={chartOptions}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    )
+                            )
+                        )}
+                        <p className="text-muted small fst-italic mt-2">
+                            * Responses are collected from the student survey links generated in <strong>Other Indirect Tools</strong>.
+                        </p>
+                    </>
                 )}
-                <p className="text-muted small fst-italic mt-2">
-                    * Responses are collected from the student survey links generated in <strong>Other Indirect Tools</strong>.
-                </p>
             </div>
 
             {/* ── Stats Modal ── */}

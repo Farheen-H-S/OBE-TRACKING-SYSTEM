@@ -89,8 +89,12 @@ const OtherIndirectTools = () => {
         selectedClass, setSelectedClass,
         selectedSemester: selectedSem, setSelectedSemester: setSelectedSem,
         selectedDivision, setSelectedDivision,
-        departments: programs
+        departments: programs,
+        validateContext
     } = useFilters();
+
+    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester', 'division'];
+    const { isValid, missingFields } = validateContext(requiredFields);
 
     const currentProgramObj = programs.find(p => String(p.program_id) === String(selectedProgram));
     const programName = currentProgramObj ? currentProgramObj.program_name : '';
@@ -566,283 +570,261 @@ const OtherIndirectTools = () => {
                         </div>
                     )}
 
-                    {/* Filters */}
-                    <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
-                        <div className="row g-3">
-                            {/* Department selector removed as it's global */}
-                            <div className="col-md">
-                                <label className="filter-label">BATCH</label>
-                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="filter-label">ACADEMIC YEAR</label>
-                                <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {academicYears.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="filter-label">CLASS</label>
-                                <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                    <option value="All">All</option>
-                                    {['FY', 'SY', 'TY'].map(b => <option key={b} value={b}>{b}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: 80 }}>
-                                <label className="filter-label">SEM</label>
-                                <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                    {selectedClass === 'All' && <option value="All">All</option>}
-                                    {availableSemesters.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                    {!isValid ? (
+                        <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
+                            <FaExclamationCircle className="text-warning fs-3" />
+                            <div>
+                                <h5 className="fw-bold mb-1">Academic Context Required</h5>
+                                <p className="mb-0">Please select the remaining filters in the top bar to proceed: <span className="fw-bold text-dark">{missingFields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}</span></p>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <>
 
-                    <div className="mt-4">
-                        <label className="filter-label mb-2">SURVEY TOOL</label>
-                        <div className="oit-tool-grid">
-                            {SURVEY_TOOLS.map(tool => (
-                                <button
-                                    key={tool.id}
-                                    className={`oit-tool-btn ${selectedTool.id === tool.id ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setSelectedTool(tool);
-                                        setActivityDetail('');
-                                        setActivityType(ACTIVITY_TYPES[0]);
-                                        setRpName('');
-                                        setRpDesignation('');
-                                        setRpCompany('');
-                                        setRpAddress('');
-                                        setShowStats(false);
-                                    }}
-                                >
-                                    {tool.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Activity metadata — Co-curricular AND Resource Person */}
-                    {selectedTool.hasActivity && (
-                        <div className="mt-3 p-3 bg-light rounded border">
-                            <label className="filter-label mb-2 d-block">ACTIVITY DETAILS</label>
-                            <div className="row g-2">
-                                <div className="col-md-4">
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={activityType}
-                                        onChange={e => setActivityType(e.target.value)}
-                                    >
-                                        {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                    </select>
-                                </div>
-                                <div className="col-md-8">
-                                    {isRP ? (
-                                        <select
-                                            className="form-select form-select-sm"
-                                            onChange={(e) => handleExistingSurveyChange(e.target.value)}
-                                            disabled={loadingSurveys}
+                            <div className="mt-4">
+                                <label className="filter-label mb-2">SURVEY TOOL</label>
+                                <div className="oit-tool-grid">
+                                    {SURVEY_TOOLS.map(tool => (
+                                        <button
+                                            key={tool.id}
+                                            className={`oit-tool-btn ${selectedTool.id === tool.id ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setSelectedTool(tool);
+                                                setActivityDetail('');
+                                                setActivityType(ACTIVITY_TYPES[0]);
+                                                setRpName('');
+                                                setRpDesignation('');
+                                                setRpCompany('');
+                                                setRpAddress('');
+                                                setShowStats(false);
+                                            }}
                                         >
-                                            <option value="">-- Select Existing Activity --</option>
-                                            {existingSurveys.map(s => (
-                                                <option key={s.survey_id} value={s.survey_id}>
-                                                    {s.activity_title} ({s.conducted_date || 'No date'})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <div className="input-group input-group-sm">
-                                            <span className="input-group-text oit-type-prefix fw-semibold">
-                                                {activityType} —
-                                            </span>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                placeholder={
-                                                    activityType === 'Industry Visit' ? 'company / organisation name'
-                                                        : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
-                                                            : 'program name / topic'
-                                                }
-                                                value={activityDetail}
-                                                onChange={e => setActivityDetail(e.target.value)}
-                                            />
-                                        </div>
-                                    )}
-                                    {activityDetail && (
-                                        <small className="text-success fw-semibold mt-1 d-block">
-                                            Title: <em>{computedTitle}</em>
-                                        </small>
-                                    )}
+                                            {tool.label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* New fields: Date and Resource Person Details */}
-                            <div className="row g-2 mt-2">
-                                <div className="col-md-4">
-                                    <label className="small fw-bold text-muted mb-1">CONDUCTED DATE</label>
-                                    <input
-                                        type="date"
-                                        className="form-control form-control-sm"
-                                        value={conductedDate}
-                                        onChange={e => setConductedDate(e.target.value)}
-                                        readOnly={isRP && activityDetail !== ''}
-                                    />
-                                </div>
-
-                                {activityType !== 'Industry Visit' && (
-                                    <>
+                            {/* Activity metadata — Co-curricular AND Resource Person */}
+                            {selectedTool.hasActivity && (
+                                <div className="mt-3 p-3 bg-light rounded border">
+                                    <label className="filter-label mb-2 d-block">ACTIVITY DETAILS</label>
+                                    <div className="row g-2">
                                         <div className="col-md-4">
-                                            <label className="small fw-bold text-muted mb-1">RESOURCE PERSON NAME</label>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Name"
-                                                value={rpName}
-                                                onChange={e => setRpName(e.target.value)}
-                                                readOnly={isRP && activityDetail !== ''}
-                                            />
+                                            <select
+                                                className="form-select form-select-sm"
+                                                value={activityType}
+                                                onChange={e => setActivityType(e.target.value)}
+                                            >
+                                                {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
                                         </div>
-                                        <div className="col-md-4">
-                                            <label className="small fw-bold text-muted mb-1">DESIGNATION</label>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Designation"
-                                                value={rpDesignation}
-                                                onChange={e => setRpDesignation(e.target.value)}
-                                                readOnly={isRP && activityDetail !== ''}
-                                            />
+                                        <div className="col-md-8">
+                                            {isRP ? (
+                                                <select
+                                                    className="form-select form-select-sm"
+                                                    onChange={(e) => handleExistingSurveyChange(e.target.value)}
+                                                    disabled={loadingSurveys}
+                                                >
+                                                    <option value="">-- Select Existing Activity --</option>
+                                                    {existingSurveys.map(s => (
+                                                        <option key={s.survey_id} value={s.survey_id}>
+                                                            {s.activity_title} ({s.conducted_date || 'No date'})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <div className="input-group input-group-sm">
+                                                    <span className="input-group-text oit-type-prefix fw-semibold">
+                                                        {activityType} —
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        placeholder={
+                                                            activityType === 'Industry Visit' ? 'company / organisation name'
+                                                                : activityType === 'Expert Lecture' ? 'topic (e.g. AI in Healthcare)'
+                                                                    : 'program name / topic'
+                                                        }
+                                                        value={activityDetail}
+                                                        onChange={e => setActivityDetail(e.target.value)}
+                                                    />
+                                                </div>
+                                            )}
+                                            {activityDetail && (
+                                                <small className="text-success fw-semibold mt-1 d-block">
+                                                    Title: <em>{computedTitle}</em>
+                                                </small>
+                                            )}
                                         </div>
-                                    </>
-                                )}
-
-                                <div className="col-md-4">
-                                    <label className="small fw-bold text-muted mb-1">COMPANY / ORGANIZATION</label>
-                                    <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        placeholder="Company"
-                                        value={rpCompany}
-                                        onChange={e => setRpCompany(e.target.value)}
-                                        readOnly={isRP && activityDetail !== ''}
-                                    />
-                                </div>
-
-                                <div className="col-md-8">
-                                    <label className="small fw-bold text-muted mb-1">ADDRESS</label>
-                                    <input
-                                        type="text"
-                                        className="form-control form-control-sm"
-                                        placeholder="Address / Venue"
-                                        value={rpAddress}
-                                        onChange={e => setRpAddress(e.target.value)}
-                                        readOnly={isRP && activityDetail !== ''}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Question-set card ── */}
-                    <div className="d-flex justify-content-between align-items-center mb-3 mt-4">
-                        <div>
-                            <h5 className="fw-bold text-dark mb-0">PO / PSO Question Set</h5>
-                            {computedTitle && surveyState?.status === 'APPROVED' && (
-                                <small className="text-muted">{computedTitle}</small>
-                            )}
-                        </div>
-                        <span className={`status-badge-compact ${surveyState?.status === 'APPROVED' ? 'approved' : surveyState?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
-                            {surveyState?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
-                            {surveyState?.status || 'DRAFT'}
-                        </span>
-                    </div>
-
-                    <div className="d-flex justify-content-between align-items-center mb-1 mt-4">
-                        <h5 className="fw-bold text-dark mb-0">Question Sets</h5>
-                        <button className="btn btn-sm btn-outline-secondary" onClick={fetchAllActiveSurveys}>
-                            View All Active Surveys
-                        </button>
-                    </div>
-
-                    <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
-                        {loadingStmts ? (
-                            <div className="text-center py-4"><div className="spinner-border text-primary" /></div>
-                        ) : allStatements.length === 0 ? (
-                            <div className="text-center py-4 text-muted">
-                                <FaExclamationCircle size={28} className="mb-2" />
-                                <p className="mb-0">No PO / PSO statements found for the selected department.</p>
-                                <small>Go to <strong>PEO / PO / PSO → Define</strong> to add statements first.</small>
-                            </div>
-                        ) : (
-                            <>
-                                <h6 className="oit-section-label">Program Outcomes (PO)</h6>
-                                {pos.map((p, i) => (
-                                    <div key={i} className="oit-question-item d-flex gap-3 mb-2">
-                                        <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
-                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description }, programName)}</span>
                                     </div>
-                                ))}
-                                {psos.length > 0 && (
+
+                                    {/* New fields: Date and Resource Person Details */}
+                                    <div className="row g-2 mt-2">
+                                        <div className="col-md-4">
+                                            <label className="small fw-bold text-muted mb-1">CONDUCTED DATE</label>
+                                            <input
+                                                type="date"
+                                                className="form-control form-control-sm"
+                                                value={conductedDate}
+                                                onChange={e => setConductedDate(e.target.value)}
+                                                readOnly={isRP && activityDetail !== ''}
+                                            />
+                                        </div>
+
+                                        {activityType !== 'Industry Visit' && (
+                                            <>
+                                                <div className="col-md-4">
+                                                    <label className="small fw-bold text-muted mb-1">RESOURCE PERSON NAME</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        placeholder="Name"
+                                                        value={rpName}
+                                                        onChange={e => setRpName(e.target.value)}
+                                                        readOnly={isRP && activityDetail !== ''}
+                                                    />
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <label className="small fw-bold text-muted mb-1">DESIGNATION</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        placeholder="Designation"
+                                                        value={rpDesignation}
+                                                        onChange={e => setRpDesignation(e.target.value)}
+                                                        readOnly={isRP && activityDetail !== ''}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <div className="col-md-4">
+                                            <label className="small fw-bold text-muted mb-1">COMPANY / ORGANIZATION</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                placeholder="Company"
+                                                value={rpCompany}
+                                                onChange={e => setRpCompany(e.target.value)}
+                                                readOnly={isRP && activityDetail !== ''}
+                                            />
+                                        </div>
+
+                                        <div className="col-md-8">
+                                            <label className="small fw-bold text-muted mb-1">ADDRESS</label>
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                placeholder="Address / Venue"
+                                                value={rpAddress}
+                                                onChange={e => setRpAddress(e.target.value)}
+                                                readOnly={isRP && activityDetail !== ''}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Question-set card ── */}
+                            <div className="d-flex justify-content-between align-items-center mb-3 mt-4">
+                                <div>
+                                    <h5 className="fw-bold text-dark mb-0">PO / PSO Question Set</h5>
+                                    {computedTitle && surveyState?.status === 'APPROVED' && (
+                                        <small className="text-muted">{computedTitle}</small>
+                                    )}
+                                </div>
+                                <span className={`status-badge-compact ${surveyState?.status === 'APPROVED' ? 'approved' : surveyState?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
+                                    {surveyState?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
+                                    {surveyState?.status || 'DRAFT'}
+                                </span>
+                            </div>
+
+                            <div className="d-flex justify-content-between align-items-center mb-1 mt-4">
+                                <h5 className="fw-bold text-dark mb-0">Question Sets</h5>
+                                <button className="btn btn-sm btn-outline-secondary" onClick={fetchAllActiveSurveys}>
+                                    View All Active Surveys
+                                </button>
+                            </div>
+
+                            <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
+                                {loadingStmts ? (
+                                    <div className="text-center py-4"><div className="spinner-border text-primary" /></div>
+                                ) : allStatements.length === 0 ? (
+                                    <div className="text-center py-4 text-muted">
+                                        <FaExclamationCircle size={28} className="mb-2" />
+                                        <p className="mb-0">No PO / PSO statements found for the selected department.</p>
+                                        <small>Go to <strong>PEO / PO / PSO → Define</strong> to add statements first.</small>
+                                    </div>
+                                ) : (
                                     <>
-                                        <h6 className="oit-section-label mt-4">Program Specific Outcomes (PSO)</h6>
-                                        {psos.map((p, i) => (
+                                        <h6 className="oit-section-label">Program Outcomes (PO)</h6>
+                                        {pos.map((p, i) => (
                                             <div key={i} className="oit-question-item d-flex gap-3 mb-2">
-                                                <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
-                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description }, programName)}</span>
+                                                <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
+                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description }, programName)}</span>
                                             </div>
                                         ))}
+                                        {psos.length > 0 && (
+                                            <>
+                                                <h6 className="oit-section-label mt-4">Program Specific Outcomes (PSO)</h6>
+                                                {psos.map((p, i) => (
+                                                    <div key={i} className="oit-question-item d-flex gap-3 mb-2">
+                                                        <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
+                                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description }, programName)}</span>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
                                     </>
                                 )}
-                            </>
-                        )}
 
-                        {/* Action row */}
-                        <div className="action-row mt-4 pt-3 border-top d-flex align-items-center gap-3 flex-wrap">
-                            {(surveyState?.status === 'APPROVED' || surveyState?.status === 'CLOSED') && (
-                                <button
-                                    className="btn btn-sm btn-info text-white"
-                                    onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
-                                >
-                                    {showStats ? 'Hide Statistics' : 'Show Statistics'}
-                                </button>
-                            )}
-                            <select
-                                className="form-select form-select-sm w-auto"
-                                value={surveyState?.duration || '7'}
-                                onChange={e => setSurveyState(s => ({ ...(s || {}), duration: e.target.value }))}
-                                disabled={surveyState?.status === 'APPROVED'}
-                            >
-                                <option value="3">3 Days</option>
-                                <option value="7">7 Days</option>
-                                <option value="15">15 Days</option>
-                                <option value="30">30 Days</option>
-                            </select>
-                            <button
-                                className={`btn btn-sm px-5 ${surveyState?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
-                                onClick={handleApprove}
-                                disabled={allStatements.length === 0 || !selectedProgram}
-                            >
-                                {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
-                            </button>
-                        </div>
-                    </div>
+                                {/* Action row */}
+                                <div className="action-row mt-4 pt-3 border-top d-flex align-items-center gap-3 flex-wrap">
+                                    {(surveyState?.status === 'APPROVED' || surveyState?.status === 'CLOSED') && (
+                                        <button
+                                            className="btn btn-sm btn-info text-white"
+                                            onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
+                                        >
+                                            {showStats ? 'Hide Statistics' : 'Show Statistics'}
+                                        </button>
+                                    )}
+                                    <select
+                                        className="form-select form-select-sm w-auto"
+                                        value={surveyState?.duration || '7'}
+                                        onChange={e => setSurveyState(s => ({ ...(s || {}), duration: e.target.value }))}
+                                        disabled={surveyState?.status === 'APPROVED'}
+                                    >
+                                        <option value="3">3 Days</option>
+                                        <option value="7">7 Days</option>
+                                        <option value="15">15 Days</option>
+                                        <option value="30">30 Days</option>
+                                    </select>
+                                    <button
+                                        className={`btn btn-sm px-5 ${surveyState?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
+                                        onClick={handleApprove}
+                                        disabled={allStatements.length === 0 || !selectedProgram}
+                                    >
+                                        {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
+                                    </button>
+                                </div>
+                            </div>
 
-                    {/* ── Attainment reference ── */}
-                    <div className="oit-legend-card border rounded p-3 mb-4">
-                        <h6 className="oit-section-label mb-3">PO / PSO Attainment Level Reference  <small className="text-muted fw-normal">(Rating scale: 0 – 3)</small></h6>
-                        <div className="d-flex flex-wrap gap-2">
-                            {ATTAINMENT_LEVELS.map(al => (
-                                <span key={al.level} className={`attainment-badge al-${al.level}`}>
-                                    L{al.level} {al.label} (avg {al.min}–{al.max})
-                                </span>
-                            ))}
-                        </div>
-                    </div>
+                            {/* ── Attainment reference ── */}
+                            <div className="oit-legend-card border rounded p-3 mb-4">
+                                <h6 className="oit-section-label mb-3">PO / PSO Attainment Level Reference  <small className="text-muted fw-normal">(Rating scale: 0 – 3)</small></h6>
+                                <div className="d-flex flex-wrap gap-2">
+                                    {ATTAINMENT_LEVELS.map(al => (
+                                        <span key={al.level} className={`attainment-badge al-${al.level}`}>
+                                            L{al.level} {al.label} (avg {al.min}–{al.max})
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
 
-                    {showStats && <StatsTable />}
+                            {showStats && <StatsTable />}
+                        </>
+                    )}
                 </div>
             </div>
         </div>
