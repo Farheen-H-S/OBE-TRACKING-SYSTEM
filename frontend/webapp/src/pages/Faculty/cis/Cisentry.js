@@ -229,7 +229,7 @@ const Cisentry = () => {
       } = location.state;
 
       if (course_id) setSelectedCourse(String(course_id));
-      if (academic_year) setSelectedYear(academic_year);
+      if (academic_year) setSelectedAcademicYear(academic_year);
       if (batch_id) setSelectedBatch(batch_id);
       if (class_year) setSelectedClass(class_year);
       if (semester) setSelectedSemester(String(semester));
