@@ -162,7 +162,7 @@ const Dacreview = () => {
                                     />
                                     <label
                                         htmlFor={isUploadDisabled ? "" : "dac-upload"}
-                                        className={`btn btn-primary d-flex align-items-center gap-2 ${isUploadDisabled ? 'disabled' : ''}`}
+                                        className={`btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm fw-bold ${isUploadDisabled ? 'disabled' : ''}`}
                                         style={isUploadDisabled ? { pointerEvents: 'none', opacity: 0.6 } : {}}
                                     >
                                         <FaUpload /> Upload Report

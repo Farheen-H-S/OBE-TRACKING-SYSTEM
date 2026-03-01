@@ -262,7 +262,7 @@ const AcademicSetup = () => {
                         <p className="mb-3">{successMessage}</p>
                         <img src={celebImg} alt="Celebration" style={{ width: '80px', height: '80px', objectFit: 'contain', marginBottom: '16px' }} />
                         <button onClick={() => { setShowSuccessPopup(false); setSuccessMessage(''); }}
-                            className="btn btn-primary px-4" style={{ backgroundColor: '#4285f4', border: 'none' }}>OK</button>
+                            className="btn btn-outline-primary px-4 shadow-sm fw-bold">OK</button>
                     </div>
                 </div>
             )}

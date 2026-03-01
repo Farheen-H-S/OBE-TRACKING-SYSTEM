@@ -51,7 +51,7 @@ function AuditorDashHome() {
                                 <li>• DAC 11/12</li>
                                 <li>• CIS : <br /> &nbsp;&nbsp; Direct-8/8 <br /> &nbsp;&nbsp; Indirect-4/5</li>
                             </ul>
-                            <button className="btn btn-primary btn-sm mt-2">View reports →</button>
+                            <button className="btn btn-outline-primary btn-sm mt-2 shadow-sm fw-bold">View Reports →</button>
                         </div>
                     </div>
 
@@ -81,7 +81,7 @@ function AuditorDashHome() {
                             </div>
                             <div className="d-flex justify-content-between align-items-center">
                                 <span>Time: <strong>12:56 pm</strong></span>
-                                <button className="btn btn-primary btn-sm">View remark</button>
+                                <button className="btn btn-outline-primary btn-sm shadow-sm fw-bold">View Remark</button>
                             </div>
                         </div>
                     </div>

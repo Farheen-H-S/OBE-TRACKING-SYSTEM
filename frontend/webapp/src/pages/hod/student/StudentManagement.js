@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../utils/axios';
 import { BsPlusCircleFill, BsDashCircleFill, BsPencilFill, BsCheckCircleFill, BsXCircleFill, BsArrowRepeat } from "react-icons/bs";
+import { FaUpload } from 'react-icons/fa';
 import { Table, Form, Button, Spinner, Alert } from 'react-bootstrap';
 import './StudentManagement.css';
 import { useFilters } from '../../../context/FilterContext';
@@ -24,7 +25,8 @@ const StudentManagement = () => {
     const [isEditMode, setIsEditMode] = useState(false);
 
     // UI States
-    const [newStudent, setNewStudent] = useState(null);
+    const [newStudents, setNewStudents] = useState([]);
+    const [editedStudents, setEditedStudents] = useState(new Set());
     const [uploadResults, setUploadResults] = useState(null);
     const [showResultsModal, setShowResultsModal] = useState(false);
 
@@ -60,7 +62,7 @@ const StudentManagement = () => {
     };
 
     const handleAddRow = () => {
-        setNewStudent({
+        setNewStudents([...newStudents, {
             enrollment_no: '',
             roll_no: '',
             name: '',
@@ -69,27 +71,15 @@ const StudentManagement = () => {
             class_year: selectedClass,
             division: selectedDivision,
             academic_year: selectedAcademicYear
-        });
-        setIsEditMode(true);
+        }]);
     };
 
-    const handleSaveNew = async () => {
-        try {
-            const res = await api.post('users/students/', newStudent);
-            setStudents([...students, res.data].sort((a, b) => a.roll_no.localeCompare(b.roll_no)));
-            setNewStudent(null);
-        } catch (err) {
-            alert("Error saving student: " + JSON.stringify(err.response?.data || "Unknown error"));
-        }
+    const handleRemoveNewStudent = (index) => {
+        setNewStudents(newStudents.filter((_, i) => i !== index));
     };
 
-    const handleUpdate = async (student) => {
-        try {
-            const res = await api.put(`users/students/${student.student_id}/`, student);
-            setStudents(students.map(s => s.student_id === student.student_id ? res.data : s));
-        } catch (err) {
-            alert("Error updating student");
-        }
+    const handleUpdate = (studentId) => {
+        setEditedStudents(prev => new Set(prev).add(studentId));
     };
 
     const handleDelete = async (studentId) => {
@@ -98,7 +88,8 @@ const StudentManagement = () => {
             await api.delete(`users/students/${studentId}/`);
             setStudents(students.filter(s => s.student_id !== studentId));
         } catch (err) {
-            alert("Error deleting student");
+            console.error("Error deleting student:", err);
+            alert("Something went wrong while deleting. Please check the console for details.");
         }
     };
 
@@ -123,14 +114,41 @@ const StudentManagement = () => {
             alert("Students carried forward successfully!");
             fetchStudents();
         } catch (err) {
-            alert("Failed to carry forward: " + (err.response?.data?.error || "Unknown error"));
+            console.error("Failed to carry forward:", err);
+            const errorMsg = err.response?.data?.error || "Unknown error";
+            alert("Carry forward failed: " + errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleBulkSave = () => {
-        setIsEditMode(false);
+    const handleBulkSave = async () => {
+        setLoading(true);
+        try {
+            // 1. Save Edited Students
+            const editPromises = Array.from(editedStudents).map(id => {
+                const student = students.find(s => s.student_id === id);
+                return api.put(`users/students/${id}/`, student);
+            });
+
+            // 2. Save New Students
+            const addPromises = newStudents
+                .filter(s => s.enrollment_no && s.roll_no && s.name)
+                .map(s => api.post('users/students/', s));
+
+            await Promise.all([...editPromises, ...addPromises]);
+
+            alert("All changes saved successfully!");
+            setEditedStudents(new Set());
+            setNewStudents([]);
+            setIsEditMode(false);
+            fetchStudents();
+        } catch (err) {
+            console.error("Error during bulk save:", err);
+            alert("Some changes might not have been saved. Please check the console for details.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -173,64 +191,71 @@ const StudentManagement = () => {
                                     </Alert>
                                 )}
 
-                                <div className="d-flex justify-content-end gap-2 mb-4">
-                                    <Button variant={isEditMode ? "success" : "outline-primary"} onClick={() => isEditMode ? handleBulkSave() : setIsEditMode(true)}>
-                                        {isEditMode ? <><BsCheckCircleFill /> Save Changes</> : <><BsPencilFill /> Edit Students</>}
-                                    </Button>
-                                    <Button variant="success" onClick={handleAddRow} className="d-flex align-items-center gap-2">
-                                        <BsPlusCircleFill /> Add Student
-                                    </Button>
-                                    <Button variant="info" onClick={handleCarryForward} className="d-flex align-items-center gap-2 text-white">
-                                        <BsArrowRepeat /> Carry Forward
-                                    </Button>
-                                    <Button variant="primary" onClick={() => document.getElementById('bulk-upload-input').click()} className="d-flex align-items-center gap-2">
-                                        <BsPlusCircleFill /> Bulk Upload
-                                    </Button>
-
-                                    <input
-                                        type="file"
-                                        id="bulk-upload-input"
-                                        style={{ display: 'none' }}
-                                        accept=".xlsx, .xls"
-                                        onChange={async (e) => {
-                                            const file = e.target.files[0];
-                                            if (!file) return;
-
-                                            const formData = new FormData();
-                                            formData.append('file', file);
-                                            formData.append('batch_id', selectedBatch);
-                                            formData.append('academic_year', selectedAcademicYear);
-                                            formData.append('semester', selectedSem);
-                                            formData.append('class_year', selectedClass);
-                                            formData.append('division', selectedDivision);
-                                            formData.append('program_id', selectedProgram);
-
-                                            setLoading(true);
-                                            try {
-                                                const res = await api.post('bulk_upload/students/', formData, {
-                                                    headers: { 'Content-Type': 'multipart/form-data' }
-                                                });
-                                                setUploadResults(res.data);
-                                                setShowResultsModal(true);
-                                                fetchStudents();
-                                            } catch (err) {
-                                                const errorData = err.response?.data;
-                                                if (errorData && typeof errorData === 'object' && errorData.total !== undefined) {
-                                                    setUploadResults(errorData);
-                                                    setShowResultsModal(true);
-                                                } else if (errorData && errorData.expected) {
-                                                    alert(`Template Mismatch!\n\nExpected: ${errorData.expected.join(", ")}\n\nFound: ${errorData.found.join(", ")}`);
-                                                } else {
-                                                    const errorMsg = errorData?.error || errorData?.details || "Unknown error";
-                                                    alert("Upload failed: " + errorMsg);
-                                                }
-                                            } finally {
-                                                setLoading(false);
-                                                e.target.value = null;
-                                            }
-                                        }}
-                                    />
+                                <div className="d-flex flex-column align-items-end mb-4">
+                                    <div className="d-flex justify-content-end gap-2">
+                                        {isEditMode && (
+                                            <Button variant="outline-primary" onClick={handleAddRow} className="d-flex align-items-center gap-2 shadow-sm fw-bold">
+                                                <BsPlusCircleFill />
+                                            </Button>
+                                        )}
+                                        <Button variant={isEditMode ? "success" : "outline-primary"} onClick={() => isEditMode ? handleBulkSave() : setIsEditMode(true)} className="shadow-sm fw-bold">
+                                            {isEditMode ? <><BsCheckCircleFill /> Save Changes</> : <><BsPencilFill /> Edit Students</>}
+                                        </Button>
+                                        <Button variant="outline-primary" onClick={handleCarryForward} className="d-flex align-items-center gap-2 shadow-sm fw-bold">
+                                            <BsArrowRepeat /> Carry Forward
+                                        </Button>
+                                        <Button variant="outline-primary" onClick={() => document.getElementById('bulk-upload-input').click()} className="d-flex align-items-center gap-2 shadow-sm fw-bold">
+                                            <FaUpload /> Bulk Upload
+                                        </Button>
+                                    </div>
+                                    <small className="text-muted mt-1" style={{ fontSize: '0.75rem' }}>
+                                        * Note: For Bulk Upload please download the template from the Downloads section to ensure correct format.
+                                    </small>
                                 </div>
+
+                                <input
+                                    type="file"
+                                    id="bulk-upload-input"
+                                    style={{ display: 'none' }}
+                                    accept=".xlsx, .xls"
+                                    onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        formData.append('batch_id', selectedBatch);
+                                        formData.append('academic_year', selectedAcademicYear);
+                                        formData.append('semester', selectedSem);
+                                        formData.append('class_year', selectedClass);
+                                        formData.append('division', selectedDivision);
+                                        formData.append('program_id', selectedProgram);
+
+                                        setLoading(true);
+                                        try {
+                                            const res = await api.post('bulk_upload/students/', formData, {
+                                                headers: { 'Content-Type': 'multipart/form-data' }
+                                            });
+                                            setUploadResults(res.data);
+                                            setShowResultsModal(true);
+                                            fetchStudents();
+                                        } catch (err) {
+                                            const errorData = err.response?.data;
+                                            if (errorData && typeof errorData === 'object' && errorData.total !== undefined) {
+                                                setUploadResults(errorData);
+                                                setShowResultsModal(true);
+                                            } else if (errorData && errorData.expected) {
+                                                alert(`Template Mismatch!\n\nExpected: ${errorData.expected.join(", ")}\n\nFound: ${errorData.found.join(", ")}`);
+                                            } else {
+                                                console.error("Upload failed:", err);
+                                                alert("Upload failed. Please check the console for details and ensure you are using the correct template.");
+                                            }
+                                        } finally {
+                                            setLoading(false);
+                                            e.target.value = null;
+                                        }
+                                    }}
+                                />
 
                                 {loading ? (
                                     <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>
@@ -259,7 +284,7 @@ const StudentManagement = () => {
                                                                         const updated = [...students];
                                                                         updated[idx].enrollment_no = e.target.value;
                                                                         setStudents(updated);
-                                                                        handleUpdate(updated[idx]);
+                                                                        handleUpdate(s.student_id);
                                                                     }}
                                                                 />
                                                             ) : s.enrollment_no}
@@ -274,7 +299,7 @@ const StudentManagement = () => {
                                                                         const updated = [...students];
                                                                         updated[idx].roll_no = e.target.value;
                                                                         setStudents(updated);
-                                                                        handleUpdate(updated[idx]);
+                                                                        handleUpdate(s.student_id);
                                                                     }}
                                                                 />
                                                             ) : s.roll_no}
@@ -288,7 +313,7 @@ const StudentManagement = () => {
                                                                         const updated = [...students];
                                                                         updated[idx].name = e.target.value;
                                                                         setStudents(updated);
-                                                                        handleUpdate(updated[idx]);
+                                                                        handleUpdate(s.student_id);
                                                                     }}
                                                                 />
                                                             ) : s.name}
@@ -304,26 +329,40 @@ const StudentManagement = () => {
                                                     </tr>
                                                 ))}
 
-                                                {newStudent && (
-                                                    <tr className="table-info">
+                                                {newStudents.map((ns, nIdx) => (
+                                                    <tr key={`new-${nIdx}`} className="table-info">
                                                         <td className="text-center">New</td>
-                                                        <td><Form.Control size="sm" placeholder="Enrollment" value={newStudent.enrollment_no} onChange={e => setNewStudent({ ...newStudent, enrollment_no: e.target.value })} /></td>
-                                                        <td><Form.Control size="sm" className="text-center" placeholder="Roll No" value={newStudent.roll_no} onChange={e => setNewStudent({ ...newStudent, roll_no: e.target.value })} /></td>
-                                                        <td><Form.Control size="sm" placeholder="Student Name" value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} /></td>
+                                                        <td><Form.Control size="sm" placeholder="Enrollment" value={ns.enrollment_no} onChange={e => {
+                                                            const updated = [...newStudents];
+                                                            updated[nIdx].enrollment_no = e.target.value;
+                                                            setNewStudents(updated);
+                                                        }} /></td>
+                                                        <td><Form.Control size="sm" className="text-center" placeholder="Roll No" value={ns.roll_no} onChange={e => {
+                                                            const updated = [...newStudents];
+                                                            updated[nIdx].roll_no = e.target.value;
+                                                            setNewStudents(updated);
+                                                        }} /></td>
+                                                        <td><Form.Control size="sm" placeholder="Student Name" value={ns.name} onChange={e => {
+                                                            const updated = [...newStudents];
+                                                            updated[nIdx].name = e.target.value;
+                                                            setNewStudents(updated);
+                                                        }} /></td>
                                                         <td className="text-center">
-                                                            <div className="d-flex justify-content-center gap-2">
-                                                                <Button variant="success" size="sm" onClick={handleSaveNew}><BsCheckCircleFill /> Save</Button>
-                                                                <Button variant="secondary" size="sm" onClick={() => setNewStudent(null)}><BsXCircleFill /> Cancel</Button>
-                                                            </div>
+                                                            <BsDashCircleFill
+                                                                className="text-danger cursor-pointer"
+                                                                style={{ fontSize: '1.2rem' }}
+                                                                onClick={() => handleRemoveNewStudent(nIdx)}
+                                                                title="Remove New Row"
+                                                            />
                                                         </td>
                                                     </tr>
-                                                )}
+                                                ))}
                                             </tbody>
                                         </Table>
                                     </div>
                                 )}
 
-                                {!loading && students.length === 0 && !newStudent && (
+                                {!loading && students.length === 0 && newStudents.length === 0 && (
                                     <Alert variant="info" className="text-center">No students found for this selection.</Alert>
                                 )}
 
@@ -335,7 +374,7 @@ const StudentManagement = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

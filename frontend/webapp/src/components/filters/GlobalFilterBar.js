@@ -78,7 +78,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
                         <option value="">Select Batch</option>
                         {batches.map(b => (
                             <option key={b.batch_id} value={b.batch_id}>
-                                {b.display_batch || b.batch_year}
+                                {b.display_batch || b.batch_id}
                             </option>
                         ))}
                     </select>

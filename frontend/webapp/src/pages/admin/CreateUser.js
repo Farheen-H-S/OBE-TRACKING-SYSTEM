@@ -231,11 +231,10 @@ const CreateUser = () => {
                     <div className="create-btn-container d-flex justify-content-center mt-4 mb-4">
                         <button
                             onClick={handleCreate}
-                            className="btn btn-primary px-5 py-2 fw-semibold"
-                            style={{ backgroundColor: '#1976d2' }}
+                            className="btn btn-outline-primary px-5 py-2 fw-bold shadow-sm"
                             disabled={loading}
                         >
-                            {loading ? 'Creating...' : 'Create'}
+                            {loading ? 'Creating...' : 'Create User'}
                         </button>
                     </div>
                 </div>

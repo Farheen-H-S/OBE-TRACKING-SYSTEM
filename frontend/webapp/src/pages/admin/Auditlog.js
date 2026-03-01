@@ -109,11 +109,11 @@ const Auditlog = () => {
                                                 {row.action} on {row.entity_name} (ID: {row.entity_id}) {row.remark ? `- ${row.remark}` : ''}
                                             </span>
                                             <button
-                                                className="btn btn-sm btn-primary view-details-btn text-nowrap"
+                                                className="btn btn-sm btn-outline-primary view-details-btn text-nowrap fw-bold shadow-sm"
                                                 style={{ fontSize: '0.7rem', padding: '2px 8px' }}
                                                 onClick={() => setSelectedLog(row)}
                                             >
-                                                View details
+                                                View Details
                                             </button>
                                         </td>
                                     </tr>
@@ -224,7 +224,7 @@ const Auditlog = () => {
                             })()}
                         </div>
                         <div className="mt-4 text-center">
-                            <button className="btn btn-primary px-4" onClick={() => setSelectedLog(null)}>Close</button>
+                            <button className="btn btn-outline-primary px-4 shadow-sm fw-bold" onClick={() => setSelectedLog(null)}>Close</button>
                         </div>
                     </div>
                 </div>

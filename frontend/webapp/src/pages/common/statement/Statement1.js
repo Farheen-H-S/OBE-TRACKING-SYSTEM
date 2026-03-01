@@ -225,9 +225,9 @@ const Statement1 = () => {
         <div className="statement1-main-standalone">
             <div className="mx-auto" style={{ maxWidth: '1100px' }}>
                 <div className="statement-card shadow-sm">
-                    <div className="d-flex justify-content-between align-items-center mb-4 no-print">
+                    <div className="d-flex justify-content-end mb-4 no-print" style={{ width: '100%' }}>
                         {canEdit && (
-                            <div className="toggle-container">
+                            <div className="toggle-container shadow-sm">
                                 <button className="toggle-btn active">Define</button>
                                 <button className="toggle-btn" onClick={() => navigate('/statement2')}>View</button>
                             </div>
@@ -332,7 +332,7 @@ const Statement1 = () => {
 
                             {canEdit && (
                                 <div className="text-center mt-5 pb-4">
-                                    <button className="btn btn-primary px-5 py-3 btn-lg shadow-sm fw-bold" onClick={handleSave}>
+                                    <button className="btn btn-outline-primary px-5 py-3 btn-lg shadow-sm fw-bold" onClick={handleSave}>
                                         Save Statements
                                     </button>
                                 </div>

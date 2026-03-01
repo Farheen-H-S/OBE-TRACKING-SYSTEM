@@ -313,8 +313,19 @@ class BulkStudentUploadView(APIView):
             }
             
             student_role = UserRole.objects.get_or_create(role_name='Student')[0]
-            def_batch = Batch.objects.filter(pk=default_batch_id).first() if default_batch_id else None
-            def_prog = Program.objects.filter(pk=default_program_id).first() if default_program_id else None
+            
+            # Resolve Batch from ID (numeric) or Name/Year (string like "2025-26")
+            def_batch = None
+            if default_batch_id:
+                if str(default_batch_id).isdigit():
+                    def_batch = Batch.objects.filter(pk=default_batch_id).first()
+                elif '-' in str(default_batch_id):
+                    try:
+                        b_year = int(str(default_batch_id).split('-')[0])
+                        def_batch = Batch.objects.filter(batch_year=b_year).first()
+                    except: pass
+            
+            def_prog = Program.objects.filter(pk=default_program_id).first() if default_program_id and str(default_program_id).isdigit() else None
 
             for index, row in df.iterrows():
                 row_num = index + header_row_idx + 2
@@ -572,9 +583,23 @@ class PromoteStudentsView(APIView):
         except:
             return Response({"error": "Invalid semester format"}, status=400)
 
+        # Resolve Batch
+        batch = None
+        if batch_id:
+            if str(batch_id).isdigit():
+                batch = Batch.objects.filter(pk=batch_id).first()
+            elif '-' in str(batch_id):
+                try:
+                    b_year = int(str(batch_id).split('-')[0])
+                    batch = Batch.objects.filter(batch_year=b_year).first()
+                except: pass
+
+        if not batch:
+            return Response({"error": "Valid Batch is required"}, status=400)
+
         # Find students in the previous semester for this batch and division
         students = Student.objects.filter(
-            batch_id=batch_id,
+            batch_id=batch,
             semester=source_sem,
             division=division,
             is_active=True

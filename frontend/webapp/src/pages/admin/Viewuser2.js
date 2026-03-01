@@ -181,8 +181,8 @@ const Viewuser2 = () => {
                                     Are you sure to {pendingAction} this user?
                                 </h3>
                                 <div className="d-flex gap-5">
-                                    <button onClick={handleConfirmAction} className="btn btn-primary px-5 py-2 fw-semibold" style={{ backgroundColor: '#4285F4', border: 'none' }}>Yes</button>
-                                    <button onClick={handleCancelAction} className="btn btn-primary px-5 py-2 fw-semibold" style={{ backgroundColor: '#4285F4', border: 'none' }}>No</button>
+                                    <button onClick={handleConfirmAction} className="btn btn-outline-primary px-5 py-2 fw-bold shadow-sm">Yes</button>
+                                    <button onClick={handleCancelAction} className="btn btn-outline-secondary px-5 py-2 fw-bold shadow-sm">No</button>
                                 </div>
                             </div>
                         </div>
@@ -206,7 +206,7 @@ const Viewuser2 = () => {
             ) : (
                 <div className="text-center py-5">
                     <div className="text-danger mb-4 fst-italic">User not found or you don't have permission to view this profile.</div>
-                    <button onClick={() => navigate('/dashboard')} className="btn btn-primary px-4 fw-bold shadow-sm">
+                    <button onClick={() => navigate('/dashboard')} className="btn btn-outline-primary px-4 fw-bold shadow-sm mt-3">
                         Back to Dashboard
                     </button>
                 </div>

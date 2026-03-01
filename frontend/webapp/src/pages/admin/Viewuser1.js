@@ -59,7 +59,7 @@ const Viewuser1 = () => {
               onKeyDown={handleSearch}
             />
           </div>
-          <button className="btn btn-primary px-4 shadow-sm" onClick={() => { setPage(1); fetchUsers(); }}>Search</button>
+          <button className="btn btn-outline-primary px-4 shadow-sm fw-bold" onClick={() => { setPage(1); fetchUsers(); }}>Search</button>
         </div>
 
         <div className="card border-0 shadow-sm overflow-hidden">

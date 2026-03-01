@@ -468,7 +468,7 @@ const Assigntarget = () => {
                             <div className="d-flex flex-column align-items-center gap-1">
                               <span className="text-danger small fw-bold">No ATR Submitted</span>
                               <button
-                                className="btn btn-sm btn-primary fw-bold py-0"
+                                className="btn btn-sm btn-outline-primary fw-bold py-0"
                                 style={{ fontSize: '11px' }}
                                 onClick={() => handleRequestAtr(course)}
                               >
@@ -585,7 +585,7 @@ const Assigntarget = () => {
 
           <div className="text-center mt-4 d-flex justify-content-center gap-3">
             {!isEditing ? (
-              <button className="btn btn-primary px-5 py-2 fw-bold shadow-sm" onClick={() => setIsEditing(true)}>
+              <button className="btn btn-outline-primary px-5 py-2 fw-bold shadow-sm" onClick={() => setIsEditing(true)}>
                 Edit Metrics
               </button>
             ) : (
@@ -593,7 +593,7 @@ const Assigntarget = () => {
                 <button className="btn btn-outline-secondary px-5 py-2 fw-bold shadow-sm" onClick={() => setIsEditing(false)}>
                   Cancel
                 </button>
-                <button className="btn btn-primary px-5 py-2 fw-bold shadow-sm" onClick={handleSave}>
+                <button className="btn btn-outline-primary px-5 py-2 fw-bold shadow-sm" onClick={handleSave}>
                   Save All Metrics
                 </button>
               </>

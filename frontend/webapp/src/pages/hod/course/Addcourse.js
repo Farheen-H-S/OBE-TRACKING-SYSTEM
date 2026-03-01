@@ -567,7 +567,7 @@ const Addcourse = () => {
 
                             {!isViewMode && (
                                 <div className="d-flex justify-content-center mt-5">
-                                    <button type="submit" className="btn btn-primary btn-lg px-5 shadow-sm fw-bold">
+                                    <button type="submit" className="btn btn-outline-primary btn-lg px-5 shadow-sm fw-bold">
                                         {formData.courseId ? "Update & Complete" : "Save & Complete"}
                                     </button>
                                 </div>

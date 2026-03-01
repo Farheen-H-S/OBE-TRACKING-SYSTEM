@@ -65,6 +65,12 @@ export const FilterProvider = ({ children }) => {
         localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
     }, [selectedDept, selectedScheme, selectedBatch, selectedYear, selectedClass, selectedSemester, selectedDivision, selectedIntroYear]);
 
+    // Generate batches (2018-19 to 2030-31)
+    const generatedBatches = [];
+    for (let i = 2018; i <= 2030; i++) {
+        generatedBatches.push(`${i}-${(i + 1).toString().slice(-2)}`);
+    }
+
     // Generate academic years (fallback if API fails)
     const years = [];
     for (let i = 2018; i <= 2030; i++) {
@@ -88,7 +94,9 @@ export const FilterProvider = ({ children }) => {
 
             if (deptRes.data) setDepartments(deptRes.data);
             if (schemeRes.data) setSchemes(schemeRes.data);
-            if (batchRes.data) setBatches(batchRes.data);
+
+            // Always use generated batches to ensure YYYY-YY format and correct range (2018-2030)
+            setBatches(generatedBatches.map(b => ({ batch_id: b, display_batch: b })));
 
             // Only set defaults if state is currently empty
             if (setupRes && setupRes.data && !selectedYear) {

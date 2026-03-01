@@ -5,7 +5,7 @@ import './Cisentry.css';
 import { sampleCourses, sampleCOs } from '../../../data/sampleData';
 import api from '../../../utils/axios';
 import { useFilters } from '../../../context/FilterContext';
-import { FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus, FaEye, FaPaperclip, FaEdit, FaExclamationCircle } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus, FaEye, FaPaperclip, FaEdit, FaExclamationCircle, FaUpload } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions as computeSemesterOptions } from '../../../utils/semesterUtils';
 
 const Cisentry = () => {
@@ -1384,11 +1384,10 @@ const Cisentry = () => {
                 style={{ display: 'none' }}
               />
               <button
-                className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2"
-                style={{ backgroundColor: '#4285f4', borderColor: '#4285f4' }}
+                className="btn btn-outline-primary d-flex align-items-center gap-2 px-4 py-2 shadow-sm fw-bold"
                 onClick={() => fileInputRef.current.click()}
               >
-                <FaCloudUploadAlt /> Upload Evidence
+                <FaUpload /> Upload Evidence
               </button>
             </div>
 
@@ -1417,8 +1416,8 @@ const Cisentry = () => {
           </div>
         </div>
 
-        <div className="d-flex justify-content-center mt-4">
-          <button className="btn btn-success px-5 py-2 fs-5 fw-bold" style={{ borderRadius: '8px' }} onClick={handleSave}>
+        <div className="d-flex justify-content-center mt-4 pb-4">
+          <button className="btn btn-outline-success px-5 py-2 fs-5 fw-bold shadow-sm" style={{ borderRadius: '8px' }} onClick={handleSave}>
             Save Data
           </button>
         </div>
@@ -1617,7 +1616,7 @@ const Cisentry = () => {
                       style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '6px' }}
                       onClick={() => bulkUploadRef.current.click()}
                     >
-                      <FaCloudUploadAlt /> Bulk Upload
+                      <FaUpload /> Bulk Upload
                     </button>
                   </div>
                 </div>

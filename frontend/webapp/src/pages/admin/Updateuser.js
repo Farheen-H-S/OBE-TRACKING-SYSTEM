@@ -304,8 +304,8 @@ const Updateuser = () => {
               </div>
 
               <div className="update-btn-container d-flex justify-content-center mt-5">
-                <button type="submit" className="btn btn-primary px-5 py-2 fw-semibold" style={{ backgroundColor: "#1976d2" }} disabled={saving}>
-                  {saving ? 'Saving...' : (isAdmin ? 'Save changes' : 'Update')}
+                <button type="submit" className="btn btn-outline-primary px-5 py-2 shadow-sm fw-bold" disabled={saving}>
+                  {saving ? 'Saving...' : (isAdmin ? 'Save Changes' : 'Update Profile')}
                 </button>
               </div>
             </form>
