@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useFilters } from '../../../context/FilterContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
@@ -9,8 +10,7 @@ const Statement2 = () => {
     const navigate = useNavigate();
     const user = getLoggedInUser();
 
-    const [programs, setPrograms] = useState([]);
-    const [selectedProgram, setSelectedProgram] = useState('');
+    const { selectedDept: selectedProgram, setSelectedDept: setSelectedProgram, departments: programs } = useFilters();
     const [loading, setLoading] = useState(false);
 
     // Data states
@@ -23,35 +23,10 @@ const Statement2 = () => {
     const [psos, setPsos] = useState([]);
 
     useEffect(() => {
-        fetchPrograms();
-    }, []);
-
-    useEffect(() => {
         if (selectedProgram) {
             fetchData();
         }
     }, [selectedProgram]);
-
-    const fetchPrograms = async () => {
-        try {
-            const res = await api.get('/academics/programs/');
-            setPrograms(res.data);
-
-            // Set default program from user's department
-            if (user && user.department) {
-                const matched = res.data.find(p => p.program_id === user.department || p.program_id === user.department_id);
-                if (matched) {
-                    setSelectedProgram(matched.program_id);
-                } else if (res.data.length > 0) {
-                    setSelectedProgram(res.data[0].program_id);
-                }
-            } else if (res.data.length > 0) {
-                setSelectedProgram(res.data[0].program_id);
-            }
-        } catch (err) {
-            console.error("Error fetching programs:", err);
-        }
-    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -123,19 +98,6 @@ const Statement2 = () => {
                     ) : (
                         <h4 className="m-0 fw-bold text-primary">PEOs, POs, and PSOs Statements</h4>
                     )}
-                    <div className="program-view-selector d-flex align-items-center gap-3">
-                        <label className="fw-bold small text-muted text-uppercase mb-0">Select Program:</label>
-                        <select
-                            className="form-select form-select-sm"
-                            style={{ width: '250px' }}
-                            value={selectedProgram}
-                            onChange={(e) => setSelectedProgram(e.target.value)}
-                        >
-                            {programs.map(p => (
-                                <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
-                            ))}
-                        </select>
-                    </div>
                 </div>
 
                 {loading ? (

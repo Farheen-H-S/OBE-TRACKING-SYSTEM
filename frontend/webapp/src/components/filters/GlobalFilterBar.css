@@ -4,14 +4,16 @@
     gap: 1rem;
     padding: 0.75rem 1.5rem;
     background: #ffffff;
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
+    border-radius: 0;
+    /* Full width flush */
+    margin: -1rem -1rem 1.5rem -1rem;
+    /* Counteract container padding */
     align-items: center;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     position: sticky;
-    top: 0;
-    z-index: 100;
+    top: -1rem;
+    /* Adjust for container padding */
+    z-index: 1000;
 }
 
 .filter-item {
@@ -76,6 +78,7 @@
     .filter-item {
         min-width: calc(50% - 1rem);
     }
+
     .filter-item.compact {
         flex: 1;
         min-width: calc(50% - 1rem);

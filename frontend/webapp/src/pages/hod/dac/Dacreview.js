@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Dacreview.css';
-import { FaFilePdf, FaFileExcel, FaUpload, FaTrash, FaDownload } from 'react-icons/fa';
+import { FaFilePdf, FaFileExcel, FaUpload, FaTrash, FaDownload, FaExclamationCircle } from 'react-icons/fa';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
 import { useFilters } from '../../../context/FilterContext';

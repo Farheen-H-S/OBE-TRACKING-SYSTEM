@@ -30,12 +30,15 @@ const Layout = ({ children, role }) => {
 
         // Hidden Group
         if (effectiveRole === 'ADMIN' ||
-            effectiveRole === 'AUDITOR' ||
             path === '/profile' ||
-            path.includes('/dashboard') ||
-            path === '/add-course' ||
-            path.startsWith('/auditor/')) {
+            path === '/add-course') {
             return [];
+        }
+
+        // Dashboard Visibility Logic - Hide only for ADMIN
+        if (path.includes('/dashboard')) {
+            if (effectiveRole === 'ADMIN') return [];
+            return ['dept', 'scheme', 'year'];
         }
 
         // Dept Only Group
