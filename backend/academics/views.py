@@ -234,10 +234,9 @@ class CourseListCreateAPIView(APIView):
         semester = request.query_params.get('semester')
         class_year = request.query_params.get('class_year')
         scheme_id = request.query_params.get('scheme_id')
-        academic_year = request.query_params.get('academic_year') # Note: Course model doesn't have academic_year currently, but let's filter if it did. Actually FacultyCourseAssignment has it. 
-        # For now, Course model has semester and class_year.
+        intro_year = request.query_params.get('intro_year')
         
-        courses = Course.objects.filter(is_active=True)
+        courses = Course.objects.filter(is_active=True).distinct()
 
         if program_id:
             courses = courses.filter(program_id=program_id)
@@ -247,6 +246,8 @@ class CourseListCreateAPIView(APIView):
             courses = courses.filter(class_year=class_year)
         if scheme_id:
             courses = courses.filter(scheme_id=scheme_id)
+        if intro_year:
+            courses = courses.filter(batches__batch_year=intro_year.split('-')[0])
 
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -271,6 +272,17 @@ class CourseListCreateAPIView(APIView):
             if serializer.is_valid():
                 course = serializer.save()
                 
+                # Handle batches (M2M) - Input is ['2025-26', ...]
+                batch_years = request.data.get('batches', [])
+                if batch_years:
+                    batch_objs = []
+                    for by in batch_years:
+                        year_val = by.split('-')[0]
+                        batch = Batch.objects.filter(batch_year=year_val).first()
+                        if batch:
+                            batch_objs.append(batch)
+                    course.batches.set(batch_objs)
+
                 # Handle Faculty Assignment
                 faculty_id = request.data.get('faculty_assigned')
                 print(f"DEBUG: Creating course, faculty_assigned={faculty_id}")
@@ -329,6 +341,17 @@ class CourseDetailAPIView(APIView):
         if serializer.is_valid():
             course = serializer.save()
             
+            # Handle batches (M2M)
+            batch_years = request.data.get('batches', [])
+            if batch_years:
+                batch_objs = []
+                for by in batch_years:
+                    year_val = by.split('-')[0]
+                    batch = Batch.objects.filter(batch_year=year_val).first()
+                    if batch:
+                        batch_objs.append(batch)
+                course.batches.set(batch_objs)
+
             # Handle Faculty Assignment
             faculty_id = request.data.get('faculty_assigned')
             print(f"DEBUG: Updating course {pk}, faculty_assigned={faculty_id}")

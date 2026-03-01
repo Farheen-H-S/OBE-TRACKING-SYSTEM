@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, Row, Col, Card } from 'react-bootstrap';
+import { Container, Table, Button, Form, Row, Col, Card, Collapse } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import api from '../../../utils/axios';
 import './COPOmapping.css';
 import { useFilters } from '../../../context/FilterContext';
@@ -25,6 +26,9 @@ const COPOmapping = () => {
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [existingCoursesAll, setExistingCoursesAll] = useState([]);
+    const [showStatements, setShowStatements] = useState(false);
+    const [cos, setCos] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -107,6 +111,7 @@ const COPOmapping = () => {
                 psoRes.data.forEach(p => row[`pso${p.pso_id}`] = mappingMap[co.co_id]?.[`pso${p.pso_id}`] || '');
                 return row;
             });
+            setCos(coRes.data);
             setRows(newRows);
             calculateAverages(newRows, poRes.data, psoRes.data);
         } catch (err) {
@@ -197,6 +202,7 @@ const COPOmapping = () => {
             fetchCourses();
             setIsEditing(false);
             alert("Mappings saved & completed successfully!");
+            navigate('/course-management');
         } catch (err) {
             console.error("Error saving mappings:", err);
             alert("Error saving mappings.");
@@ -212,7 +218,57 @@ const COPOmapping = () => {
                     <Container fluid className="bg-white p-4 shadow-sm rounded border-0 h-100 d-flex flex-column">
 
                         <h4 className="text-left mb-3" style={{ color: '#1a237e', fontWeight: 'bold' }}>3.1 Establish correlation between courses and the POs & PSOs (20)</h4>
-                        <h5 className="text-left mb-4" style={{ color: '#3949ab', fontWeight: '600' }}>3.1.2 CO-PO matrices of courses selected in 3.1.1 (5)</h5>
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h5 className="text-left mb-0" style={{ color: '#3949ab', fontWeight: '600' }}>3.1.2 CO-PO matrices of courses selected in 3.1.1 (5)</h5>
+                            {selectedCourse && (
+                                <Button
+                                    variant="outline-primary"
+                                    onClick={() => setShowStatements(!showStatements)}
+                                    className="shadow-sm"
+                                >
+                                    {showStatements ? 'Hide Statements' : 'Show Statements'}
+                                </Button>
+                            )}
+                        </div>
+
+                        <Collapse in={showStatements}>
+                            <div className="mb-4">
+                                <Card className="border-0 shadow-sm bg-white p-3">
+                                    <h6 className="fw-bold mb-3 border-bottom pb-2" style={{ color: '#1a237e' }}>Definitions & Statements</h6>
+                                    <Row>
+                                        <Col md={6}>
+                                            <div className="mb-3">
+                                                <small className="text-muted fw-bold d-block mb-2">COURSE OUTCOMES (CO)</small>
+                                                <div className="statements-list overflow-auto" style={{ maxHeight: '200px' }}>
+                                                    {cos.map(co => (
+                                                        <div key={co.co_id} className="p-2 mb-1 bg-light rounded shadow-sm border-start border-4 border-primary">
+                                                            <strong>{co.co_number}:</strong> {co.description}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </Col>
+                                        <Col md={6}>
+                                            <div className="mb-3">
+                                                <small className="text-muted fw-bold d-block mb-2">PROGRAM OUTCOMES (PO) & PSOs</small>
+                                                <div className="statements-list overflow-auto" style={{ maxHeight: '200px' }}>
+                                                    {pos.map(po => (
+                                                        <div key={po.po_id} className="p-2 mb-1 bg-light rounded shadow-sm border-start border-4 border-info">
+                                                            <strong>{po.po_number}:</strong> {po.description}
+                                                        </div>
+                                                    ))}
+                                                    {psos.map(pso => (
+                                                        <div key={pso.pso_id} className="p-2 mb-1 bg-light rounded shadow-sm border-start border-4 border-success">
+                                                            <strong>{pso.pso_number}:</strong> {pso.description}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            </div>
+                        </Collapse>
 
                         {/* Filter Section - Handled by GlobalFilterBar */}
                         <Card className="border-0 bg-light mb-4 p-3 shadow-sm rounded">
@@ -259,6 +315,16 @@ const COPOmapping = () => {
                                 </Col>
                             </Row>
                         </Card>
+
+                        {/* Course Selected: CO Status Warning */}
+                        {selectedCourse && selectedCourse.co_status !== 'COMPLETED' && (
+                            <div className="alert alert-warning d-flex align-items-center gap-2 mb-3 shadow-sm" role="alert">
+                                <i className="bi bi-exclamation-triangle-fill fs-5"></i>
+                                <div>
+                                    <strong>CO Status is not complete.</strong> Please mark the course outcomes as <strong>Completed</strong> in Course Management before entering the CO-PO mapping.
+                                </div>
+                            </div>
+                        )}
 
                         {/* Mapping Content - Only shown if course selected and rows exist */}
                         {selectedCourse && rows.length > 0 ? (
@@ -356,7 +422,16 @@ const COPOmapping = () => {
                                 </div>
 
                                 <div className="d-flex justify-content-end gap-3 mt-4 pb-3">
-                                    {selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing ? (
+                                    {selectedCourse?.co_status !== 'COMPLETED' ? (
+                                        <Button
+                                            variant="outline-secondary"
+                                            className="px-4 fw-bold shadow-sm"
+                                            disabled
+                                            title="CO Status must be COMPLETED before mapping can be edited."
+                                        >
+                                            <i className="bi bi-lock me-2"></i>Mapping Locked (CO Pending)
+                                        </Button>
+                                    ) : selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing ? (
                                         <Button
                                             variant="primary"
                                             className="px-4 fw-bold shadow-sm"

@@ -38,6 +38,7 @@ class CourseSerializer(serializers.ModelSerializer):
     )
     faculty_assigned = serializers.SerializerMethodField()
     faculty_assigned_name = serializers.SerializerMethodField()
+    batch_list = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -45,9 +46,10 @@ class CourseSerializer(serializers.ModelSerializer):
             'course_id', 'course_code', 'course_name', 'course_title', 
             'course_abbr', 'semester', 'class_year', 'program_id', 
             'program_name', 'scheme_id', 'assessment_tools', 
-            'faculty_assigned', 'faculty_assigned_name', 'is_internal', 'co_status', 'mapping_status',
-            'course_atr', 'is_active', 'created_at', 'updated_at'
+            'faculty_assigned', 'faculty_assigned_name', 'batch_list', 'is_internal', 'co_status', 'mapping_status',
+            'course_atr', 'is_active', 'batches', 'created_at', 'updated_at'
         ]
+        read_only_fields = ['batches']
 
     def get_faculty_assigned(self, obj):
         from users.models import FacultyCourseAssignment
@@ -58,6 +60,9 @@ class CourseSerializer(serializers.ModelSerializer):
         from users.models import FacultyCourseAssignment
         assignment = FacultyCourseAssignment.objects.filter(course_id=obj, is_active=True).first()
         return assignment.faculty_id.name if assignment else None
+
+    def get_batch_list(self, obj):
+        return [f"{b.batch_year}-{(b.batch_year + 1) % 100:02d}" for b in obj.batches.all()]
 
 
 class COSerializer(serializers.ModelSerializer):

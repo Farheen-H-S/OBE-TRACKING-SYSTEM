@@ -48,7 +48,7 @@ const Layout = ({ children, role }) => {
 
         // Course Layer Group
         if (path === '/course-management' || path === '/co-po-pso-mapping' || path === '/my-courses') {
-            return ['dept', 'scheme', 'year'];
+            return ['dept', 'scheme', 'introYear'];
         }
 
         // Full (No Div) Group

@@ -8,6 +8,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
         selectedScheme, setSelectedScheme,
         selectedBatch, setSelectedBatch,
         selectedYear, setSelectedYear,
+        selectedIntroYear, setSelectedIntroYear,
         selectedClass, setSelectedClass,
         selectedSemester, setSelectedSemester,
         selectedDivision, setSelectedDivision,
@@ -94,6 +95,23 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
                     >
                         {years.map(y => (
                             <option key={`ay-${y}`} value={y}>{y}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {isVisible('introYear') && (
+                <div className="filter-item">
+                    <label>Year of Introduction</label>
+                    <select
+                        value={selectedIntroYear}
+                        onChange={(e) => setSelectedIntroYear(e.target.value)}
+                    >
+                        <option value="">Select Year</option>
+                        {batches.map(b => (
+                            <option key={`intro-${b.batch_id}`} value={b.batch_id}>
+                                {b.display_batch || b.batch_id}
+                            </option>
                         ))}
                     </select>
                 </div>

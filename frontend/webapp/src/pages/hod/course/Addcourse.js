@@ -12,7 +12,7 @@ const Addcourse = () => {
         selectedScheme,
         selectedBatch,
         selectedYear,
-        years,
+        batches,
         programs,
         schemes
     } = useFilters();
@@ -108,6 +108,7 @@ const Addcourse = () => {
                         class: data.class_year,
                         semester: data.semester,
                         faculty: data.faculty_assigned || '',
+                        batches: data.batch_list || [],
                         assessmentTools: data.assessment_tools || prev.assessmentTools,
                         courseOutcomes: cos,
                         course_name_suffix: data.course_name ? (data.course_abbr ? data.course_name.replace(`${data.course_abbr}-`, '') : data.course_name) : ''
@@ -130,7 +131,7 @@ const Addcourse = () => {
     useEffect(() => {
         if (formData.courseCode && formData.courseOutcomes.length === 1 && (formData.courseOutcomes[0].no === 'CO' || formData.courseOutcomes[0].no === 'CO1')) {
             const newCOs = [...formData.courseOutcomes];
-            newCOs[0].no = `CO${formData.courseCode}.1`;
+            newCOs[0].no = `CO${formData.courseCode.replace(/^CO/i, '')}.1`;
             setFormData(prev => ({ ...prev, courseOutcomes: newCOs }));
         }
     }, [formData.courseCode]);
@@ -209,16 +210,29 @@ const Addcourse = () => {
         return [];
     };
 
-    const handleSave = async (e) => {
-        e.preventDefault();
+    const handleSave = async (e, requestedStatus = 'PENDING') => {
+        if (e) e.preventDefault();
         try {
-            // Validate required fields
+            // Validate required fields for basic save
             const requiredFields = ['courseCode', 'course_name_suffix', 'faculty'];
             for (let field of requiredFields) {
                 if (!formData[field]) {
-                    alert(`Please fill in ${field}`);
+                    alert(`Please fill in ${field.replace('_', ' ')}`);
                     return;
                 }
+            }
+
+            // Additional validation for 'COMPLETED' status
+            const coData = formData.courseOutcomes
+                .filter(c => c.text.trim() !== "")
+                .map(c => ({
+                    co_number: c.no,
+                    description: c.text.trim()
+                }));
+
+            if (requestedStatus === 'COMPLETED' && coData.length === 0) {
+                alert("Cannot mark as complete: Please enter at least one Course Outcome statement.");
+                return;
             }
 
             // Use local form data for program and scheme
@@ -233,6 +247,8 @@ const Addcourse = () => {
                 semester: formData.semester,
                 faculty_assigned: formData.faculty,
                 assessment_tools: formData.assessmentTools,
+                batches: formData.batches,
+                co_status: requestedStatus
             };
 
             let response;
@@ -244,22 +260,13 @@ const Addcourse = () => {
 
             if (response.status === 201 || response.status === 200) {
                 const cId = response.data.course_id || formData.courseId;
-                // Save COs (Full Sync)
-                const coData = formData.courseOutcomes
-                    .filter(c => c.text.trim() !== "")
-                    .map(c => ({
-                        co_number: c.no,
-                        description: c.text.trim()
-                    }));
 
+                // Save COs (Full Sync)
                 if (coData.length > 0) {
                     await api.post(`/academics/courses/${cId}/cos/`, coData);
                 }
 
-                // Update course status to COMPLETED
-                await api.put(`/academics/courses/${cId}/`, { co_status: 'COMPLETED' });
-
-                alert("Course and Outcomes saved successfully!");
+                alert(requestedStatus === 'COMPLETED' ? "Course and Outcomes saved & completed successfully!" : "Course saved as draft!");
                 navigate('/course-management');
             }
         } catch (err) {
@@ -372,7 +379,7 @@ const Addcourse = () => {
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="e.g. Data Analysis"
+                                            placeholder="e.g. 315326"
                                             value={formData.course_name_suffix}
                                             onChange={(e) => setFormData({ ...formData, course_name_suffix: e.target.value })}
                                             disabled={isViewMode}
@@ -416,7 +423,8 @@ const Addcourse = () => {
                                 <div className="col-12 mt-2">
                                     <label className="form-label fw-bold">Applicable Batches</label>
                                     <div className="d-flex flex-wrap gap-2">
-                                        {years.map(y => {
+                                        {batches.map(b => {
+                                            const y = b.batch_id;
                                             const isSelected = (formData.batches || []).includes(y);
                                             return (
                                                 <div
@@ -566,9 +574,20 @@ const Addcourse = () => {
                             </div>
 
                             {!isViewMode && (
-                                <div className="d-flex justify-content-center mt-5">
-                                    <button type="submit" className="btn btn-outline-primary btn-lg px-5 shadow-sm fw-bold">
-                                        {formData.courseId ? "Update & Complete" : "Save & Complete"}
+                                <div className="d-flex justify-content-center gap-3 mt-5">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary btn-lg px-4 shadow-sm fw-bold"
+                                        onClick={(e) => handleSave(e, 'PENDING')}
+                                    >
+                                        {formData.courseId ? "Update Draft" : "Save as Draft"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-primary btn-lg px-4 shadow-sm fw-bold"
+                                        onClick={(e) => handleSave(e, 'COMPLETED')}
+                                    >
+                                        {formData.courseId ? "Update & Mark Complete" : "Save & Mark Complete"}
                                     </button>
                                 </div>
                             )}
