@@ -21,6 +21,7 @@ from django.http import HttpResponse
 import os
 from django.conf import settings
 from notifications.utils import send_obe_notification
+from .bulk_cis_service import generate_cis_multi_sheet_template, process_bulk_cis_apply
 
 class DownloadStudentTemplateView(APIView):
     """
@@ -56,7 +57,7 @@ class DownloadCourseTemplateView(APIView):
         output.seek(0)
         
         response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename=Course_Bulk_Upload_Template.xlsx'
+        response['Content-Disposition'] = 'attachment; filename=Marks_Bulk_Upload_Template.xlsx'
         return response
 
 class DownloadCISTemplateView(APIView):
@@ -124,7 +125,7 @@ class DownloadCISTemplateView(APIView):
         output.seek(0)
         
         response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename=CIS_Template_{course.course_code}_{tool_name}.xlsx'
+        response['Content-Disposition'] = 'attachment; filename=Marks_Bulk_Upload_Template.xlsx'
         return response
 
 def apply_header_style(cell, fill_color="2F5597", font_color="FFFFFF"):
@@ -143,7 +144,7 @@ class BulkStudentUploadView(APIView):
         if not file_obj:
             return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get defaults from request data (for columns that might be missing in Excel)
+        # Get defaults from request data
         default_batch_id = request.data.get('batch_id')
         default_academic_year = request.data.get('academic_year')
         default_semester = request.data.get('semester')
@@ -152,169 +153,24 @@ class BulkStudentUploadView(APIView):
         default_program_id = request.data.get('program_id')
 
         # --- PRE-VALIDATION ---
-        # If IDs are passed as empty strings, treat them as None
         if not str(default_batch_id).strip(): default_batch_id = None
         if not str(default_program_id).strip(): default_program_id = None
 
-        # 1. Validate extension
         if not (file_obj.name.endswith('.xlsx') or file_obj.name.endswith('.xls')):
             return Response({"error": "Only Excel files (.xlsx, .xls) are allowed"}, status=status.HTTP_400_BAD_REQUEST)
 
+        results = {
+            "total": 0,
+            "success": 0, "updated": 0, "skipped": 0, "errors": []
+        }
+
         try:
-            # 2. Aggressive Header Detection
-            try:
-                # Read the first 20 rows to find the headers
-                preview_df = pd.read_excel(file_obj, header=None, nrows=20)
-            except Exception as e:
-                return Response({"error": f"Invalid Excel file: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-            header_row_idx = 0
-            found_header_row = False
-            # Look for a row that has at least TWO of our critical keywords
-            # Added more context keywords to capture header rows even with limited data
-            detection_keywords = ['enroll', 'roll', 'student', 'name', 'program', 'batch', 'division', 'class', 'semester', 'prn', 'id']
-            for i, row in preview_df.iterrows():
-                row_str = " ".join([str(val).lower() for val in row if pd.notnull(val)])
-                hits = sum(1 for k in detection_keywords if k in row_str)
-                if hits >= 2:
-                    header_row_idx = i
-                    found_header_row = True
-                    break
-            
-            # Reset and read properly as STRINGS to preserve exact user formatting (no .0 or scientific notation)
-            file_obj.seek(0)
-            df = pd.read_excel(file_obj, skiprows=header_row_idx, dtype=str)
-            
-            # --- Robust Cleaning Function ---
-            def clean_str(s):
-                if pd.isnull(s): return ""
-                # Remove all symbols and spaces, just lowercase letters and numbers
-                return "".join(c.lower() for c in str(s) if c.isalnum())
-
-            # 3. Flexible Alias Map (Highly Expanded)
-            alias_map = {
-                'program name': ['programname', 'program', 'department', 'dept', 'branch', 'branchname', 'stream', 'course'],
-                'batch year': ['batchyear', 'batch', 'admyear', 'admissionyear', 'batchperiod', 'acadbatch'],
-                'academic year': ['academicyear', 'ay', 'academic', 'year', 'session', 'academicsession'],
-                'semester': ['semester', 'sem', 'sme', 'term', 'semesterid'],
-                'class': ['class', 'classyear', 'year', 'yr', 'grade', 'classid'],
-                'division': ['division', 'div', 'section', 'group', 'divid'],
-                'enrollment no': [
-                    'enrollmentno', 'entrollmentno', 'enrollment', 'entrollment', 'enrollno', 'enrolment', 'enrollmentnumber', 
-                    'enrno', 'regno', 'regnumber', 'prn', 'prnno', 'permanentregistrationnumber',
-                    'studentid', 'sid', 'id', 'studentno', 'studentnumber'
-                ],
-                'roll no': [
-                    'rollno', 'rollnumber', 'roll', 'rno', 'rollcallno', 'rn', 
-                    'seatno', 'seatnumber', 'srno', 'serialno', 'serialnumber', 'sr', 'srno'
-                ],
-                'student name': [
-                    'studentname', 'name', 'fullname', 'nameofstudent', 'nameofthestudent', 
-                    'stname', 'student', 'fname', 'firstnamemiddlename', 'nameofstudent'
-                ],
-                'email': ['email', 'mail', 'emailaddress', 'studentemail', 'mailid', 'emailid'],
-                'is active': ['isactive', 'active', 'status', 'enabled']
-            }
-
-            # Map found headers to our internal keys
-            rename_map = {}
-            missing_critical = []
-            critical_cols = ['enrollment no', 'roll no', 'student name']
-            
-            actual_headers = [str(c).strip() for c in df.columns]
-            actual_headers_clean = [clean_str(h) for h in actual_headers]
-
-            for official_name, aliases in alias_map.items():
-                found_match = None
-                for alias in aliases:
-                    clean_alias = clean_str(alias)
-                    if clean_alias in actual_headers_clean:
-                        found_match = actual_headers[actual_headers_clean.index(clean_alias)]
-                        break
-                
-                if found_match:
-                    rename_map[found_match] = official_name
-                elif official_name in critical_cols:
-                    # Provide clean names for the error message
-                    display_name = {
-                        'enrollment no': 'Enrollment No',
-                        'roll no': 'Roll No',
-                        'student name': 'Student Name'
-                    }.get(official_name, official_name.title())
-                    missing_critical.append(display_name)
-
-            if missing_critical:
-                found_str = ", ".join(actual_headers) if actual_headers else "None"
-                return Response({
-                    "error": f"Columns not found: {', '.join(missing_critical)}. We tried matching your headers but couldn't find them. (Found headers: {found_str})",
-                    "details": "Please ensure your Excel file has headers like 'Enrollment No', 'Roll No', and 'Student Name'. You can also use 'PRN' for Enrollment or 'Seat No' for Roll No.",
-                    "found_headers": actual_headers,
-                    "cleaned_headers_debug": actual_headers_clean
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            # --- Improved Mapping Logic ---
-            def clean(s):
-                return "".join(c.lower() for c in str(s) if c.isalnum())
-
-            # Map of internal field -> List of cleaned aliases
-            # We use cleaned aliases for direct comparison
-            internal_to_clean_aliases = {
-                'program_name': [clean(a) for a in alias_map['program name']],
-                'batch_year': [clean(a) for a in alias_map['batch year']],
-                'academic_year': [clean(a) for a in alias_map['academic year']],
-                'semester': [clean(a) for a in alias_map['semester']],
-                'class_year': [clean(a) for a in alias_map['class']],
-                'division': [clean(a) for a in alias_map['division']],
-                'enrollment_no': [clean(a) for a in alias_map['enrollment no']],
-                'roll_no': [clean(a) for a in alias_map['roll no']],
-                'student_name': [clean(a) for a in alias_map['student name']],
-                'email': [clean(a) for a in alias_map['email']],
-                'is_active': [clean(a) for a in alias_map['is active']],
-            }
-
-            # Build actual rename map
-            final_rename_map = {}
-            for col in df.columns:
-                clean_col = clean(col)
-                if not clean_col: continue
-                
-                for internal_key, clean_aliases in internal_to_clean_aliases.items():
-                    if clean_col in clean_aliases:
-                        # Priority: If already mapped, don't overwrite unless it's a better match? 
-                        # Simple rule: first match for a clean_col wins.
-                        if internal_key not in final_rename_map.values():
-                            final_rename_map[col] = internal_key
-                        break
-
-            df = df.rename(columns=final_rename_map)
-            
-            # Critical Validation
-            missing_critical = []
-            if 'enrollment_no' not in df.columns: missing_critical.append("Enrollment No")
-            if 'roll_no' not in df.columns: missing_critical.append("Roll No")
-            if 'student_name' not in df.columns: missing_critical.append("Student Name")
-
-            if missing_critical:
-                return Response({
-                    "error": f"Columns not found: {', '.join(missing_critical)}",
-                    "details": "The system couldn't identify required headers.",
-                    "found_headers": list(df.columns)
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            # Ensure all expected columns exist in DF
-            for key in internal_to_clean_aliases.keys():
-                if key not in df.columns:
-                    df[key] = None
-
-            # 4. Processing Setup
-            results = {
-                "total": len(df),
-                "success": 0, "updated": 0, "skipped": 0, "errors": []
-            }
+            excel_file = pd.ExcelFile(file_obj)
+            sheet_names = excel_file.sheet_names
             
             student_role = UserRole.objects.get_or_create(role_name='Student')[0]
             
-            # Resolve Batch from ID (numeric) or Name/Year (string like "2025-26")
+            # Resolve Default Batch
             def_batch = None
             if default_batch_id:
                 if str(default_batch_id).isdigit():
@@ -327,197 +183,208 @@ class BulkStudentUploadView(APIView):
             
             def_prog = Program.objects.filter(pk=default_program_id).first() if default_program_id and str(default_program_id).isdigit() else None
 
-            for index, row in df.iterrows():
-                row_num = index + header_row_idx + 2
+            alias_map = {
+                'program_name': ['programname', 'program', 'department', 'dept', 'branch', 'branchname', 'stream', 'course'],
+                'batch_year': ['batchyear', 'batch', 'admyear', 'admissionyear', 'batchperiod', 'acadbatch'],
+                'academic_year': ['academicyear', 'ay', 'academic', 'year', 'session', 'academicsession'],
+                'semester': ['semester', 'sem', 'term', 'semesterid'],
+                'class_year': ['class', 'classyear', 'year', 'yr', 'grade', 'classid'],
+                'division': ['division', 'div', 'section', 'group', 'divid'],
+                'enrollment_no': [
+                    'enrollmentno', 'enrollment', 'enrollno', 'enrolment', 'regno', 'regnumber', 'prn', 'studentid', 'sid', 'id'
+                ],
+                'roll_no': [
+                    'rollno', 'rollnumber', 'roll', 'rno', 'rollcallno', 'rn', 'seatno', 'seatnumber', 'srno'
+                ],
+                'student_name': [
+                    'studentname', 'name', 'fullname', 'nameofstudent', 'stname', 'student', 'fname'
+                ],
+                'email': ['email', 'mail', 'emailaddress', 'studentemail', 'mailid', 'emailid'],
+                'is_active': ['isactive', 'active', 'status', 'enabled']
+            }
+
+            def clean_key(s):
+                return "".join(c.lower() for c in str(s) if c.isalnum())
+
+            clean_alias_map = {k: [clean_key(a) for a in v] for k, v in alias_map.items()}
+
+            for sheet_name in sheet_names:
                 try:
-                    with transaction.atomic():
-                        # --- Robust Value Cleaning ---
-                        def get_num_val(key):
-                            v = row.get(key)
-                            if pd.isnull(v): return ""
-                            s = str(v).strip()
-                            # Handle scientific notation like 2.11E+10
-                            if 'e' in s.lower() or '+' in s:
-                                try:
-                                    s = format(float(s), 'f').split('.')[0]
-                                except: pass
-                            if s.endswith('.0'): s = s[:-2]
-                            return s
-
-                        enroll_no = get_num_val('enrollment_no')
-                        roll_no = get_num_val('roll_no')
-                        name = str(row.get('student_name', '')).strip()
-                        email = str(row.get('email', '')).strip()
-                        
-                        if not enroll_no or not roll_no or not name:
-                            if row.isnull().all():
-                                results["total"] -= 1
-                                continue
-                            results["errors"].append(f"Row {row_num}: Missing data (Enroll: '{enroll_no}', Roll: '{roll_no}', Name: '{name}')")
-                            continue
-
-                        # Default values
-                        ay_val = get_num_val('academic_year') or default_academic_year
-                        if ay_val and '-' in str(ay_val):
-                            pass
-                        elif ay_val:
-                            try:
-                                year_start = int(float(ay_val))
-                                ay_val = f"{year_start}-{(year_start+1)%100:02d}"
-                            except: pass
-                        
-                        if not ay_val or '-' not in str(ay_val):
-                            results["errors"].append(f"Row {row_num}: Invalid Academic Year '{ay_val}'.")
-                            continue
-
-                        sem_val = get_num_val('semester') or default_semester
-                        try:
-                            sem = int(float(str(sem_val))) if sem_val else None
-                            if not sem: raise ValueError()
-                        except:
-                            results["errors"].append(f"Row {row_num}: Invalid Semester '{sem_val}'.")
-                            continue
-
-                        c_year = get_num_val('class_year') or default_class_year
-                        div = get_num_val('division') or default_division
-                        is_active = str(row.get('is_active', '')).strip().lower() != 'false'
-
-                        # --- MAPPING ---
-                        prog_input = get_num_val('program_name')
-                        program = Program.objects.filter(program_name__iexact=prog_input).first() if prog_input else def_prog
-                        
-                        batch = None
-                        batch_input = get_num_val('batch_year')
-                        if batch_input:
-                            try:
-                                b_year_clean = int(batch_input.split('-')[0]) if '-' in batch_input else int(float(batch_input))
-                                batch = Batch.objects.filter(batch_year=b_year_clean).first()
-                            except: 
-                                pass
-                        
-                        if not batch: 
-                            batch = def_batch
-
-                        # Validate Program
-                        if not program:
-                            err_val = prog_input if prog_input else "(No Program Selected)"
-                            results["errors"].append(f"Row {row_num}: Program mapping failed for '{err_val}'.")
-                            continue
-                            
-                        # Validate Batch
-                        if not batch:
-                            err_val = batch_input if batch_input else "(No Batch Selected)"
-                            results["errors"].append(f"Row {row_num}: Batch mapping failed for '{err_val}'.")
-                            continue
-
-                        # --- Aggressive Overwrite and Resolution ---
-                        # 1. Check by Roll No + Batch
-                        student = Student.objects.filter(roll_no=roll_no, batch_id=batch).first()
-                        
-                        # 2. Check by Enrollment No
-                        if not student:
-                            student = Student.objects.filter(enrollment_no=enroll_no).first()
-                        
-                        if student:
-                            # Resolve triple conflicts: if new enroll_no is held by ANOTHER student
-                            other_conflict = Student.objects.filter(enrollment_no=enroll_no).exclude(pk=student.pk).first()
-                            if other_conflict:
-                                other_conflict.enrollment_no = f"X_{other_conflict.enrollment_no}_{other_conflict.pk}"
-                                other_conflict.is_active = False
-                                other_conflict.save()
-
-                            # Update the student record
-                            student.roll_no = roll_no
-                            student.enrollment_no = enroll_no
-                            student.name = name
-                            student.class_year = c_year
-                            student.division = div
-                            student.semester = sem
-                            student.academic_year = ay_val
-                            student.batch_id = batch
-                            student.program_id = program
-                            student.is_active = is_active
-                            student.save()
-                            
-                            user = student.user_id
-                            if user:
-                                user.name = name
-                                user.username = enroll_no
-                                if email and '@' in email:
-                                    user.email = email
-                                user.save()
-                            results["updated"] += 1
-                        else:
-                            # New student logic
-                            other_conflict = Student.objects.filter(enrollment_no=enroll_no).first()
-                            if other_conflict:
-                                other_conflict.enrollment_no = f"X_{other_conflict.enrollment_no}_{other_conflict.pk}"
-                                other_conflict.is_active = False
-                                other_conflict.save()
-
-                            user_email = email if (email and '@' in email) else f"{enroll_no.lower()}@obe_tracking.com"
-                            user = User.objects.filter(Q(username=enroll_no) | Q(email=user_email)).first()
-                            if not user:
-                                user = User.objects.create(
-                                    username=enroll_no, email=user_email,
-                                    name=name, role_id=student_role, is_active=is_active
-                                )
-                                user.set_password(enroll_no)
-                                user.save()
-                            
-                            Student.objects.create(
-                                user_id=user, name=name, roll_no=roll_no, enrollment_no=enroll_no,
-                                program_id=program, batch_id=batch, class_year=c_year,
-                                division=div, semester=sem, academic_year=ay_val, is_active=is_active
-                            )
-                            
-                            # Send Welcome Notification
-                            send_obe_notification(
-                                recipient=user,
-                                title="Welcome to OBE Tracking System",
-                                message=f"Hi {name},\n\nYour student account has been created.\nYour Username: {user.username}\nDefault Password: {enroll_no}\n\nPlease login and update your profile.",
-                                notification_type='SUCCESS'
-                            )
-                            
-                            results["success"] += 1
-
-                except IntegrityError as ie:
-                    # Provide descriptive error if possible
-                    error_msg = str(ie).lower()
-                    if 'unique' in error_msg or 'duplicate' in error_msg:
-                        # Try to find exactly what conflicted
-                        conflicting_student = Student.objects.filter(roll_no=roll_no, batch_id=batch).first()
-                        if conflicting_student:
-                            results["errors"].append(
-                                f"Row {row_num}: Conflict. Roll No '{roll_no}' is already assigned to '{conflicting_student.name}' "
-                                f"(Enrollment: {conflicting_student.enrollment_no}) in this batch."
-                            )
-                        else:
-                            conflicting_enroll = Student.objects.filter(enrollment_no=enroll_no).first()
-                            if conflicting_enroll:
-                                results["errors"].append(
-                                    f"Row {row_num}: Conflict. Enrollment No '{enroll_no}' is already used by '{conflicting_enroll.name}'."
-                                )
-                            else:
-                                results["errors"].append(f"Row {row_num}: Database conflict (Duplicate Error). Please check if this student exists.")
-                    else:
-                        results["errors"].append(f"Row {row_num}: Database error: {str(ie)}")
+                    preview_df = pd.read_excel(file_obj, sheet_name=sheet_name, header=None, nrows=20)
+                except:
                     continue
-                except Exception as row_err:
-                    import traceback
-                    print(f"Error on row {row_num}: {str(row_err)}")
-                    traceback.print_exc()
-                    results["errors"].append(f"Row {row_num}: {str(row_err)}")
 
-            status_code = status.HTTP_201_CREATED if (results["success"] + results["updated"]) > 0 else status.HTTP_400_BAD_REQUEST
-            return Response(results, status=status_code)
+                header_row_idx = -1
+                detection_keywords = ['enroll', 'roll', 'student', 'name', 'prn', 'id']
+                for i, row in preview_df.iterrows():
+                    row_str = " ".join([str(val).lower() for val in row if pd.notnull(val)])
+                    hits = sum(1 for k in detection_keywords if k in row_str)
+                    if hits >= 2:
+                        header_row_idx = i
+                        break
+                
+                if header_row_idx == -1:
+                    continue # Skip sheets that don't look like student lists
+
+                df = pd.read_excel(file_obj, sheet_name=sheet_name, skiprows=header_row_idx, dtype=str)
+                
+                # Dynamic Rename Map
+                rename_map = {}
+                for col in df.columns:
+                    ck = clean_key(col)
+                    if not ck: continue
+                    for internal_key, aliases in clean_alias_map.items():
+                        if ck in aliases and internal_key not in rename_map.values():
+                            rename_map[col] = internal_key
+                            break
+                
+                df = df.rename(columns=rename_map)
+                
+                # Validate critical columns for this sheet
+                if 'enrollment_no' not in df.columns or 'roll_no' not in df.columns or 'student_name' not in df.columns:
+                    continue # This sheet is probably something else
+
+                results["total"] += len(df)
+
+                for index, row in df.iterrows():
+                    row_num = index + header_row_idx + 2
+                    try:
+                        with transaction.atomic():
+                            def get_val(key):
+                                v = row.get(key)
+                                if pd.isnull(v) or str(v).strip().lower() in ['nan', 'none', '']: return None
+                                s = str(v).strip()
+                                if 'e' in s.lower() or '+' in s:
+                                    try: s = format(float(s), 'f').split('.')[0]
+                                    except: pass
+                                if s.endswith('.0'): s = s[:-2]
+                                return s
+
+                            enroll_no = get_val('enrollment_no')
+                            roll_no = get_val('roll_no')
+                            name = get_val('student_name')
+                            
+                            if not enroll_no or not roll_no or not name:
+                                if row.isnull().all():
+                                    results["total"] -= 1
+                                    continue
+                                results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Missing critical data (Enroll: '{enroll_no}', Roll: '{roll_no}', Name: '{name}')")
+                                results["skipped"] += 1
+                                continue
+
+                            # Value Parsing
+                            ay_val = get_val('academic_year') or default_academic_year
+                            if ay_val:
+                                if '-' not in str(ay_val):
+                                    try:
+                                        y = int(float(str(ay_val)))
+                                        ay_val = f"{y}-{(y+1)%100:02d}"
+                                    except: ay_val = None
+                            
+                            if not ay_val:
+                                results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Invalid Academic Year.")
+                                results["skipped"] += 1
+                                continue
+
+                            sem_val = get_val('semester') or default_semester
+                            try:
+                                sem = int(float(str(sem_val))) if sem_val else None
+                            except: sem = None
+                            
+                            if not sem:
+                                results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Invalid Semester '{sem_val}'.")
+                                results["skipped"] += 1
+                                continue
+
+                            c_year = get_val('class_year') or default_class_year
+                            div = get_val('division') or default_division
+                            is_active = str(row.get('is_active', '')).strip().lower() != 'false'
+                            email = get_val('email')
+
+                            # Mapping
+                            prog_name = get_val('program_name')
+                            program = Program.objects.filter(program_name__iexact=prog_name).first() if prog_name else def_prog
+                            
+                            batch = None
+                            batch_year_input = get_val('batch_year')
+                            if batch_year_input:
+                                try:
+                                    y = int(batch_year_input.split('-')[0]) if '-' in batch_year_input else int(float(batch_year_input))
+                                    batch = Batch.objects.filter(batch_year=y).first()
+                                except: pass
+                            
+                            if not batch: batch = def_batch
+
+                            if not program or not batch:
+                                results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Missing Program or Batch mapping.")
+                                results["skipped"] += 1
+                                continue
+
+                            # Resolution
+                            student = Student.objects.filter(roll_no=roll_no, batch_id=batch).first()
+                            if not student:
+                                student = Student.objects.filter(enrollment_no=enroll_no).first()
+
+                            if student:
+                                # Overwrite protection for enrollment_no conflicts
+                                other = Student.objects.filter(enrollment_no=enroll_no).exclude(pk=student.pk).first()
+                                if other:
+                                    other.enrollment_no = f"X_{other.enrollment_no}_{other.pk}"
+                                    other.is_active = False
+                                    other.save()
+
+                                student.roll_no = roll_no
+                                student.enrollment_no = enroll_no
+                                student.name = name
+                                student.class_year = c_year
+                                student.division = div
+                                student.semester = sem
+                                student.academic_year = ay_val
+                                student.batch_id = batch
+                                student.program_id = program
+                                student.is_active = is_active
+                                student.save()
+                                
+                                user = getattr(student, 'user_id', None)
+                                if user:
+                                    user.name = name
+                                    user.username = enroll_no
+                                    if email and '@' in email: user.email = email
+                                    user.save()
+                                results["updated"] += 1
+                            else:
+                                # Create new
+                                user_obj, created = User.objects.get_or_create(
+                                    username=enroll_no, 
+                                    defaults={
+                                        'name': name,
+                                        'email': email if email and '@' in email else f"{enroll_no}@example.com",
+                                        'role_id': student_role
+                                    }
+                                )
+                                if created:
+                                    user_obj.set_password("Student@123")
+                                    user_obj.save()
+                                
+                                Student.objects.create(
+                                    user_id=user_obj, enrollment_no=enroll_no, roll_no=roll_no,
+                                    name=name, program_id=program, batch_id=batch,
+                                    class_year=c_year, semester=sem, division=div,
+                                    academic_year=ay_val, is_active=is_active
+                                )
+                                results["success"] += 1
+
+                    except IntegrityError as ie:
+                        results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Database Conflict - {str(ie)}")
+                        results["skipped"] += 1
+                    except Exception as e:
+                        results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: {str(e)}")
+                        results["skipped"] += 1
+
+            return Response(results, status=status.HTTP_200_OK)
 
         except Exception as e:
-            import traceback
-            print(traceback.format_exc())
-            return Response({"error": f"Failed to process file: {str(e)}"}, status=500)
-        except Exception as e:
-            return Response({"error": f"Failed to process file: {str(e)}"}, status=500)
+            return Response({"error": f"General Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class BulkMarksUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -813,6 +680,54 @@ class BulkCISUploadView(APIView):
 
         except Exception as e:
             return Response({"error": f"Upload Failed: {str(e)}"}, status=500)
+
+class DownloadCISMultiSheetTemplateView(APIView):
+    """
+    Generates a multi-sheet Excel template for all CIS tools.
+    """
+    def get(self, request):
+        course_id = request.query_params.get('course_id')
+        if not course_id:
+            return Response({"error": "Course ID is required"}, status=400)
+            
+        try:
+            excel_data = generate_cis_multi_sheet_template(course_id)
+            course = get_object_or_404(Course, pk=course_id)
+            
+            response = HttpResponse(excel_data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=Marks_Bulk_Upload_Template.xlsx'
+            return response
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class BulkCISApplyView(APIView):
+    """
+    Processes a multi-sheet CIS Excel file and applies marks to all corresponding tools.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        course_id = request.data.get('course_id')
+        academic_year = request.data.get('academic_year')
+        semester = request.data.get('semester')
+        
+        if not all([file_obj, course_id, academic_year, semester]):
+            return Response({"error": "Missing required fields (file, course_id, academic_year, semester)"}, status=400)
+
+        try:
+            report = process_bulk_cis_apply(
+                file=file_obj,
+                course_id=course_id,
+                academic_year=academic_year,
+                semester=semester,
+                user=request.user if request.user.is_authenticated else User.objects.first()
+            )
+            return Response({"message": "Bulk Apply completed", "report": report}, status=200)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": f"Bulk Apply Failed: {str(e)}"}, status=500)
 
 class BulkCourseUploadView(APIView):
     """

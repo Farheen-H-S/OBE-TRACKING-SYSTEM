@@ -11,10 +11,11 @@ const Reportverifiy = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
 
-    const [selectedYear, setSelectedYear] = useState('2025 - 26');
-    const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
-    const [selectedClass, setSelectedClass] = useState('');
-    const [selectedSem, setSelectedSem] = useState('');
+    // Sync with global filters from localStorage or use defaults
+    const [selectedYear, setSelectedYear] = useState(localStorage.getItem('selectedAcademicYear') || '2025 - 26');
+    const [selectedBatch, setSelectedBatch] = useState(localStorage.getItem('selectedBatch') || '2025 - 26');
+    const [selectedClass, setSelectedClass] = useState(localStorage.getItem('selectedClassYear') || '');
+    const [selectedSem, setSelectedSem] = useState(localStorage.getItem('selectedSemester') || '');
 
     const years = [];
     for (let i = 2019; i <= 2030; i++) {
@@ -25,38 +26,81 @@ const Reportverifiy = () => {
 
     useEffect(() => {
         fetchPendingReports();
+        // Listener for storage changes if filters are updated in header
+        const handleStorageChange = () => {
+            setSelectedYear(localStorage.getItem('selectedAcademicYear') || '2025 - 26');
+            setSelectedBatch(localStorage.getItem('selectedBatch') || '2025 - 26');
+            setSelectedClass(localStorage.getItem('selectedClassYear') || '');
+            setSelectedSem(localStorage.getItem('selectedSemester') || '');
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     const fetchPendingReports = async () => {
         try {
-            const res = await api.get('/reports/verification/');
-            setReports(res.data);
+            const [regularRes, dacRes] = await Promise.all([
+                api.get('/reports/verification/'),
+                api.get('/reports/dac-reports/')
+            ]);
+
+            const regularReports = regularRes.data.map(r => ({
+                ...r,
+                report_id: r.report_id,
+                report_name: `${r.report_type} Report - ${r.course_id || r.batch_id || 'N/A'}`,
+                display_status: r.status,
+                submitted_by: r.user_id_created || 'System'
+            }));
+
+            const dacReports = dacRes.data.map(r => ({
+                ...r,
+                report_id: r.dac_report_id,
+                report_type: 'DAC Report',
+                report_name: `DAC Report - ${r.academic_year} (${r.semester})`,
+                report_file: r.file_path,
+                created_at: r.created_at,
+                display_status: r.status,
+                submitted_by: r.uploaded_by || 'System',
+                // Map filters for consistent filtering logic
+                filters: {
+                    academicYear: r.academic_year,
+                    batch: r.batch,
+                    class: r.class_year,
+                    semester: r.semester
+                }
+            }));
+
+            setReports([...regularReports, ...dacReports]);
         } catch (err) {
             console.error("Error fetching reports:", err);
         }
     };
 
-    const handleAction = async (id, newStatus) => {
+    const handleAction = async (report, newStatus) => {
+        const id = report.report_id;
+        const isDac = report.report_type === 'DAC Report';
         try {
             if (newStatus === 'Approved') {
-                await api.post(`/reports/${id}/approve/`);
+                const endpoint = isDac ? `/reports/dac-reports/${id}/approve/` : `/reports/${id}/approve/`;
+                await api.post(endpoint);
                 alert("Report approved successfully!");
             } else if (newStatus === 'Rejected') {
                 const remark = window.prompt("Enter reason for rejection:");
-                if (remark === null) return; // Cancelled
-                await api.post(`/reports/${id}/reject/`, { remark });
+                if (remark === null) return;
+                const endpoint = isDac ? `/reports/dac-reports/${id}/reject/` : `/reports/${id}/reject/`;
+                await api.post(endpoint, { remark });
                 alert("Report rejected.");
             }
             fetchPendingReports();
         } catch (err) {
-            console.error(`Error updating report status to ${newStatus}:`, err);
-            alert(`Failed to update report status to ${newStatus}.`);
+            console.error(`Error updating report status:`, err);
+            alert(`Failed to update report status.`);
         }
     };
 
     const filteredReports = reports.filter(r => {
-        const typeMatchName = r.report_type ? r.report_type.toLowerCase() : '';
-        const userMatchName = r.user_id_created ? r.user_id_created.toLowerCase() : '';
+        const typeMatchName = r.report_type ? String(r.report_type).toLowerCase() : '';
+        const userMatchName = r.submitted_by ? String(r.submitted_by).toLowerCase() : '';
         const searchLow = searchTerm.toLowerCase();
 
         const matchesSearch = typeMatchName.includes(searchLow) ||
@@ -65,7 +109,7 @@ const Reportverifiy = () => {
 
         const matchesType = filterType === 'All' || r.report_type === filterType || (r.report_type === 'Batch' && filterType === 'PO/PSO Attainment');
 
-        // Match additional filters if report has them (DAC reports have them)
+        // Context filtering
         const matchesYear = !selectedYear || !r.filters?.academicYear || r.filters.academicYear === selectedYear;
         const matchesBatch = !selectedBatch || !r.filters?.batch || r.filters.batch === selectedBatch;
         const matchesClass = !selectedClass || !r.filters?.class || r.filters.class === selectedClass;
@@ -97,44 +141,15 @@ const Reportverifiy = () => {
                                 </select>
                             </div>
                             <div className="col-md">
-                                <label className="filter-label">BATCH</label>
-                                <select className="form-select filter-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                    <option value="">All Batches</option>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md">
-                                <label className="filter-label">ACADEMIC YEAR</label>
-                                <select className="form-select filter-select" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                                    <option value="">All Years</option>
-                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="filter-label">CLASS</label>
-                                <select className="form-select filter-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                                    <option value="">All</option>
-                                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-md" style={{ maxWidth: '100px' }}>
-                                <label className="filter-label">SEM</label>
-                                <select className="form-select filter-select" value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>
-                                    <option value="">All</option>
-                                    {semesters.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="mt-3">
-                            <div className="search-box position-relative">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search by name or faculty..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                                <div className="search-box position-relative" style={{ marginTop: '24px' }}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Search by name or faculty..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -156,14 +171,14 @@ const Reportverifiy = () => {
                             <tbody>
                                 {filteredReports.length > 0 ? (
                                     filteredReports.map((report) => (
-                                        <tr key={report.report_id}>
+                                        <tr key={`${report.report_type}-${report.report_id}`}>
                                             <td>{report.report_id}</td>
                                             <td className="text-start fw-bold">
-                                                {report.report_type} Report - {report.course_id || report.batch_id}
+                                                {report.report_name}
                                             </td>
                                             <td className="small">{report.report_type}</td>
                                             <td className="small">{new Date(report.created_at).toLocaleDateString()}</td>
-                                            <td>{report.user_id_created || 'System'}</td>
+                                            <td>{report.submitted_by}</td>
                                             <td>
                                                 <div className="d-flex justify-content-center">
                                                     <a
@@ -178,24 +193,24 @@ const Reportverifiy = () => {
                                                 </div>
                                             </td>
                                             <td className="text-center">
-                                                <span className={`status-badge status-${report.status.toLowerCase()}`}>
-                                                    {report.status}
+                                                <span className={`status-badge status-${report.display_status.toLowerCase()}`}>
+                                                    {report.display_status}
                                                 </span>
                                             </td>
                                             {!isFaculty && (
                                                 <td>
                                                     <div className="d-flex gap-2 justify-content-center">
                                                         <button
-                                                            className={`btn btn-success btn-sm btn-action ${(report.status === 'Approved' || report.status === 'Verified') ? 'disabled' : ''}`}
+                                                            className={`btn btn-success btn-sm btn-action ${(report.display_status === 'Approved' || report.display_status === 'Verified') ? 'disabled' : ''}`}
                                                             title="Approve"
-                                                            onClick={() => handleAction(report.report_id, 'Approved')}
+                                                            onClick={() => handleAction(report, 'Approved')}
                                                         >
                                                             ✓
                                                         </button>
                                                         <button
-                                                            className={`btn btn-danger btn-sm btn-action ${report.status === 'Rejected' ? 'disabled' : ''}`}
+                                                            className={`btn btn-danger btn-sm btn-action ${report.display_status === 'Rejected' ? 'disabled' : ''}`}
                                                             title="Reject"
-                                                            onClick={() => handleAction(report.report_id, 'Rejected')}
+                                                            onClick={() => handleAction(report, 'Rejected')}
                                                         >
                                                             ✗
                                                         </button>

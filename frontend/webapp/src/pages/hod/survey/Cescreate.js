@@ -42,6 +42,8 @@ const Cescreate = () => {
     // Link box state
     const [activeSurvey, setActiveSurvey] = useState(null);
     const [timeLeft, setTimeLeft] = useState("");
+    const [selectedCourseId, setSelectedCourseId] = useState("");
+    const [showActiveModal, setShowActiveModal] = useState(false);
 
     // Stats state
     const [showStats, setShowStats] = useState({}); // { courseId: boolean }
@@ -110,10 +112,13 @@ const Cescreate = () => {
 
             if (surveyRes.status === 'fulfilled') {
                 const surveyData = Array.isArray(surveyRes.value.data) ? surveyRes.value.data : [];
-                const active = surveyData.find(s => s.status === 'APPROVED');
+                // Sort by survey_id descending to get most recent
+                const sortedSurveys = [...surveyData].sort((a, b) => b.survey_id - a.survey_id);
+                const active = sortedSurveys.find(s => s.status === 'APPROVED');
                 if (active) {
                     const link = `${window.location.origin}/student/cis-login?course_id=${active.course_id}`;
                     setActiveSurvey({ ...active, link });
+                    setSelectedCourseId(active.course_id);
                 }
 
                 const states = {};
@@ -129,6 +134,25 @@ const Cescreate = () => {
             }
         } catch (error) {
             console.error("Critical error in fetchInitialData:", error);
+        }
+    };
+
+    const handleCourseChange = (courseId) => {
+        const id = parseInt(courseId);
+        setSelectedCourseId(id);
+        const state = surveyStates[id];
+        if (state && state.status === 'APPROVED') {
+            const link = `${window.location.origin}/student/cis-login?course_id=${id}`;
+            const course = courses.find(c => c.course_id === id);
+            setActiveSurvey({
+                ...state,
+                link,
+                course_id: id,
+                course_code: course?.course_code,
+                course_name: course?.course_name
+            });
+        } else {
+            setActiveSurvey(null);
         }
     };
 
@@ -381,38 +405,57 @@ const Cescreate = () => {
         );
     };
 
-    const [showActiveModal, setShowActiveModal] = useState(false);
+    const [surveyFilter, setSurveyFilter] = useState('ALL'); // ALL, ACTIVE, EXPIRED
 
     const ActiveSurveysModal = () => {
-        const activeSurveys = Object.entries(surveyStates)
-            .filter(([_, state]) => state.status === 'APPROVED')
+        const allSurveys = Object.entries(surveyStates)
             .map(([courseId, state]) => ({
-                courseId,
+                courseId: parseInt(courseId),
                 ...state,
                 course: courses.find(c => c.course_id === parseInt(courseId))
             }));
+
+        const filteredSummary = allSurveys.filter(s => {
+            if (surveyFilter === 'ALL') return true;
+            if (surveyFilter === 'ACTIVE') return s.status === 'APPROVED';
+            if (surveyFilter === 'EXPIRED') return s.status === 'CLOSED';
+            return true;
+        });
 
         if (!showActiveModal) return null;
 
         return (
             <div className="custom-modal-overlay">
-                <div className="custom-modal-content p-4">
+                <div className="custom-modal-content p-4" style={{ maxWidth: '800px' }}>
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                        <h4 className="mb-0 fw-bold">Active Survey Summary</h4>
-                        <button className="btn-close" onClick={() => setShowActiveModal(false)}></button>
+                        <h4 className="mb-0 fw-bold">Survey Management Summary</h4>
+                        <div className="d-flex gap-2">
+                            <select
+                                className="form-select form-select-sm"
+                                style={{ width: '150px' }}
+                                value={surveyFilter}
+                                onChange={(e) => setSurveyFilter(e.target.value)}
+                            >
+                                <option value="ALL">All Surveys</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="EXPIRED">Expired/Closed</option>
+                            </select>
+                            <button className="btn-close" onClick={() => setShowActiveModal(false)}></button>
+                        </div>
                     </div>
-                    <div className="active-surveys-list">
-                        {activeSurveys.length > 0 ? (
-                            <table className="table table-hover">
+                    <div className="active-surveys-list overflow-auto" style={{ maxHeight: '60vh' }}>
+                        {filteredSummary.length > 0 ? (
+                            <table className="table table-hover align-middle">
                                 <thead className="table-light">
                                     <tr>
                                         <th>Course</th>
+                                        <th>Status</th>
                                         <th>Expiry</th>
                                         <th>Link</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {activeSurveys.map(s => {
+                                    {filteredSummary.map(s => {
                                         const fullLink = `${window.location.origin}/student/cis-login?course_id=${s.courseId}`;
                                         return (
                                             <tr key={s.courseId}>
@@ -420,7 +463,12 @@ const Cescreate = () => {
                                                     <div className="fw-bold">{s.course?.course_code}</div>
                                                     <div className="small text-muted">{s.course?.course_name}</div>
                                                 </td>
-                                                <td>{new Date(s.expires_at).toLocaleDateString()}</td>
+                                                <td>
+                                                    <span className={`badge ${s.status === 'APPROVED' ? 'bg-success' : 'bg-secondary'}`}>
+                                                        {s.status === 'APPROVED' ? 'Active' : 'Expired'}
+                                                    </span>
+                                                </td>
+                                                <td>{s.expires_at ? new Date(s.expires_at).toLocaleDateString() : 'N/A'}</td>
                                                 <td>
                                                     <div className="d-flex align-items-center gap-2">
                                                         <code className="small text-primary bg-light p-1 rounded" style={{ fontSize: '0.7rem' }}>
@@ -441,7 +489,7 @@ const Cescreate = () => {
                                 </tbody>
                             </table>
                         ) : (
-                            <p className="text-center py-4 text-muted">No surveys are currently active.</p>
+                            <p className="text-center py-4 text-muted">No surveys found for this filter.</p>
                         )}
                     </div>
                 </div>
@@ -463,14 +511,31 @@ const Cescreate = () => {
             <div className="cescreate-main">
                 <div className="cescreate-card">
                     {/* Survey Link Box */}
-                    {activeSurvey && filteredCourses.length > 0 && (
-                        <div className="survey-link-status-box mb-4 no-highlight">
-                            <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div className="survey-link-status-box mb-4 no-highlight">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <div className="d-flex align-items-center gap-3">
                                 <h5 className="link-box-title mb-0">Student Course Exit Survey Link</h5>
+                                <select
+                                    className="form-select form-select-sm"
+                                    style={{ width: '250px' }}
+                                    value={selectedCourseId}
+                                    onChange={(e) => handleCourseChange(e.target.value)}
+                                >
+                                    <option value="">Select Course...</option>
+                                    {courses.filter(c => surveyStates[c.course_id]?.status === 'APPROVED').map(c => (
+                                        <option key={c.course_id} value={c.course_id}>
+                                            {c.course_code} - {c.course_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {activeSurvey && (
                                 <span className="badge bg-light text-danger fw-bold border border-danger">
                                     Time left: {timeLeft}
                                 </span>
-                            </div>
+                            )}
+                        </div>
+                        {activeSurvey ? (
                             <div className="link-input-group">
                                 <input
                                     type="text"
@@ -485,8 +550,12 @@ const Cescreate = () => {
                                     Copy Link
                                 </button>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="alert alert-info py-2 mb-0 small">
+                                {selectedCourseId ? "No active survey for selected course." : "Please select a course to see its active survey link."}
+                            </div>
+                        )}
+                    </div>
 
                     {!isValid ? (
                         <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
@@ -514,7 +583,7 @@ const Cescreate = () => {
                                     className="btn btn-sm btn-outline-secondary"
                                     onClick={() => setShowActiveModal(true)}
                                 >
-                                    View All Active Surveys
+                                    View All Surveys
                                 </button>
                             </h5>
 

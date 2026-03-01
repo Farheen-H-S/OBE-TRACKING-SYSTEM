@@ -21,6 +21,7 @@ const Header = ({ onToggleSidebar }) => {
   const {
     selectedDept, setSelectedDept,
     selectedScheme, setSelectedScheme,
+    selectedCourse,
     departments, schemes, loadingFilters
   } = useFilters();
 
@@ -92,12 +93,29 @@ const Header = ({ onToggleSidebar }) => {
 
   const handleDownloadTemplate = async (type) => {
     try {
-      const url = type === 'student' ? '/bulk_upload/students/template/' : '/bulk_upload/courses/template/';
+      let url = '';
+      let filename = '';
+
+      if (type === 'student') {
+        url = '/bulk_upload/students/template/';
+        filename = 'Student_Bulk_Upload_Template.xlsx';
+      } else if (type === 'course') {
+        url = '/bulk_upload/courses/template/';
+        filename = 'Course_Bulk_Upload_Template.xlsx';
+      } else if (type === 'cis') {
+        if (!selectedCourse) {
+          alert("Please select a course first in the Marks Entry page.");
+          return;
+        }
+        url = `/bulk_upload/cis/template-multi/?course_id=${selectedCourse}`;
+        filename = 'Marks_Bulk_Upload_Template.xlsx';
+      }
+
       const response = await api.get(url, { responseType: 'blob' });
       const dlUrl = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = dlUrl;
-      link.setAttribute('download', `${type.charAt(0).toUpperCase() + type.slice(1)}_Bulk_Upload_Template.xlsx`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -211,9 +229,9 @@ const Header = ({ onToggleSidebar }) => {
                     <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
                     <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
                   </button>
-                  <button onClick={() => handleDownloadTemplate('course')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <div className="fw-bold small text-primary">Course Bulk Upload Template</div>
-                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for course data entry</div>
+                  <button onClick={() => handleDownloadTemplate('cis')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <div className="fw-bold small text-primary">Marks Bulk Upload Template</div>
+                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
                   </button>
                 </div>
               </div>

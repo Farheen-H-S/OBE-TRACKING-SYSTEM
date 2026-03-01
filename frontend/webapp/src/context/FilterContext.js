@@ -43,6 +43,7 @@ export const FilterProvider = ({ children }) => {
     const [selectedSemester, setSelectedSemester] = useState(initialState.selectedSemester);
     const [selectedDivision, setSelectedDivision] = useState(initialState.selectedDivision);
     const [selectedIntroYear, setSelectedIntroYear] = useState(initialState.selectedIntroYear);
+    const [selectedCourse, setSelectedCourse] = useState(initialState.selectedCourse || '');
 
     const [departments, setDepartments] = useState([]);
     const [schemes, setSchemes] = useState([]);
@@ -60,10 +61,11 @@ export const FilterProvider = ({ children }) => {
             selectedClass,
             selectedSemester,
             selectedDivision,
-            selectedIntroYear
+            selectedIntroYear,
+            selectedCourse
         };
         localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
-    }, [selectedDept, selectedScheme, selectedBatch, selectedYear, selectedClass, selectedSemester, selectedDivision, selectedIntroYear]);
+    }, [selectedDept, selectedScheme, selectedBatch, selectedYear, selectedClass, selectedSemester, selectedDivision, selectedIntroYear, selectedCourse]);
 
     // Generate batches (2018-19 to 2030-31)
     const generatedBatches = [];
@@ -161,6 +163,7 @@ export const FilterProvider = ({ children }) => {
             selectedClass, setSelectedClass,
             selectedSemester, setSelectedSemester,
             selectedDivision, setSelectedDivision,
+            selectedCourse, setSelectedCourse,
             departments,
             programs: departments,
             batches,

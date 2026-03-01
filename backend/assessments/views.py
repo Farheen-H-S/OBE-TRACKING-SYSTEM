@@ -184,23 +184,30 @@ class SaveAssessmentMarksView(APIView):
                         co_weightage=weight
                     )
 
-            # 3. Upsert Marks
+            # 3. Upsert Marks (OPTIMIZED)
+            MarksEntry.objects.filter(assessment_id=assessment).delete()
+            
+            enrollment_nos = [item.get('enrollment_no') for item in marks_data if item.get('enrollment_no')]
+            students_map = {
+                s.enrollment_no: s 
+                for s in Student.objects.filter(enrollment_no__in=enrollment_nos, program_id=course.program_id)
+            }
+            
+            new_entries = []
             for item in marks_data:
                 enrollment_no = item.get('enrollment_no')
                 marks_obtained = item.get('marks')
-                if enrollment_no is not None and marks_obtained is not None:
-                    student = Student.objects.filter(enrollment_no=enrollment_no, program_id=course.program_id).first()
+                if enrollment_no and marks_obtained is not None:
+                    student = students_map.get(enrollment_no)
                     if student:
-                         try:
-                             val = float(marks_obtained)
-                         except:
-                             val = 0
-                             
-                         MarksEntry.objects.update_or_create(
-                            assessment_id=assessment,
-                            student_id=student,
-                            defaults={'marks_obtained': val, 'user_id': user}
+                        try: val = float(marks_obtained)
+                        except: val = 0
+                        new_entries.append(
+                            MarksEntry(assessment_id=assessment, student_id=student, marks_obtained=val, user_id=user)
                         )
+            
+            if new_entries:
+                MarksEntry.objects.bulk_create(new_entries)
 
         # Trigger attainment recalculation
         results = AttainmentService.calculate_attainment(course_id, academic_year)

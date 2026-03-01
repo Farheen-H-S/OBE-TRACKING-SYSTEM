@@ -130,6 +130,9 @@ const OtherIndirectTools = () => {
     const [showActiveModal, setShowActiveModal] = useState(false);
     const [activeSurveys, setActiveSurveys] = useState([]);
     const [fetchedStatements, setFetchedStatements] = useState([]);
+    const [selectedSurveyId, setSelectedSurveyId] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
+    const [modifiedQuestions, setModifiedQuestions] = useState({}); // { id: newText }
 
     // Smart filtering for semesters
     const availableSemesters = selectedClass === 'FY' ? ['1', '2'] :
@@ -155,9 +158,65 @@ const OtherIndirectTools = () => {
     useEffect(() => { if (selectedProgram && selectedProgram !== 'All') fetchStatements(); }, [selectedProgram]);
     useEffect(() => {
         const saved = localStorage.getItem(surveyKey);
-        setSurveyState(saved ? JSON.parse(saved) : null);
+        const parsed = saved ? JSON.parse(saved) : null;
+        setSurveyState(parsed);
+        if (parsed?.backendId) {
+            setSelectedSurveyId(parsed.backendId);
+        }
         setShowStats(false);
     }, [surveyKey]);
+
+    useEffect(() => {
+        fetchAllActiveSurveys();
+    }, []);
+
+    const fetchAllActiveSurveys = async (showModal = false) => {
+        try {
+            const res = await api.get('/surveys/');
+            const indirect = (res.data || []).filter(s => s.survey_category === 'indirect' && (s.status === 'APPROVED' || s.status === 'CLOSED'));
+            setActiveSurveys(indirect);
+            if (showModal) setShowActiveModal(true);
+
+            // If we have auto-selected or saved survey, ensure it's in the link box
+            if (!selectedSurveyId && indirect.length > 0) {
+                // Find most recent approved for this tool/program if possible, or just most recent
+                const latest = indirect[0]; // Assuming sorted by ID desc from backend
+                setSelectedSurveyId(latest.survey_id);
+                updateLinkBoxFromSurvey(latest);
+            }
+        } catch (err) {
+            console.error('Failed to fetch active surveys:', err);
+            if (showModal) alert('Failed to load active surveys.');
+        }
+    };
+
+    const updateLinkBoxFromSurvey = (survey) => {
+        const duration = survey.expires_at ?
+            Math.round((new Date(survey.expires_at) - new Date(survey.created_at || new Date())) / 3600000) : 48;
+
+        const newState = {
+            status: survey.status,
+            expires_at: survey.expires_at,
+            duration: String(duration),
+            link: buildLink(survey.survey_id),
+            backendId: survey.survey_id,
+            survey_name: survey.survey_name,
+            activity_title: survey.activity_title
+        };
+        setSurveyState(newState);
+    };
+
+    const handleSurveyChange = (surveyId) => {
+        setSelectedSurveyId(surveyId);
+        if (!surveyId) {
+            setSurveyState(null);
+            return;
+        }
+        const survey = activeSurveys.find(s => s.survey_id === parseInt(surveyId));
+        if (survey) {
+            updateLinkBoxFromSurvey(survey);
+        }
+    };
     useEffect(() => {
         const timer = setInterval(() => {
             if (!surveyState?.expires_at) { setTimeLeft(''); return; }
@@ -292,11 +351,11 @@ const OtherIndirectTools = () => {
                 expires_at: expiry.toISOString(),
                 questions: [
                     ...poRes.data.map(po => ({
-                        question_text: getSurveyInquiry({ number: po.po_number, description: po.description }, programName),
+                        question_text: modifiedQuestions[`PO_${po.po_id}`] || getSurveyInquiry({ number: po.po_number, description: po.description }, programName),
                         po_id: po.po_id
                     })),
                     ...psoRes.data.map(pso => ({
-                        question_text: getSurveyInquiry({ number: pso.pso_number, description: pso.description }, programName),
+                        question_text: modifiedQuestions[`PSO_${pso.pso_id}`] || getSurveyInquiry({ number: pso.pso_number, description: pso.description }, programName),
                         pso_id: pso.pso_id
                     }))
                 ]
@@ -365,16 +424,8 @@ const OtherIndirectTools = () => {
         setShowStats(true);
     };
 
-    const fetchAllActiveSurveys = async () => {
-        try {
-            const res = await api.get('/surveys/');
-            const indirect = (res.data || []).filter(s => s.survey_category === 'indirect' && (s.status === 'APPROVED' || s.status === 'CLOSED'));
-            setActiveSurveys(indirect);
-            setShowActiveModal(true);
-        } catch (err) {
-            console.error('Failed to fetch active surveys:', err);
-            alert('Failed to load active surveys.');
-        }
+    const fetchAllActiveSurveysLegacy = async () => {
+        await fetchAllActiveSurveys(true);
     };
 
     const handleCloseFromModal = async (s) => {
@@ -545,30 +596,51 @@ const OtherIndirectTools = () => {
                 <div className="oit-card">
 
                     {/* ── Active link bar — clean white, no yellow ── */}
-                    {surveyState?.status === 'APPROVED' && (
-                        <div className="oit-link-bar mb-4">
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <h5 className="oit-link-title mb-0">{selectedTool.label}</h5>
-                                    {computedTitle && <small className="text-muted">{computedTitle}</small>}
+                    {/* ── Active link bar — survey selection ── */}
+                    <div className="oit-link-bar mb-4 p-3 bg-white border rounded shadow-sm">
+                        <div className="row align-items-center g-3">
+                            <div className="col-md-5">
+                                <label className="form-label small fw-bold text-muted text-uppercase mb-1">Select Survey</label>
+                                <select
+                                    className="form-select form-select-sm shadow-none border-secondary-subtle"
+                                    value={selectedSurveyId}
+                                    onChange={(e) => handleSurveyChange(e.target.value)}
+                                >
+                                    <option value="">-- Select Created Survey --</option>
+                                    {activeSurveys.map(s => (
+                                        <option key={s.survey_id} value={s.survey_id}>
+                                            {s.survey_name} ({s.activity_title || s.academic_year})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-md-5">
+                                <label className="form-label small fw-bold text-muted text-uppercase mb-1">Survey Link</label>
+                                <div className="input-group input-group-sm">
+                                    <input
+                                        type="text"
+                                        className="form-control bg-light font-monospace"
+                                        readOnly
+                                        value={surveyState?.link || ""}
+                                        placeholder="Select a survey to see link"
+                                    />
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleCopy}
+                                        disabled={!surveyState?.link}
+                                    >
+                                        Copy
+                                    </button>
                                 </div>
-                                <span className="badge bg-light text-danger fw-bold border border-danger small">
-                                    ⏱ {timeLeft || '…'}
+                            </div>
+                            <div className="col-md-2 text-center">
+                                <label className="form-label small fw-bold text-muted text-uppercase mb-1 d-block">Time Left</label>
+                                <span className={`badge ${timeLeft === 'Expired' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary'} border p-2 w-100`}>
+                                    {timeLeft || '—'}
                                 </span>
                             </div>
-                            <div className="link-input-group">
-                                <input
-                                    type="text"
-                                    className="form-control bg-white font-monospace small"
-                                    readOnly
-                                    value={surveyState.link}
-                                />
-                                <button className="btn btn-primary px-4 ms-2" onClick={handleCopy}>
-                                    Copy Link
-                                </button>
-                            </div>
                         </div>
-                    )}
+                    </div>
 
                     {!isValid ? (
                         <div className="alert alert-warning shadow-sm border-warning d-flex align-items-center gap-3 p-4 mb-4">
@@ -742,9 +814,11 @@ const OtherIndirectTools = () => {
 
                             <div className="d-flex justify-content-between align-items-center mb-1 mt-4">
                                 <h5 className="fw-bold text-dark mb-0">Question Sets</h5>
-                                <button className="btn btn-sm btn-outline-secondary" onClick={fetchAllActiveSurveys}>
-                                    View All Active Surveys
-                                </button>
+                                <div className="d-flex gap-2">
+                                    <button className="btn btn-sm btn-outline-secondary" onClick={fetchAllActiveSurveysLegacy}>
+                                        View All Active Surveys
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="oit-qset-card border rounded p-4 shadow-sm bg-white mb-4">
@@ -759,21 +833,51 @@ const OtherIndirectTools = () => {
                                 ) : (
                                     <>
                                         <h6 className="oit-section-label">Program Outcomes (PO)</h6>
-                                        {pos.map((p, i) => (
-                                            <div key={i} className="oit-question-item d-flex gap-3 mb-2">
-                                                <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
-                                                <span className="oit-qdesc">{getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description }, programName)}</span>
-                                            </div>
-                                        ))}
+                                        {pos.map((p, i) => {
+                                            const qKey = `PO_${p.po_id}`;
+                                            const defaultText = getSurveyInquiry({ number: p.po_number || `PO ${i + 1}`, description: p.description }, programName);
+                                            return (
+                                                <div key={i} className="oit-question-item d-flex flex-column mb-3 p-2 rounded hover-bg-light">
+                                                    <div className="d-flex gap-3">
+                                                        <span className="oit-qnum">{p.po_number || `PO ${i + 1}`}</span>
+                                                        {!isEditing ? (
+                                                            <span className="oit-qdesc">{modifiedQuestions[qKey] || defaultText}</span>
+                                                        ) : (
+                                                            <textarea
+                                                                className="form-control form-control-sm"
+                                                                value={modifiedQuestions[qKey] || defaultText}
+                                                                onChange={(e) => setModifiedQuestions({ ...modifiedQuestions, [qKey]: e.target.value })}
+                                                                placeholder="Enter custom question text..."
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                         {psos.length > 0 && (
                                             <>
                                                 <h6 className="oit-section-label mt-4">Program Specific Outcomes (PSO)</h6>
-                                                {psos.map((p, i) => (
-                                                    <div key={i} className="oit-question-item d-flex gap-3 mb-2">
-                                                        <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
-                                                        <span className="oit-qdesc">{getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description }, programName)}</span>
-                                                    </div>
-                                                ))}
+                                                {psos.map((p, i) => {
+                                                    const qKey = `PSO_${p.pso_id}`;
+                                                    const defaultText = getSurveyInquiry({ number: p.pso_number || `PSO ${i + 1}`, description: p.description }, programName);
+                                                    return (
+                                                        <div key={i} className="oit-question-item d-flex flex-column mb-3 p-2 rounded hover-bg-light">
+                                                            <div className="d-flex gap-3">
+                                                                <span className="oit-qnum">{p.pso_number || `PSO ${i + 1}`}</span>
+                                                                {!isEditing ? (
+                                                                    <span className="oit-qdesc">{modifiedQuestions[qKey] || defaultText}</span>
+                                                                ) : (
+                                                                    <textarea
+                                                                        className="form-control form-control-sm"
+                                                                        value={modifiedQuestions[qKey] || defaultText}
+                                                                        onChange={(e) => setModifiedQuestions({ ...modifiedQuestions, [qKey]: e.target.value })}
+                                                                        placeholder="Enter custom question text..."
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </>
                                         )}
                                     </>
@@ -787,6 +891,14 @@ const OtherIndirectTools = () => {
                                             onClick={() => { if (showStats) setShowStats(false); else loadResponses(); }}
                                         >
                                             {showStats ? 'Hide Statistics' : 'Show Statistics'}
+                                        </button>
+                                    )}
+                                    {surveyState?.status !== 'APPROVED' && (
+                                        <button
+                                            className={`btn btn-sm ${isEditing ? 'btn-success' : 'btn-outline-primary'}`}
+                                            onClick={() => setIsEditing(!isEditing)}
+                                        >
+                                            {isEditing ? 'Save View' : 'Edit Questions'}
                                         </button>
                                     )}
                                     <select

@@ -5,7 +5,10 @@ import './Cisentry.css';
 import { sampleCourses, sampleCOs } from '../../../data/sampleData';
 import api from '../../../utils/axios';
 import { useFilters } from '../../../context/FilterContext';
-import { FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus, FaEye, FaPaperclip, FaEdit, FaExclamationCircle, FaUpload } from 'react-icons/fa';
+import {
+  FaCloudUploadAlt, FaFilePdf, FaTimesCircle, FaCheckCircle, FaPlus, FaMinus,
+  FaEye, FaPaperclip, FaEdit, FaExclamationCircle, FaUpload, FaFileExcel, FaCheckDouble
+} from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions as computeSemesterOptions } from '../../../utils/semesterUtils';
 
 const Cisentry = () => {
@@ -26,6 +29,8 @@ const Cisentry = () => {
     setSelectedSemester,
     selectedDivision,
     setSelectedDivision,
+    selectedCourse: globalSelectedCourse,
+    setSelectedCourse: setGlobalSelectedCourse,
     departments: programs,
     schemes,
     years,
@@ -41,6 +46,8 @@ const Cisentry = () => {
 
   // State for dynamic data
   const [courses, setCourses] = useState([]);
+  const [showActiveModal, setShowActiveModal] = useState(false);
+  const [surveyFilter, setSurveyFilter] = useState('ALL'); // ALL, ACTIVE, EXPIRED
   const [academicYear, setAcademicYear] = useState('');
   const [courseOutcomes, setCourseOutcomes] = useState([]);
   const [coCount, setCoCount] = useState(0);
@@ -55,13 +62,19 @@ const Cisentry = () => {
   // Selection state
   const [assessmentTools, setAssessmentTools] = useState({});
 
-  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState(globalSelectedCourse || '');
+
+  useEffect(() => {
+    setGlobalSelectedCourse(selectedCourse);
+  }, [selectedCourse, setGlobalSelectedCourse]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [allCourses, setAllCourses] = useState([]);
   const [assessmentType, setAssessmentType] = useState('Internal');
   const [selectedTool, setSelectedTool] = useState('FA-TH-CT1');
-  const [totalMaxMarks, setTotalMaxMarks] = useState(30);
   const [columnCount, setColumnCount] = useState(14); // Default for CT
+  const [totalMaxMarks, setTotalMaxMarks] = useState(30);
+  const [minPassingMarks, setMinPassingMarks] = useState(0);
   const [viewMode, setViewMode] = useState('entry'); // 'entry', 'view', 'edit'
 
   // Marks and CO state
@@ -69,8 +82,10 @@ const Cisentry = () => {
   const [userCos, setUserCos] = useState(new Array(30).fill('')); // Support up to 30 CO inputs
   const [uploadedFiles, setUploadedFiles] = useState({});
   const [assessmentId, setAssessmentId] = useState(null);
-  const fileInputRef = useRef(null);
-  const bulkUploadRef = useRef(null);
+  const fileInputRef = useRef(null);  // Refs
+  const bulkApplyRef = useRef(null);
+  const [bulkUploadButtonText, setBulkUploadButtonText] = useState('Bulk Upload Marks');
+
 
   // Editable headers state
   const getCTQuestionLabel = (index) => {
@@ -163,41 +178,6 @@ const Cisentry = () => {
   };
 
   const attainmentStats = calculateAttainmentStats();
-
-  // Dynamic Tool options based on selected course configuration
-  // const [dynamicTools, setDynamicTools] = useState({ Internal: [], External: [] }); // REMOVED
-
-  // useEffect(() => { // REMOVED
-  //   if (selectedCourse && courses.length > 0) {
-  //     const course = courses.find(c => c.course_id === parseInt(selectedCourse));
-  //     if (course && course.assessment_tools) {
-  //       const config = course.assessment_tools;
-  //       const internal = [];
-  //       const external = [];
-
-  //       if (config['FA-TH']?.selected) {
-  //         internal.push({ value: 'FA-TH-CT1', label: 'FA-TH (Class Test 1)' });
-  //         internal.push({ value: 'FA-TH-CT2', label: 'FA-TH (Class Test 2)' });
-  //       }
-  //       if (config['FA-PR']?.selected) internal.push({ value: 'FA-PR', label: 'FA-PR (K3)' });
-  //       if (config['SLA']?.selected) internal.push({ value: 'SLA', label: 'SLA (Self Learning Assessment)' });
-
-  //       if (config['SA-TH']?.selected) external.push({ value: 'SA-TH', label: 'SA-TH (Theory)' });
-  //       if (config['SA-PR']?.selected) external.push({ value: 'SA-PR', label: 'SA-PR (Practical)' });
-
-  //       setDynamicTools({ Internal: internal, External: external });
-
-  //       // Auto-select first available tool if current is not valid
-  //       const allPossible = [...internal, ...external].map(t => t.value);
-  //       if (!allPossible.includes(selectedTool) && allPossible.length > 0) {
-  //         setSelectedTool(allPossible[0]);
-  //         setAssessmentType(internal.some(t => t.value === allPossible[0]) ? 'Internal' : 'External');
-  //       }
-  //     }
-  //   }
-  // }, [selectedCourse, courses]); // REMOVED
-
-  // const toolOptions = dynamicTools; // REMOVED
 
   useEffect(() => {
     fetchAcademicData();
@@ -473,6 +453,8 @@ const Cisentry = () => {
         if (config.customQuestions) setCustomQuestions(config.customQuestions);
         if (config.customWeights) setCustomWeights(config.customWeights);
         if (config.columnCount) setColumnCount(config.columnCount);
+        if (config.minPassingMarks !== undefined) setMinPassingMarks(config.minPassingMarks);
+        else setMinPassingMarks(0);
 
         // Detailed marks breakdown if stored in config
         if (config.marksData) {
@@ -519,6 +501,7 @@ const Cisentry = () => {
       setCustomQuestions(new Array(30).fill(''));
       setCustomWeights(new Array(30).fill(''));
       setUserCos(new Array(30).fill(''));
+      setMinPassingMarks(0);
       setViewMode('entry');
     }
   };
@@ -819,6 +802,7 @@ const Cisentry = () => {
           customWeights,
           userCos,
           marksData, // Include full breakdown for CT/PR tools
+          minPassingMarks,
           toolKey: selectedTool
         },
         semester: parseInt(selectedSemester)
@@ -929,6 +913,14 @@ const Cisentry = () => {
     // Included are top 5
     const included = groupMarks.slice(0, 5).map(m => m.i);
     return !included.includes(colIndex);
+  };
+
+  const isBelowMinimum = (enrollment) => {
+    const total = parseFloat(marksData[enrollment]?.total);
+    if (!isNaN(total) && minPassingMarks > 0 && total < minPassingMarks) {
+      return true;
+    }
+    return false;
   };
 
   const renderTableHeaders = (toolTitle) => {
@@ -1203,30 +1195,40 @@ const Cisentry = () => {
       </thead>
     );
   };
-  const handleBulkUpload = async (e) => {
+
+  const handleBulkApply = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!assessmentId) {
-      alert("Please save the data first to create an assessment before using bulk upload.");
-      return;
-    }
+    setBulkUploadButtonText('Uploading...');
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('assessment_id', assessmentId);
+    formData.append('course_id', selectedCourse);
+    formData.append('academic_year', selectedYear);
+    formData.append('semester', selectedSemester);
 
     try {
-      await api.post('/bulk_upload/marks/', formData, {
+      const response = await api.post('/bulk_upload/cis/bulk-apply/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert("Marks uploaded successfully!");
-      loadSavedData(); // Refresh the table
+
+      const resData = response.data;
+      let summary = "Bulk Apply completed!\n\n";
+      if (resData.report) {
+        Object.entries(resData.report).forEach(([tool, info]) => {
+          summary += `${tool}: ${info}\n`;
+        });
+      }
+
+      alert(summary);
+      loadSavedData(); // Refresh the current view
     } catch (error) {
-      console.error("Bulk upload failed:", error);
-      alert(`Bulk upload failed: ${error.response?.data?.error || error.message}`);
+      console.error("Bulk apply failed:", error);
+      alert(`Bulk apply failed: ${error.response?.data?.error || error.message}`);
     } finally {
-      if (bulkUploadRef.current) bulkUploadRef.current.value = '';
+      setBulkUploadButtonText('Bulk Upload Marks/COs');
+      if (bulkApplyRef.current) bulkApplyRef.current.value = '';
     }
   };
 
@@ -1587,9 +1589,9 @@ const Cisentry = () => {
                     </button>
                   </div>
 
-                  <div className="d-flex align-items-end gap-3 text-start" style={{ width: '100%', maxWidth: '550px' }}>
+                  <div className="d-flex align-items-center gap-4 text-start" style={{ width: '100%', maxWidth: '700px' }}>
                     <div className="flex-grow-1">
-                      <label className="form-label fw-bold mb-1 text-muted small text-uppercase" style={{ color: '#2c3e50', letterSpacing: '0.5px' }}>
+                      <label className="form-label fw-bold mb-1 text-muted small text-uppercase" style={{ color: '#2c3e50', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
                         Select Assessment Tool
                       </label>
                       <select
@@ -1604,20 +1606,29 @@ const Cisentry = () => {
                       </select>
                     </div>
 
-                    <input
-                      type="file"
-                      accept=".csv, .xlsx, .xls"
-                      ref={bulkUploadRef}
-                      onChange={handleBulkUpload}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      className="btn btn-outline-primary fw-bold d-flex align-items-center gap-2 shadow-sm"
-                      style={{ height: '38px', whiteSpace: 'nowrap', borderRadius: '6px' }}
-                      onClick={() => bulkUploadRef.current.click()}
-                    >
-                      <FaUpload /> Bulk Upload
-                    </button>
+                    <div className="d-flex flex-column align-items-start mt-auto">
+                      <div className="d-flex gap-2">
+                        <input
+                          type="file"
+                          accept=".xlsx, .xls"
+                          ref={bulkApplyRef}
+                          onChange={handleBulkApply}
+                          style={{ display: 'none' }}
+                        />
+                        <button
+                          className="btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm fw-bold"
+                          onClick={() => bulkApplyRef.current.click()}
+                          title="Download Multi-Sheet Excel from Downloads section, fill it, and upload here to apply marks to ALL tools at once"
+                          disabled={bulkUploadButtonText === 'Uploading...'}
+                          style={{ whiteSpace: 'nowrap' }}
+                        >
+                          <FaUpload /> {bulkUploadButtonText} (Multi-Sheet)
+                        </button>
+                      </div>
+                      <small className="text-muted mt-1" style={{ fontSize: '0.65rem', maxWidth: '300px', lineHeight: '1.2' }}>
+                        * Note: For Bulk Upload please download the template from the Downloads section to ensure correct format.
+                      </small>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1629,6 +1640,17 @@ const Cisentry = () => {
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>{selectedTool === 'FA-TH-CT1' ? 'Class Test 1 (FA-TH)' : 'Class Test 2 (FA-TH)'}</h4>
                       <div className="d-flex align-items-center gap-4 pe-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Min Passing:</span>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm fw-bold text-center"
+                            style={{ width: '60px', backgroundColor: viewMode === 'view' ? '#f8f9fa' : 'white' }}
+                            value={minPassingMarks}
+                            readOnly={viewMode === 'view'}
+                            onChange={(e) => setMinPassingMarks(parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
                         <div className="d-flex align-items-center gap-2">
                           <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
                           <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
@@ -1684,7 +1706,7 @@ const Cisentry = () => {
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="p-0" style={{ backgroundColor: '#f0f7ff' }}>
+                              <td className="p-0" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>
                                 <input
                                   type="text"
                                   className="form-control border-0 text-center table-input shadow-none bg-transparent fw-bold"
@@ -1758,6 +1780,17 @@ const Cisentry = () => {
                       <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>Self Learning Assessment (SLA)</h4>
                       <div className="d-flex align-items-center gap-4 pe-2">
                         <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Min Passing:</span>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm fw-bold text-center"
+                            style={{ width: '60px', backgroundColor: viewMode === 'view' ? '#f8f9fa' : 'white' }}
+                            value={minPassingMarks}
+                            readOnly={viewMode === 'view'}
+                            onChange={(e) => setMinPassingMarks(parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
                           <span className="small text-muted fw-bold text-uppercase">Max Total:</span>
                           <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
                         </div>
@@ -1805,7 +1838,7 @@ const Cisentry = () => {
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="fw-bold" style={{ backgroundColor: '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
+                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
                             </tr>
                           ))}
                           <tr className="bg-light">
@@ -1852,6 +1885,17 @@ const Cisentry = () => {
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>FA PR (K3) - Manual Practical Assessment</h4>
                       <div className="d-flex align-items-center gap-4 pe-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Min Passing:</span>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm fw-bold text-center"
+                            style={{ width: '60px', backgroundColor: viewMode === 'view' ? '#f8f9fa' : 'white' }}
+                            value={minPassingMarks}
+                            readOnly={viewMode === 'view'}
+                            onChange={(e) => setMinPassingMarks(parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
                         <div className="d-flex align-items-center gap-2">
                           <span className="small text-muted fw-bold text-uppercase">Max Total:</span>
                           <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
@@ -1900,7 +1944,7 @@ const Cisentry = () => {
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="fw-bold" style={{ backgroundColor: '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
+                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
                             </tr>
                           ))}
                           <tr className="bg-light">
@@ -1946,9 +1990,22 @@ const Cisentry = () => {
                   <>
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h4 className="test-title text-start fs-5 fw-bold mb-0" style={{ color: '#2c3e50' }}>{selectedTool === 'SA-TH' ? 'Summative Assessment (Theory)' : 'Summative Assessment (Practical)'}</h4>
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
-                        <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                      <div className="d-flex align-items-center gap-4">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Min Passing:</span>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm fw-bold text-center"
+                            style={{ width: '60px', backgroundColor: viewMode === 'view' ? '#f8f9fa' : 'white' }}
+                            value={minPassingMarks}
+                            readOnly={viewMode === 'view'}
+                            onChange={(e) => setMinPassingMarks(parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="small text-muted fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>Max Total:</span>
+                          <span className="fw-bold fs-5 px-2" title="Configured in Course Management">{totalMaxMarks}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="table-responsive cis-table-container">
@@ -1960,10 +2017,10 @@ const Cisentry = () => {
                               <td>{student.enrollment_no}</td>
                               <td>{student.roll_no}</td>
                               <td className="text-start ps-3">{student.name}</td>
-                              <td className="p-0">
+                              <td className="p-0" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : 'transparent' }}>
                                 <input
                                   type="text"
-                                  className="form-control border-0 text-center shadow-none fw-bold text-center"
+                                  className="form-control border-0 text-center shadow-none fw-bold text-center bg-transparent"
                                   value={marksData[student.enrollment_no]?.[0] || ''}
                                   onChange={(e) => handleMarkChange(student.enrollment_no, 0, e.target.value)}
                                   readOnly={viewMode === 'view'}
