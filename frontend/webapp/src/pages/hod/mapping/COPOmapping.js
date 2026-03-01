@@ -220,55 +220,7 @@ const COPOmapping = () => {
                         <h4 className="text-left mb-3" style={{ color: '#1a237e', fontWeight: 'bold' }}>3.1 Establish correlation between courses and the POs & PSOs (20)</h4>
                         <div className="d-flex justify-content-between align-items-center mb-4">
                             <h5 className="text-left mb-0" style={{ color: '#3949ab', fontWeight: '600' }}>3.1.2 CO-PO matrices of courses selected in 3.1.1 (5)</h5>
-                            {selectedCourse && (
-                                <Button
-                                    variant="outline-primary"
-                                    onClick={() => setShowStatements(!showStatements)}
-                                    className="shadow-sm"
-                                >
-                                    {showStatements ? 'Hide Statements' : 'Show Statements'}
-                                </Button>
-                            )}
                         </div>
-
-                        <Collapse in={showStatements}>
-                            <div className="mb-4">
-                                <Card className="border-0 shadow-sm bg-white p-3">
-                                    <h6 className="fw-bold mb-3 border-bottom pb-2" style={{ color: '#1a237e' }}>Definitions & Statements</h6>
-                                    <Row>
-                                        <Col md={6}>
-                                            <div className="mb-3">
-                                                <small className="text-muted fw-bold d-block mb-2">COURSE OUTCOMES (CO)</small>
-                                                <div className="statements-list overflow-auto" style={{ maxHeight: '200px' }}>
-                                                    {cos.map(co => (
-                                                        <div key={co.co_id} className="p-2 mb-1 bg-light rounded shadow-sm border-start border-4 border-primary">
-                                                            <strong>{co.co_number}:</strong> {co.description}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </Col>
-                                        <Col md={6}>
-                                            <div className="mb-3">
-                                                <small className="text-muted fw-bold d-block mb-2">PROGRAM OUTCOMES (PO) & PSOs</small>
-                                                <div className="statements-list overflow-auto" style={{ maxHeight: '200px' }}>
-                                                    {pos.map(po => (
-                                                        <div key={po.po_id} className="p-2 mb-1 bg-light rounded shadow-sm border-start border-4 border-info">
-                                                            <strong>{po.po_number}:</strong> {po.description}
-                                                        </div>
-                                                    ))}
-                                                    {psos.map(pso => (
-                                                        <div key={pso.pso_id} className="p-2 mb-1 bg-light rounded shadow-sm border-start border-4 border-success">
-                                                            <strong>{pso.pso_number}:</strong> {pso.description}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </Col>
-                                    </Row>
-                                </Card>
-                            </div>
-                        </Collapse>
 
                         {/* Filter Section - Handled by GlobalFilterBar */}
                         <Card className="border-0 bg-light mb-4 p-3 shadow-sm rounded">
@@ -333,15 +285,65 @@ const COPOmapping = () => {
                                     <h6 className="fw-bold m-0 text-dark">
                                         Course: <span className="text-primary">{selectedCourse.course_code} - {selectedCourse.course_name}</span>
                                     </h6>
-                                    <Button
-                                        variant="outline-secondary"
-                                        size="sm"
-                                        onClick={() => handleCourseChange("")}
-                                        className="d-flex align-items-center gap-1"
-                                    >
-                                        Back to Course List
-                                    </Button>
+                                    <div className="d-flex gap-2">
+                                        {selectedCourse && (
+                                            <Button
+                                                variant="outline-primary"
+                                                size="sm"
+                                                onClick={() => setShowStatements(!showStatements)}
+                                                className="d-flex align-items-center gap-1"
+                                            >
+                                                <i className="bi bi-book"></i>
+                                                {showStatements ? 'Hide Statements' : 'Show Statements'}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="outline-secondary"
+                                            size="sm"
+                                            onClick={() => handleCourseChange("")}
+                                            className="d-flex align-items-center gap-1"
+                                        >
+                                            Back to Course List
+                                        </Button>
+                                    </div>
                                 </div>
+
+                                {/* Statements panel - shown between header row and table */}
+                                <Collapse in={showStatements}>
+                                    <div className="mb-3">
+                                        <Card className="border-0 shadow-sm bg-white p-3">
+                                            <h6 className="fw-bold mb-3 border-bottom pb-2" style={{ color: '#1a237e' }}>Definitions & Statements</h6>
+                                            <Row>
+                                                <Col md={6}>
+                                                    <small className="text-muted fw-bold d-block mb-2">COURSE OUTCOMES (CO)</small>
+                                                    <div className="overflow-auto" style={{ maxHeight: '180px' }}>
+                                                        {cos.map(co => (
+                                                            <div key={co.co_id} className="p-2 mb-1 bg-light rounded border-start border-4 border-primary">
+                                                                <strong>{co.co_number}:</strong> {co.description}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </Col>
+                                                <Col md={6}>
+                                                    <small className="text-muted fw-bold d-block mb-2">PROGRAM OUTCOMES (PO) & PSOs</small>
+                                                    <div className="overflow-auto" style={{ maxHeight: '180px' }}>
+                                                        {pos.map(po => (
+                                                            <div key={po.po_id} className="p-2 mb-1 bg-light rounded border-start border-4 border-info">
+                                                                <strong>{po.po_number}:</strong> {po.description}
+                                                            </div>
+                                                        ))}
+                                                        {psos.map(pso => (
+                                                            <div key={pso.pso_id} className="p-2 mb-1 bg-light rounded border-start border-4 border-success">
+                                                                <strong>{pso.pso_number}:</strong> {pso.description}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </Col>
+                                            </Row>
+                                        </Card>
+                                    </div>
+                                </Collapse>
+
                                 <div className="table-responsive flex-grow-1">
                                     <Table bordered className="co-po-table align-middle">
                                         <thead>

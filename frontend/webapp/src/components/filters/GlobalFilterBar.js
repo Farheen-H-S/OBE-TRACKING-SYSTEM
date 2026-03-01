@@ -2,6 +2,25 @@ import React from 'react';
 import { useFilters } from '../../context/FilterContext';
 import './GlobalFilterBar.css';
 
+// Helper: parse 'YYYY-YY' or 'YYYY - YY' → start year integer
+const parseYear = (str) => {
+    if (!str) return null;
+    const clean = str.replace(/\s/g, '');
+    return parseInt(clean.split('-')[0], 10);
+};
+
+// Helper: format start year → 'YYYY-YY'
+const fmtYear = (y) => `${y}-${(y + 1).toString().slice(-2)}`;
+
+// Helper: format start year → 'YYYY - YY' (academic year style)
+const fmtAY = (y) => `${y} - ${(y + 1).toString().slice(-2)}`;
+
+const PROGRAM_DURATION = 3; // years
+
+// Class ↔ Semester mappings
+const CLASS_SEMS = { FY: ['1', '2'], SY: ['3', '4'], TY: ['5', '6'] };
+const SEM_CLASS = { '1': 'FY', '2': 'FY', '3': 'SY', '4': 'SY', '5': 'TY', '6': 'TY' };
+
 const GlobalFilterBar = ({ visibleFilters = null }) => {
     const {
         selectedDept, setSelectedDept,
@@ -18,35 +37,67 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
         schemes
     } = useFilters();
 
-    // If visibleFilters is null, show all (legacy behavior)
-    // If visibleFilters is an empty array [], hide the entire bar
-    if (visibleFilters !== null && visibleFilters.length === 0) {
-        return null;
-    }
+    if (visibleFilters !== null && visibleFilters.length === 0) return null;
 
-    const isVisible = (filterId) => {
-        if (visibleFilters === null) return true;
-        return visibleFilters.includes(filterId);
+    const isVisible = (id) => visibleFilters === null || visibleFilters.includes(id);
+
+    const DIV_OPTIONS = ['A', 'B', 'C', 'All'];
+
+    // --- Smart Academic Year options (filtered by selected Batch) ---
+    // Batch is primary: show ALL batches, but filter academic years based on selected batch
+    const selBatchYear = parseYear(selectedBatch);
+    const filteredYears = selBatchYear
+        ? years.filter(y => {
+            const yy = parseYear(y);
+            // Batch selBatchYear is active in years: selBatchYear-2, selBatchYear-1, selBatchYear
+            return yy >= selBatchYear - (PROGRAM_DURATION - 1) && yy <= selBatchYear;
+        })
+        : years;
+
+    // --- Smart Semester options (filtered by selected Class) ---
+    const filteredSems = (selectedClass && CLASS_SEMS[selectedClass])
+        ? [...CLASS_SEMS[selectedClass], 'All']
+        : ['1', '2', '3', '4', '5', '6', 'All'];
+
+    // --- Handlers with auto-sync ---
+    const handleClassChange = (cls) => {
+        setSelectedClass(cls);
+        const validSems = CLASS_SEMS[cls] || [];
+        if (selectedSemester !== 'All' && !validSems.includes(selectedSemester)) {
+            setSelectedSemester(validSems[0] || 'All');
+        }
     };
 
-    const CLASS_OPTIONS = ['FY', 'SY', 'TY'];
-    const SEM_OPTIONS = ['1', '2', '3', '4', '5', '6', 'All'];
-    const DIV_OPTIONS = ['A', 'B', 'C', 'All'];
+    const handleSemesterChange = (sem) => {
+        setSelectedSemester(sem);
+        if (SEM_CLASS[sem]) setSelectedClass(SEM_CLASS[sem]);
+    };
+
+    const handleBatchChange = (batch) => {
+        setSelectedBatch(batch);
+        if (batch) {
+            const by = parseYear(batch);
+            const currentAY = parseYear(selectedYear);
+            if (currentAY !== null && (currentAY < by - (PROGRAM_DURATION - 1) || currentAY > by)) {
+                setSelectedYear(fmtAY(by));
+            }
+        }
+    };
+
+    const handleYearChange = (year) => {
+        // Year is secondary — just update it, no batch snapping
+        setSelectedYear(year);
+    };
 
     return (
         <div className="global-filter-bar shadow-sm">
             {isVisible('dept') && (
                 <div className="filter-item">
                     <label>Department</label>
-                    <select
-                        value={selectedDept}
-                        onChange={(e) => setSelectedDept(e.target.value)}
-                    >
+                    <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
                         <option value="">Select Dept</option>
                         {departments.map(dept => (
-                            <option key={dept.program_id} value={dept.program_id}>
-                                {dept.program_name}
-                            </option>
+                            <option key={dept.program_id} value={dept.program_id}>{dept.program_name}</option>
                         ))}
                     </select>
                 </div>
@@ -55,15 +106,10 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('scheme') && (
                 <div className="filter-item">
                     <label>Scheme</label>
-                    <select
-                        value={selectedScheme}
-                        onChange={(e) => setSelectedScheme(e.target.value)}
-                    >
+                    <select value={selectedScheme} onChange={(e) => setSelectedScheme(e.target.value)}>
                         <option value="">Select Scheme</option>
                         {schemes.map(s => (
-                            <option key={s.scheme_id} value={s.scheme_id}>
-                                {s.scheme_name}
-                            </option>
+                            <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
                         ))}
                     </select>
                 </div>
@@ -72,10 +118,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('batch') && (
                 <div className="filter-item">
                     <label>Batch</label>
-                    <select
-                        value={selectedBatch}
-                        onChange={(e) => setSelectedBatch(e.target.value)}
-                    >
+                    <select value={selectedBatch} onChange={(e) => handleBatchChange(e.target.value)}>
                         <option value="">Select Batch</option>
                         {batches.map(b => (
                             <option key={b.batch_id} value={b.batch_id}>
@@ -89,11 +132,8 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('year') && (
                 <div className="filter-item">
                     <label>Academic Year</label>
-                    <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                    >
-                        {years.map(y => (
+                    <select value={selectedYear} onChange={(e) => handleYearChange(e.target.value)}>
+                        {filteredYears.map(y => (
                             <option key={`ay-${y}`} value={y}>{y}</option>
                         ))}
                     </select>
@@ -103,10 +143,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('introYear') && (
                 <div className="filter-item">
                     <label>Year of Introduction</label>
-                    <select
-                        value={selectedIntroYear}
-                        onChange={(e) => setSelectedIntroYear(e.target.value)}
-                    >
+                    <select value={selectedIntroYear} onChange={(e) => setSelectedIntroYear(e.target.value)}>
                         <option value="">Select Year</option>
                         {batches.map(b => (
                             <option key={`intro-${b.batch_id}`} value={b.batch_id}>
@@ -120,11 +157,8 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('class') && (
                 <div className="filter-item compact">
                     <label>Class</label>
-                    <select
-                        value={selectedClass}
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                    >
-                        {CLASS_OPTIONS.map(c => (
+                    <select value={selectedClass} onChange={(e) => handleClassChange(e.target.value)}>
+                        {['FY', 'SY', 'TY'].map(c => (
                             <option key={c} value={c}>{c}</option>
                         ))}
                     </select>
@@ -134,11 +168,8 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('semester') && (
                 <div className="filter-item compact">
                     <label>Sem</label>
-                    <select
-                        value={selectedSemester}
-                        onChange={(e) => setSelectedSemester(e.target.value)}
-                    >
-                        {SEM_OPTIONS.map(s => (
+                    <select value={selectedSemester} onChange={(e) => handleSemesterChange(e.target.value)}>
+                        {filteredSems.map(s => (
                             <option key={s} value={s}>{s}</option>
                         ))}
                     </select>
@@ -148,10 +179,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
             {isVisible('division') && (
                 <div className="filter-item compact">
                     <label>Div</label>
-                    <select
-                        value={selectedDivision}
-                        onChange={(e) => setSelectedDivision(e.target.value)}
-                    >
+                    <select value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)}>
                         {DIV_OPTIONS.map(d => (
                             <option key={d} value={d}>{d}</option>
                         ))}

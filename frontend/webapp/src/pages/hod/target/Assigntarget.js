@@ -66,7 +66,7 @@ const Assigntarget = () => {
         schemeDataArr, targetDataArr,
         attainmentCoObj, attainmentPoObj, attainmentPsoObj
       ] = await Promise.all([
-        safeGet('/academics/courses/'),
+        safeGet('/academics/courses/', { params: { program_id: selectedDept } }),
         safeGet('/academics/cos/'),
         safeGet('/academics/pos/', { params: { program_id: selectedDept } }),
         safeGet('/academics/psos/', { params: { program_id: selectedDept } }),
@@ -123,12 +123,19 @@ const Assigntarget = () => {
       });
 
       const formattedCourses = coursesArr
-        .filter(c => String(c.program_id) === String(selectedDept)) // Critical: Only show courses for current program
+        .filter(c =>
+          String(c.program_id) === String(selectedDept) &&
+          c.co_status === 'COMPLETED' &&
+          c.mapping_status === 'COMPLETED'
+        )
         .map(c => {
           const tVal = coTargetMap[String(c.course_id)] || '0';
           const cosForCourse = coArr.filter(co => String(co.course_id) === String(c.course_id));
           const levels = cosForCourse.map(co => coAttainmentMap[co.co_id]?.overall_attainment).filter(l => l !== undefined);
           const aLevel = levels.length > 0 ? (levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(2) : '-';
+          const gapVal = aLevel === '-'
+            ? (parseFloat(tVal) - 0).toFixed(2)  // achieved unknown → target - 0
+            : (parseFloat(tVal) - parseFloat(aLevel)).toFixed(2);
 
           return {
             id: c.course_id,
@@ -143,7 +150,7 @@ const Assigntarget = () => {
             class_year: c.class_year,
             targetLevel: tVal,
             achievedLevel: aLevel,
-            gap: aLevel === '-' ? '-' : (parseFloat(tVal) - parseFloat(aLevel)).toFixed(2),
+            gap: gapVal,
             course_atr: c.course_atr || ''
           };
         });
@@ -151,20 +158,24 @@ const Assigntarget = () => {
       setCourses(formattedCourses);
       setPos(poArr.map(p => {
         const att = poAttainmentMap[p.po_id];
+        const tVal = poTargetMap[String(p.po_id)] || '0';
+        const aVal = att ? att.normalized_value.toFixed(2) : '-';
         return {
           ...p,
-          targetLevel: poTargetMap[String(p.po_id)] || '2.5', // Fetch from backend or use standard default
-          achievedLevel: att ? att.normalized_value.toFixed(2) : '-',
-          gap: att ? att.gap.toFixed(2) : '-'
+          targetLevel: tVal,
+          achievedLevel: aVal,
+          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : att.gap.toFixed(2)
         };
       }));
       setPsos(psoArr.map(p => {
         const att = psoAttainmentMap[p.pso_id];
+        const tVal = psoTargetMap[String(p.pso_id)] || '0';
+        const aVal = att ? att.normalized_value.toFixed(2) : '-';
         return {
           ...p,
-          targetLevel: psoTargetMap[String(p.pso_id)] || '2.5',
-          achievedLevel: att ? att.normalized_value.toFixed(2) : '-',
-          gap: att ? att.gap.toFixed(2) : '-'
+          targetLevel: tVal,
+          achievedLevel: aVal,
+          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : att.gap.toFixed(2)
         };
       }));
 
@@ -349,16 +360,22 @@ const Assigntarget = () => {
               </div>
             ) : (
               <>
-                <div className="mb-0">
-                  <input
-                    type="text"
-                    className="form-control search-input-v2"
-                    placeholder="Search course..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ width: '100%', borderRadius: '8px' }}
-                  />
-                </div>
+                {viewMode === 'course' && (
+                  <div className="mb-0">
+                    <input
+                      type="text"
+                      className="form-control search-input-v2"
+                      placeholder="Search course..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ width: '100%', borderRadius: '8px' }}
+                    />
+                    <small className="text-muted mt-1 d-block">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Cannot find a course? Make sure it has <strong>CO Status</strong> &amp; <strong>Mapping Status</strong> both marked as <strong>Complete</strong>.
+                    </small>
+                  </div>
+                )}
               </>
             )}
           </div>
