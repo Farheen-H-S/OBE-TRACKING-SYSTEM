@@ -1250,7 +1250,7 @@ const Cisentry = () => {
       console.error("Bulk apply failed:", error);
       alert(`Bulk apply failed: ${error.response?.data?.error || error.message}`);
     } finally {
-      setBulkUploadButtonText('Bulk Upload Marks/COs');
+      setBulkUploadButtonText('Bulk Upload Marks');
       if (bulkApplyRef.current) bulkApplyRef.current.value = '';
     }
   };

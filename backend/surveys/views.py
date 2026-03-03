@@ -40,18 +40,19 @@ class SubmitSurveyResponseView(APIView):
         
         for ans in answers:
             question_id = ans.get('question_id')
-            po_number = ans.get('po_number')
-            pso_number = ans.get('pso_number')
             
             if not question_id:
+                po_number = ans.get('po_number')
+                pso_number = ans.get('pso_number')
+                co_id = ans.get('co_id')
+                
                 if po_number:
                     question = SurveyQuestion.objects.filter(survey_id=survey, po_id__po_number=po_number).first()
                     if question: question_id = question.question_id
                 elif pso_number:
                     question = SurveyQuestion.objects.filter(survey_id=survey, pso_id__pso_number=pso_number).first()
                     if question: question_id = question.question_id
-                elif ans.get('co_id'):
-                    co_id = ans.get('co_id')
+                elif co_id:
                     question, created = SurveyQuestion.objects.get_or_create(
                         survey_id=survey,
                         co_id_id=co_id,
@@ -59,11 +60,12 @@ class SubmitSurveyResponseView(APIView):
                     )
                     question_id = question.question_id
 
-            SurveyAnswer.objects.create(
-                response_id=response,
-                question_id_id=question_id,
-                answer_value=ans.get('answer_value')
-            )
+            if question_id:
+                SurveyAnswer.objects.create(
+                    response_id=response,
+                    question_id_id=question_id,
+                    answer_value=ans.get('answer_value')
+                )
         
         log_action(request.user, 'CREATE', 'SurveyResponse', survey.survey_id, remark=f"Survey submitted for {survey.survey_name}")
         return Response({"message": "Survey submitted successfully"}, status=status.HTTP_201_CREATED)

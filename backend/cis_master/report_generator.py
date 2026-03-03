@@ -596,7 +596,7 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col: f'=IF(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{current_row-2}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):
@@ -627,16 +627,22 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     
     for i in range(len(practicals)):
         q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
-        q_pass = len([m for m in q_marks_collector[i] if m >= q_avg]) if q_marks_collector[i] else 0
-        q_perc = (q_pass / len(q_marks_collector[i]) * 100) if q_marks_collector[i] else 0
+        if q_avg > 0:
+            q_pass = len([m for m in q_marks_collector[i] if m >= q_avg])
+            q_perc = (q_pass / len(q_marks_collector[i]) * 100)
+        else:
+            q_perc = 0
         ws.cell(row=current_row, column=5+i, value=AttainmentService._get_attainment_level(q_perc)).border = get_border()
         ws.cell(row=current_row, column=5+i).alignment = Alignment(horizontal="center")
     
     # Total column attainment
     avg = sum(marks_list)/len(marks_list) if marks_list else 0
     appeared = len(marks_list)
-    pass_above_avg = len([m for m in marks_list if m >= avg]) if marks_list else 0
-    perc_above_avg = (pass_above_avg / appeared * 100) if appeared > 0 else 0
+    if avg > 0 and appeared > 0:
+        pass_above_avg = len([m for m in marks_list if m >= avg])
+        perc_above_avg = (pass_above_avg / appeared * 100)
+    else:
+        perc_above_avg = 0
     att_level = AttainmentService._get_attainment_level(perc_above_avg)
     total_att_cell = ws.cell(row=current_row, column=total_col, value=att_level)
     total_att_cell.border = get_border()
@@ -667,8 +673,11 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     for co_name in sorted(co_stats.keys()):
         c_marks = co_stats[co_name]
         c_avg = sum(c_marks)/len(c_marks) if c_marks else 0
-        c_pass = len([m for m in c_marks if m >= c_avg]) if c_marks else 0
-        c_perc = (c_pass / len(c_marks) * 100) if c_marks else 0
+        if c_avg > 0 and c_marks:
+            c_pass = len([m for m in c_marks if m >= c_avg])
+            c_perc = (c_pass / len(c_marks) * 100)
+        else:
+            c_perc = 0
         c_level = AttainmentService._get_attainment_level(c_perc)
         
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
@@ -842,7 +851,7 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col: f'=IF(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{current_row-2}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):
@@ -876,14 +885,20 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     # Python-calculated attainment level as fallback for now (Formula for attainment level is complex)
     appeared = len(marks_list)
     avg = sum(marks_list)/len(marks_list) if marks_list else 0
-    pass_above_avg = len([m for m in marks_list if m >= avg]) if marks_list else 0
-    perc_above_avg = (pass_above_avg / appeared * 100) if appeared > 0 else 0
+    if avg > 0 and appeared > 0:
+        pass_above_avg = len([m for m in marks_list if m >= avg])
+        perc_above_avg = (pass_above_avg / appeared * 100)
+    else:
+        perc_above_avg = 0
     att_level = AttainmentService._get_attainment_level(perc_above_avg)
     
     for i in range(len(questions)):
         q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
-        q_pass = len([m for m in q_marks_collector[i] if m >= q_avg]) if q_marks_collector[i] else 0
-        q_perc = (q_pass / len(q_marks_collector[i]) * 100) if q_marks_collector[i] else 0
+        if q_avg > 0:
+            q_pass = len([m for m in q_marks_collector[i] if m >= q_avg])
+            q_perc = (q_pass / len(q_marks_collector[i]) * 100)
+        else:
+            q_perc = 0
         ws.cell(row=current_row, column=5+i, value=AttainmentService._get_attainment_level(q_perc)).border = get_border()
         ws.cell(row=current_row, column=5+i).alignment = Alignment(horizontal="center")
         
@@ -915,8 +930,11 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     for co_name in sorted(co_stats.keys()):
         c_marks = co_stats[co_name]
         c_avg = sum(c_marks)/len(c_marks) if c_marks else 0
-        c_pass = len([m for m in c_marks if m >= c_avg]) if c_marks else 0
-        c_perc = (c_pass / len(c_marks) * 100) if c_marks else 0
+        if c_avg > 0 and c_marks:
+            c_pass = len([m for m in c_marks if m >= c_avg])
+            c_perc = (c_pass / len(c_marks) * 100)
+        else:
+            c_perc = 0
         c_level = AttainmentService._get_attainment_level(c_perc)
         
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
@@ -1053,14 +1071,20 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
     # Python-calculated attainment level fallback
     appeared = len(marks_list)
     avg = sum(marks_list)/len(marks_list) if marks_list else 0
-    pass_above_avg = len([m for m in marks_list if m >= avg]) if marks_list else 0
-    perc_above_avg = (pass_above_avg / appeared * 100) if appeared > 0 else 0
+    if avg > 0 and appeared > 0:
+        pass_above_avg = len([m for m in marks_list if m >= avg])
+        perc_above_avg = (pass_above_avg / appeared * 100)
+    else:
+        perc_above_avg = 0
     att_level = AttainmentService._get_attainment_level(perc_above_avg)
     
     for i in range(6):
         q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
-        q_pass = len([m for m in q_marks_collector[i] if m >= q_avg]) if q_marks_collector[i] else 0
-        q_perc = (q_pass / len(q_marks_collector[i]) * 100) if q_marks_collector[i] else 0
+        if q_avg > 0:
+            q_pass = len([m for m in q_marks_collector[i] if m >= q_avg])
+            q_perc = (q_pass / len(q_marks_collector[i]) * 100)
+        else:
+            q_perc = 0
         ws.cell(row=current_row, column=4+i, value=AttainmentService._get_attainment_level(q_perc)).border = get_border()
         ws.cell(row=current_row, column=4+i).alignment = Alignment(horizontal="center")
         
@@ -1089,8 +1113,11 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
         if not co_stats[co_name]: continue
         c_marks = co_stats[co_name]
         c_avg = sum(c_marks)/len(c_marks) if c_marks else 0
-        c_pass = len([m for m in c_marks if m >= c_avg]) if c_marks else 0
-        c_perc = (c_pass / len(c_marks) * 100) if c_marks else 0
+        if c_avg > 0 and c_marks:
+            c_pass = len([m for m in c_marks if m >= c_avg])
+            c_perc = (c_pass / len(c_marks) * 100)
+        else:
+            c_perc = 0
         c_level = AttainmentService._get_attainment_level(c_perc)
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
         ws.cell(row=current_row, column=3, value=round(c_perc, 2)).border = get_border()

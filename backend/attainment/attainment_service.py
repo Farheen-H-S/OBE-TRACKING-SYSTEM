@@ -321,7 +321,10 @@ class AttainmentService:
                     v_marks = [float(marks_data[s].get(str(q_idx))) for s in student_list if isinstance(marks_data[s], dict) and marks_data[s].get(str(q_idx)) not in [None, '']]
                     if v_marks:
                         q_avg = sum(v_marks) / len(v_marks)
-                        q_success = len([m for m in v_marks if m >= q_avg])
+                        if q_avg > 0:
+                            q_success = len([m for m in v_marks if m >= q_avg])
+                        else:
+                            q_success = 0
                         
                         # Map question back to CO (using co_num like "1", "2")
                         # user_cos index matches q_idx
@@ -386,9 +389,13 @@ class AttainmentService:
                 if not entries.exists(): continue
                 
                 avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
-                count_ge_avg = entries.filter(marks_obtained__gte=avg_marks).count()
                 total_students = entries.count()
-                percentage = (count_ge_avg / total_students) * 100 if total_students > 0 else 0
+                if avg_marks > 0 and total_students > 0:
+                    count_ge_avg = entries.filter(marks_obtained__gte=avg_marks).count()
+                    percentage = (count_ge_avg / total_students) * 100
+                else:
+                    count_ge_avg = 0
+                    percentage = 0
                 level = AttainmentService._get_attainment_level(percentage)
                 
                 for m in mappings:
@@ -438,11 +445,15 @@ class AttainmentService:
                 
                 ans_stats = SurveyAnswer.objects.filter(question_id=q).aggregate(Avg('answer_value'))
                 avg_rating = ans_stats['answer_value__avg'] or 0
-                
-                count_ge_avg = SurveyAnswer.objects.filter(question_id=q, answer_value__gte=avg_rating).count()
                 total_students = SurveyAnswer.objects.filter(question_id=q).count()
                 
-                percentage = (count_ge_avg / total_students) * 100 if total_students > 0 else 0
+                if avg_rating > 0 and total_students > 0:
+                    count_ge_avg = SurveyAnswer.objects.filter(question_id=q, answer_value__gte=avg_rating).count()
+                    percentage = (count_ge_avg / total_students) * 100
+                else:
+                    count_ge_avg = 0
+                    percentage = 0
+                
                 level = AttainmentService._get_attainment_level(percentage)
                 indirect_cos[co_id] = level
         return indirect_cos

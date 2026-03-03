@@ -59,9 +59,9 @@ const Co1 = () => {
     };
 
     const handleOptionChange = (option) => {
-        const coId = cos[currentIndex]?.co_id;
+        const qId = cos[currentIndex]?.question_id;
         setSelectedOption(option);
-        setAnswers(prev => ({ ...prev, [coId]: option }));
+        setAnswers(prev => ({ ...prev, [qId]: option }));
     };
 
     const handleNext = async () => {
@@ -77,8 +77,8 @@ const Co1 = () => {
                 const payload = {
                     survey_id: cos[0]?.survey_id,
                     student_id: student?.enrollment,
-                    answers: Object.entries(answers).map(([coId, val]) => ({
-                        co_id: parseInt(coId),
+                    answers: Object.entries(answers).map(([qId, val]) => ({
+                        question_id: parseInt(qId),
                         answer_value: val
                     }))
                 };
