@@ -15,15 +15,24 @@ class FacultyDashboardAPIView(APIView):
     def get(self, request):
         user = request.user
         
+        # Get filters from query params
+        scheme_id = request.query_params.get('scheme_id')
+        academic_year = request.query_params.get('academic_year')
+
         # Get courses assigned to this faculty
         assignments = FacultyCourseAssignment.objects.filter(faculty_id=user, is_active=True).select_related('course_id')
+        
+        if scheme_id:
+            assignments = assignments.filter(course_id__scheme_id=scheme_id)
+            
         courses = [a.course_id for a in assignments]
         
         if not courses:
-            return Response({"message": "No courses assigned to this faculty."}, status=status.HTTP_200_OK)
+            return Response({"message": "No courses assigned to this faculty for selected filters."}, status=status.HTTP_200_OK)
 
         academic_setup = AcademicSetup.objects.first()
-        academic_year = academic_setup.academic_year if academic_setup else "2025-26"
+        final_academic_year = academic_year or (academic_setup.academic_year if academic_setup else "2025-26")
+        academic_year_query = final_academic_year.replace(' ', '')
 
         # 1. CT-1 and CT-2 Average Marks per Subject
         ct1_data = [["Subject", "Average"]]
@@ -39,7 +48,7 @@ class FacultyDashboardAPIView(APIView):
                 course_id=course, 
                 assessment_type='FA_TH', 
                 assessment_name__icontains='CT1',
-                academic_year__icontains=academic_year.replace(' ', '')
+                academic_year__icontains=academic_year_query
             ).first()
             
             ct1_avg = 0
@@ -51,7 +60,7 @@ class FacultyDashboardAPIView(APIView):
                 course_id=course, 
                 assessment_type='FA_TH', 
                 assessment_name__icontains='CT2',
-                academic_year__icontains=academic_year.replace(' ', '')
+                academic_year__icontains=academic_year_query
             ).first()
             
             ct2_avg = 0
@@ -77,7 +86,7 @@ class FacultyDashboardAPIView(APIView):
         # Get average attainment for each CO number (CO1, CO2, etc) across all assigned courses
         co_stats = COAttainment.objects.filter(
             course_id__in=courses, 
-            academic_year=academic_year
+            academic_year=final_academic_year
         ).values('co_id__co_number').annotate(avg_att=Avg('overall_attainment')).order_by('co_id__co_number')
         
         for stat in co_stats:

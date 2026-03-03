@@ -18,18 +18,46 @@ class HODDashboardAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        dept = user.department
         
-        if not dept:
-            return Response({"error": "No department assigned to this HOD."}, status=status.HTTP_400_BAD_REQUEST)
+        # Get filters from query params
+        dept_id = request.query_params.get('dept_id')
+        scheme_id = request.query_params.get('scheme_id')
+        academic_year = request.query_params.get('academic_year')
 
-        # 1. Academic Info
+        # Default Department
+        if dept_id:
+            try:
+                from academics.models import Program
+                dept = Program.objects.get(program_id=dept_id)
+            except Exception:
+                dept = user.department
+        else:
+            dept = user.department
+            
+        if not dept:
+            return Response({"error": "No department assigned or selected."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Academic Info (Dynamic based on filters or Setup)
         academic_setup = AcademicSetup.objects.select_related('scheme_id').first()
+        
+        final_academic_year = academic_year or (academic_setup.academic_year if academic_setup else "2025-26")
+        
+        # Determine Scheme
+        if scheme_id:
+            from academics.models import Scheme
+            try:
+                current_scheme = Scheme.objects.get(scheme_id=scheme_id)
+                scheme_name = current_scheme.scheme_name
+            except Exception:
+                scheme_name = academic_setup.scheme_id.scheme_name if academic_setup and academic_setup.scheme_id else "N/A"
+        else:
+            scheme_name = academic_setup.scheme_id.scheme_name if academic_setup and academic_setup.scheme_id else "N/A"
+
         academic_data = {
-            "academic_year": academic_setup.academic_year if academic_setup else "2025-26",
+            "academic_year": final_academic_year,
             "department": dept.program_name,
             "semester_type": academic_setup.semester_type if academic_setup else "Odd/Even",
-            "scheme": academic_setup.scheme_id.scheme_name if academic_setup and academic_setup.scheme_id else "N/A",
+            "scheme": scheme_name,
             "effective_from": academic_setup.updated_at.strftime('%d/%m/%Y') if academic_setup else "N/A"
         }
 
@@ -43,7 +71,7 @@ class HODDashboardAPIView(APIView):
 
         # 3. DAC Report Status (Assuming 'DAC' report might be a specific type or just any approved report)
         # For now, let's check if there are any approved reports for this dept this year
-        year_str = academic_data["academic_year"]
+        year_str = final_academic_year
         dac_exists = Report.objects.filter(course_id__program_id=dept, year=year_str, status='Approved').exists()
         dac_status = {
             "month": now.strftime('%b'),
@@ -56,6 +84,9 @@ class HODDashboardAPIView(APIView):
         # 5. Course & Faculty Overview
         # Get all courses for this department
         courses = Course.objects.filter(program_id=dept, is_active=True)
+        if scheme_id:
+            courses = courses.filter(scheme_id=scheme_id)
+            
         course_assignments = FacultyCourseAssignment.objects.filter(course_id__in=courses, is_active=True).select_related('faculty_id', 'course_id')
         
         assignment_map = {ca.course_id_id: ca for ca in course_assignments}

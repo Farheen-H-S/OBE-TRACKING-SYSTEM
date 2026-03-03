@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Chart } from "react-google-charts";
+import { useFilters } from "../../context/FilterContext";
+import GlobalFilterBar from "../../components/filters/GlobalFilterBar";
 import "./Facdash.css";
 import api from '../../utils/axios';
 
 const Facdash = () => {
+  const { selectedScheme, selectedYear } = useFilters();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +15,12 @@ const Facdash = () => {
     const fetchFacultyData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/users/faculty-dashboard/');
+        const response = await api.get('/users/faculty-dashboard/', {
+          params: {
+            scheme_id: selectedScheme,
+            academic_year: selectedYear
+          }
+        });
         setData(response.data);
         setError(null);
       } catch (err) {
@@ -24,7 +32,7 @@ const Facdash = () => {
     };
 
     fetchFacultyData();
-  }, []);
+  }, [selectedScheme, selectedYear]);
 
   if (loading) {
     return (
@@ -95,6 +103,9 @@ const Facdash = () => {
       <div className="d-flex flex-grow-1 overflow-hidden" style={{ height: 'calc(100vh - 70px)' }}>
         <div className="flex-grow-1 p-4 overflow-auto scrollable-content">
           <div className="bg-white rounded shadow-sm p-4 main-paper-container">
+            <div className="mb-4">
+              <GlobalFilterBar visibleFilters={['scheme', 'year']} />
+            </div>
 
             {/* Top Row: CT-1 and CT-2 Charts */}
             <div className="row mb-5">

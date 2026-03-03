@@ -14,14 +14,28 @@ class CoordinatorDashboardAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        dept = user.department
         
+        # Get filters from query params
+        dept_id = request.query_params.get('dept_id')
+        scheme_id = request.query_params.get('scheme_id')
+        academic_year = request.query_params.get('academic_year')
+
+        # Default Department
+        if dept_id:
+            try:
+                from academics.models import Program
+                dept = Program.objects.get(program_id=dept_id)
+            except Exception:
+                dept = user.department
+        else:
+            dept = user.department
+            
         if not dept:
-            return Response({"error": "No department assigned to this Coordinator."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "No department assigned or selected."}, status=status.HTTP_400_BAD_REQUEST)
 
         academic_setup = AcademicSetup.objects.first()
-        academic_year = academic_setup.academic_year if academic_setup else "2025-26"
-        year_str = academic_year
+        final_academic_year = academic_year or (academic_setup.academic_year if academic_setup else "2025-26")
+        year_str = final_academic_year
 
         # 1. Academic Info
         academic_data = {
@@ -34,6 +48,9 @@ class CoordinatorDashboardAPIView(APIView):
 
         # 2. OBE Process Health Metrics (Similar to HOD but for Coordinator)
         courses = Course.objects.filter(program_id=dept, is_active=True)
+        if scheme_id:
+            courses = courses.filter(scheme_id=scheme_id)
+            
         total_course_count = courses.count() or 1
         
         # Mapping

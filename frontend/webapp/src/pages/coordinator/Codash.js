@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Chart } from "react-google-charts";
 import { FaCheck, FaTimes } from "react-icons/fa";
+import { useFilters } from "../../context/FilterContext";
+import GlobalFilterBar from "../../components/filters/GlobalFilterBar";
 import "./Codash.css";
 import api from "../../utils/axios";
 
 const Codash = () => {
+    const { selectedDept, selectedScheme, selectedYear } = useFilters();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -13,7 +16,13 @@ const Codash = () => {
         const fetchCoordinatorData = async () => {
             try {
                 setLoading(true);
-                const response = await api.get('/users/coordinator-dashboard/');
+                const response = await api.get('/users/coordinator-dashboard/', {
+                    params: {
+                        dept_id: selectedDept,
+                        scheme_id: selectedScheme,
+                        academic_year: selectedYear
+                    }
+                });
                 setData(response.data);
                 setError(null);
             } catch (err) {
@@ -25,7 +34,7 @@ const Codash = () => {
         };
 
         fetchCoordinatorData();
-    }, []);
+    }, [selectedDept, selectedScheme, selectedYear]);
 
     if (loading) {
         return (
@@ -69,7 +78,9 @@ const Codash = () => {
             <div className="d-flex flex-grow-1 overflow-hidden" style={{ height: 'calc(100vh - 70px)' }}>
                 <div className="flex-grow-1 p-4 overflow-auto scrollable-content">
                     <div className="main-content-container p-4">
-
+                        <div className="mb-4">
+                            <GlobalFilterBar visibleFilters={['dept', 'scheme', 'year']} />
+                        </div>
                         {/* Top Summary Cards */}
                         <div className="row mb-5 g-4">
                             <div className="col-12 col-md-4 col-lg-2">

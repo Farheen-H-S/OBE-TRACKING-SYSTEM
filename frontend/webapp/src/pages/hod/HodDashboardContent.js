@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Chart } from "react-google-charts";
+import { useFilters } from "../../context/FilterContext";
+import GlobalFilterBar from "../../components/filters/GlobalFilterBar";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './HodDashboardContent.css';
 import api from '../../utils/axios';
 
 function HodDashboardContent() {
+    const { selectedDept, selectedScheme, selectedYear } = useFilters();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -13,7 +16,13 @@ function HodDashboardContent() {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
-                const response = await api.get('/users/hod-dashboard/');
+                const response = await api.get('/users/hod-dashboard/', {
+                    params: {
+                        dept_id: selectedDept,
+                        scheme_id: selectedScheme,
+                        academic_year: selectedYear
+                    }
+                });
                 setData(response.data);
                 setError(null);
             } catch (err) {
@@ -25,7 +34,7 @@ function HodDashboardContent() {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [selectedDept, selectedScheme, selectedYear]);
 
     if (loading) {
         return (
@@ -77,7 +86,9 @@ function HodDashboardContent() {
             <div className="row h-100">
                 <div className="col-12 mb-4">
                     <div className="hod-main-container">
-
+                        <div className="mb-4">
+                            <GlobalFilterBar visibleFilters={['dept', 'scheme', 'year']} />
+                        </div>
                         {/* 1. Top Stats Row */}
                         <div className="row mb-4 text-center">
                             <div className="col-md-2 mb-2">
