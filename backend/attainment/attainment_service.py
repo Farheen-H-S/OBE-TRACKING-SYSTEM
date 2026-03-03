@@ -245,8 +245,9 @@ class AttainmentService:
                     'fa_pr': tools.get('FA_PR', '-'),
                     'sla': tools.get('SLA', '-'),
                     'sa_th': tools.get('SA_TH', '-'),
-                    'sa_pr': tools.get('SA_PR', '-'),
-                    'ces': co_indirect.get(co.co_id, '-')
+                    'sa_pr': tools.get('SA_PR', {}).get('level', '-') if isinstance(tools.get('SA_PR'), dict) else tools.get('SA_PR', '-'),
+                    'ces': co_indirect.get(co.co_id, '-'),
+                    'tool_details': {k.lower(): v for k, v in tools.items()} # Normalize keys to lowercase for frontend
                 },
                 'overall_attainment': att_rec.overall_attainment if att_rec else 0,
                 'target': target_val,
@@ -380,7 +381,12 @@ class AttainmentService:
                         if co_obj:
                             co_id = co_obj.co_id_id
                             if co_id not in tool_co_results: tool_co_results[co_id] = {}
-                            tool_co_results[co_id][tool_key] = level
+                            tool_co_results[co_id][tool_key] = {
+                                'level': level,
+                                'appeared': stats['appeared'],
+                                'success': stats['success'],
+                                'percentage': percentage
+                            }
                         else:
                             print(f"DEBUG: Failed to match CO key '{co_key}' (idx: {target_idx}) for tool {tool.assessment_name}")
             else:
@@ -401,7 +407,12 @@ class AttainmentService:
                 for m in mappings:
                     co_id = m.co_id_id
                     if co_id not in tool_co_results: tool_co_results[co_id] = {}
-                    tool_co_results[co_id][tool_key] = level
+                    tool_co_results[co_id][tool_key] = {
+                        'level': level,
+                        'appeared': total_students,
+                        'success': count_ge_avg,
+                        'percentage': percentage
+                    }
                 
         return tool_co_results
 
@@ -412,8 +423,8 @@ class AttainmentService:
         
         direct_cos = {}
         for co_id, tools in detailed.items():
-            internal_levels = [val for key, val in tools.items() if key in ['FA_TH_1', 'FA_TH_2', 'FA_PR', 'SLA']]
-            external_levels = [val for key, val in tools.items() if key in ['SA_TH', 'SA_PR']]
+            internal_levels = [val['level'] for key, val in tools.items() if key in ['FA_TH_1', 'FA_TH_2', 'FA_PR', 'SLA'] and isinstance(val, dict)]
+            external_levels = [val['level'] for key, val in tools.items() if key in ['SA_TH', 'SA_PR'] and isinstance(val, dict)]
             
             i_avg = sum(internal_levels) / len(internal_levels) if internal_levels else 0
             e_avg = sum(external_levels) / len(external_levels) if external_levels else 0

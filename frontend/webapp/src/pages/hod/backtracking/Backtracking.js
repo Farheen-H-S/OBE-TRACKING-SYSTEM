@@ -33,6 +33,7 @@ const Backtracking = () => {
   const [drillData, setDrillData] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [drillLoading, setDrillLoading] = useState(false);
+  const [selectedToolDetail, setSelectedToolDetail] = useState(null);
 
   useEffect(() => { if (selectedDept) fetchData(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
 
@@ -130,7 +131,14 @@ const Backtracking = () => {
     setDrillLoading(true);
     try {
       const academic_year = selectedYear.replace(/\s/g, '');
-      const endpoint = `/attainment/course/${course.course_id}/cos/?academic_year=${academic_year}`;
+      const parentRow = drillData?.row;
+      let endpoint = `/attainment/course/${course.course_id}/cos/?academic_year=${academic_year}`;
+
+      if (parentRow) {
+        if (parentRow.type === 'po') endpoint += `&po_id=${parentRow.id}`;
+        else if (parentRow.type === 'pso') endpoint += `&pso_id=${parentRow.id}`;
+      }
+
       const res = await api.get(endpoint);
       const cosData = res.data?.cos || res.data || [];
       setDrillData(prev => ({ ...prev, cos: cosData }));
@@ -148,9 +156,36 @@ const Backtracking = () => {
     return 'bt-status-low';
   };
 
-  const formatTool = (val) => {
+  const formatTool = (val, details, toolKey) => {
     if (val === null || val === undefined || val === '') return <span className="text-muted small">—</span>;
-    return <span className="fw-semibold">{typeof val === 'number' ? val.toFixed(2) : val}</span>;
+    const isLevel = typeof val === 'number';
+    const realVal = typeof val === 'object' ? val.level : val;
+    const displayVal = typeof realVal === 'number' ? realVal.toFixed(2) : realVal;
+
+    // If we have details for this tool, make it clickable
+    // Check both original and lowercase keys for robustness
+    const detailsObj = details?.[toolKey] || details?.[toolKey.toLowerCase()];
+    const hasDetails = detailsObj && typeof detailsObj === 'object';
+
+    if (hasDetails) {
+      return (
+        <span
+          className="fw-semibold bt-tool-detail-cell"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedToolDetail({
+              name: TOOL_NAMES[toolKey] || toolKey,
+              ...detailsObj
+            });
+          }}
+          title="Click for details"
+        >
+          {displayVal}
+        </span>
+      );
+    }
+
+    return <span className="fw-semibold">{displayVal}</span>;
   };
 
   return (
@@ -282,21 +317,28 @@ const Backtracking = () => {
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {drillData?.courses?.map(course => (
-                                          <tr key={course.course_id}>
-                                            <td className="text-start ps-3 fw-semibold">{course.course_name}</td>
-                                            <td className="text-muted">{course.course_code}</td>
-                                            <td className="text-primary fw-bold">{course.level}</td>
-                                            <td>
-                                              <button
-                                                className="btn btn-sm btn-outline-primary py-0"
-                                                onClick={() => handleCourseSelect(course)}
-                                              >
-                                                Details <FaArrowRight size={10} />
-                                              </button>
-                                            </td>
-                                          </tr>
-                                        ))}
+                                        {(() => {
+                                          const courses = drillData?.courses || [];
+                                          const minLevel = courses.length > 0 ? Math.min(...courses.map(c => parseFloat(c.level) || 0)) : null;
+                                          return courses.map(course => {
+                                            const isLowest = minLevel !== null && parseFloat(course.level) === minLevel;
+                                            return (
+                                              <tr key={course.course_id} className={isLowest ? 'bt-highlight-lowest' : ''}>
+                                                <td className="text-start ps-3 fw-semibold">{course.course_name}</td>
+                                                <td className="text-muted">{course.course_code}</td>
+                                                <td className="text-primary fw-bold">{course.level}</td>
+                                                <td>
+                                                  <button
+                                                    className="btn btn-sm btn-outline-primary py-0"
+                                                    onClick={() => handleCourseSelect(course)}
+                                                  >
+                                                    Details <FaArrowRight size={10} />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            );
+                                          });
+                                        })()}
                                       </tbody>
                                     </Table>
                                   </div>
@@ -318,25 +360,52 @@ const Backtracking = () => {
                                             <th key={k}>{TOOL_NAMES[k]}</th>
                                           ))}
                                           <th className="text-primary fw-bold">CO Att.</th>
-                                          <th>Weight</th>
+                                          <th title="Contribution Weight: Mapping strength of this CO to the parent PO/PSO (1=Normal, 2=Medium, 3=High)">
+                                            Weight
+                                            <span className="ms-1 text-muted small" style={{ cursor: 'help' }}>(?)</span>
+                                          </th>
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {drillData?.cos?.map((co, ci) => (
-                                          <tr key={ci}>
-                                            <td className="fw-bold text-start ps-2 text-nowrap">{co.co_number}</td>
-                                            <td className="text-start text-muted smallest" style={{ fontSize: '10px' }}>{co.description}</td>
-                                            {Object.keys(TOOL_NAMES).map(k => (
-                                              <td key={k}>{formatTool(co.tools?.[k])}</td>
-                                            ))}
-                                            <td className="fw-bold text-primary">
-                                              {co.overall_attainment !== null ? parseFloat(co.overall_attainment).toFixed(2) : '—'}
-                                            </td>
-                                            <td className="text-secondary">
-                                              {co.contribution_weight !== null ? `${co.contribution_weight}%` : '—'}
-                                            </td>
-                                          </tr>
-                                        ))}
+                                        {(() => {
+                                          const cos = drillData?.cos || [];
+                                          const toolKeys = Object.keys(TOOL_NAMES);
+
+                                          // Find the tool with the lowest average attainment across COs
+                                          const toolAverages = {};
+                                          toolKeys.forEach(k => {
+                                            const vals = cos.map(co => {
+                                              const v = co.tools?.[k];
+                                              return (typeof v === 'object' ? v.level : v);
+                                            }).filter(v => v !== null && v !== undefined && v !== '' && v !== '—' && v !== '-');
+
+                                            if (vals.length > 0) {
+                                              toolAverages[k] = vals.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / vals.length;
+                                            }
+                                          });
+
+                                          const activeKeys = Object.keys(toolAverages);
+                                          const minAvg = activeKeys.length > 0 ? Math.min(...activeKeys.map(k => toolAverages[k])) : null;
+                                          const lowestToolKey = minAvg !== null ? activeKeys.find(k => toolAverages[k] === minAvg) : null;
+
+                                          return cos.map((co, ci) => (
+                                            <tr key={ci}>
+                                              <td className="fw-bold text-start ps-2 text-nowrap">{co.co_number}</td>
+                                              <td className="text-start text-muted smallest" style={{ fontSize: '10px' }}>{co.description}</td>
+                                              {toolKeys.map(k => (
+                                                <td key={k} className={k === lowestToolKey ? 'bt-highlight-lowest' : ''}>
+                                                  {formatTool(co.tools?.[k], co.tools?.tool_details, k)}
+                                                </td>
+                                              ))}
+                                              <td className="fw-bold text-primary">
+                                                {co.overall_attainment !== null ? parseFloat(co.overall_attainment).toFixed(2) : '—'}
+                                              </td>
+                                              <td className="text-secondary">
+                                                {co.contribution_weight !== null ? `${co.contribution_weight}%` : '—'}
+                                              </td>
+                                            </tr>
+                                          ));
+                                        })()}
                                       </tbody>
                                     </Table>
                                   </div>
@@ -359,6 +428,41 @@ const Backtracking = () => {
           </div>
         </Container>
       </div>
+
+      {/* Tool Detail Modal */}
+      {selectedToolDetail && (
+        <div className="bt-stats-overlay" onClick={() => setSelectedToolDetail(null)}>
+          <div className="bt-stats-modal" onClick={e => e.stopPropagation()}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="mb-0 text-primary">{selectedToolDetail.name} Attainment Details</h5>
+              <button className="btn-close" onClick={() => setSelectedToolDetail(null)}></button>
+            </div>
+            <table className="bt-stats-table">
+              <tbody>
+                <tr>
+                  <th>Students Appeared</th>
+                  <td>{selectedToolDetail.appeared}</td>
+                </tr>
+                <tr>
+                  <th>Success (&ge; Avg)</th>
+                  <td>{selectedToolDetail.success}</td>
+                </tr>
+                <tr>
+                  <th>Percentage</th>
+                  <td>{parseFloat(selectedToolDetail.percentage).toFixed(2)}%</td>
+                </tr>
+                <tr className="border-top">
+                  <th className="pt-2">Attainment Level</th>
+                  <td className="pt-2 text-primary fs-5">{parseFloat(selectedToolDetail.level).toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="mt-4 text-center">
+              <button className="btn btn-sm btn-primary px-4" onClick={() => setSelectedToolDetail(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

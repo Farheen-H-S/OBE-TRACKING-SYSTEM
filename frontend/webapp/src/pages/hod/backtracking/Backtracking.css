@@ -84,6 +84,8 @@
     border-bottom: 1px solid #dee2e6;
     padding: 16px 20px;
     animation: slideDown .2s ease;
+    overflow-x: auto;
+    /* Allow horizontal scroll for large tables */
 }
 
 @keyframes slideDown {
@@ -146,8 +148,79 @@
 }
 
 .bt-status-low {
-    background: #fee2e2;
-    color: #991b1b;
+    color: #f44336;
+    border: 1px solid #ffcdd2;
+    background: #ffebee;
+}
+
+/* Lowest Level Highlighting */
+.bt-highlight-lowest {
+    background-color: #fff3e0 !important;
+    border: 2px solid #ff9800 !important;
+    position: relative;
+}
+
+.bt-highlight-lowest::after {
+    content: 'Lowest';
+    position: absolute;
+    top: -8px;
+    right: 5px;
+    background: #ff9800;
+    color: white;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Tool Detail Popover/Tooltip style */
+.bt-tool-detail-cell {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.bt-tool-detail-cell:hover {
+    background-color: #e8eaf6 !important;
+}
+
+.bt-stats-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.bt-stats-modal {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 90%;
+}
+
+.bt-stats-table {
+    width: 100%;
+    margin-top: 15px;
+    font-size: 0.9rem;
+}
+
+.bt-stats-table th {
+    text-align: left;
+    padding: 5px;
+    color: #666;
+}
+
+.bt-stats-table td {
+    text-align: right;
+    padding: 5px;
+    font-weight: bold;
 }
 
 

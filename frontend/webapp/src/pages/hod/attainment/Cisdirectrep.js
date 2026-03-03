@@ -33,6 +33,7 @@ export default function Cisdirectrep() {
     const [courses, setCourses] = React.useState([]);
     const [selectedCourse, setSelectedCourse] = React.useState('');
     const [generatingCourseId, setGeneratingCourseId] = React.useState(null);
+    const [courseStatus, setCourseStatus] = React.useState({}); // {course_id: {overall_level, atr_status}}
 
     // Preview Modal States
     const [showPreview, setShowPreview] = React.useState(false);
@@ -219,7 +220,8 @@ export default function Cisdirectrep() {
                                                 <th className="py-3 text-start" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE NAME</th>
                                                 <th className="py-3 text-start" style={{ color: '#1a237e', fontWeight: '700' }}>COURSE TITLE</th>
                                                 <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ABBR.</th>
-                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>SCHEME</th>
+                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ACHIEVED LEVEL</th>
+                                                <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ATR STATUS</th>
                                                 <th className="py-3 text-center" style={{ color: '#1a237e', fontWeight: '700' }}>ACTION</th>
                                             </tr>
                                         </thead>
@@ -231,7 +233,18 @@ export default function Cisdirectrep() {
                                                         <td className="fw-bold text-dark">{c.course_name}</td>
                                                         <td className="text-secondary">{c.course_title || '-'}</td>
                                                         <td className="text-center">{c.course_abbr || '-'}</td>
-                                                        <td className="text-center"><span className="badge bg-light text-dark border">{schemes.find(s => s.scheme_id === c.scheme_id)?.scheme_name || 'K'}</span></td>
+                                                        <td className="text-center fw-bold text-primary">
+                                                            {courseStatus[c.course_id]?.overall_level || '0.00'}
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <span
+                                                                className={`badge cursor-pointer ${courseStatus[c.course_id]?.atr_status === 'submitted' ? 'bg-success' : 'bg-warning text-dark'}`}
+                                                                onClick={() => handleViewAttainment(c)}
+                                                                style={{ cursor: 'pointer', minWidth: '100px' }}
+                                                            >
+                                                                {courseStatus[c.course_id]?.atr_status === 'submitted' ? 'Submitted' : 'Not Submitted'}
+                                                            </span>
+                                                        </td>
                                                         <td className="text-center">
                                                             <button
                                                                 className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2"
@@ -296,13 +309,25 @@ export default function Cisdirectrep() {
                                         {previewData.map((item) => (
                                             <tr key={item.co_id} className="text-center align-middle fw-semibold">
                                                 <td className="text-primary">{item.co_number.includes('.') ? item.co_number : `CO${item.co_number.replace(/[^0-9]/g, '')}`}</td>
-                                                <td className="cell-nav" onClick={() => handleToolNavigation('CT1')}>{item.tools.fa_th_1}</td>
-                                                <td className="cell-nav" onClick={() => handleToolNavigation('CT2')}>{item.tools.fa_th_2}</td>
-                                                <td className="cell-nav" onClick={() => handleToolNavigation('FA-PR')}>{item.tools.fa_pr}</td>
-                                                <td className="cell-nav" onClick={() => handleToolNavigation('SLA')}>{item.tools.sla}</td>
-                                                <td className="cell-nav" onClick={() => handleToolNavigation('SA-TH')}>{item.tools.sa_th}</td>
-                                                <td className="cell-nav" onClick={() => handleToolNavigation('SA-PR')}>{item.tools.sa_pr}</td>
-                                                <td>{item.tools.ces}</td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('CT1')}>
+                                                    {typeof item.tools.fa_th_1 === 'object' ? item.tools.fa_th_1.level : item.tools.fa_th_1}
+                                                </td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('CT2')}>
+                                                    {typeof item.tools.fa_th_2 === 'object' ? item.tools.fa_th_2.level : item.tools.fa_th_2}
+                                                </td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('FA-PR')}>
+                                                    {typeof item.tools.fa_pr === 'object' ? item.tools.fa_pr.level : item.tools.fa_pr}
+                                                </td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('SLA')}>
+                                                    {typeof item.tools.sla === 'object' ? item.tools.sla.level : item.tools.sla}
+                                                </td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('SA-TH')}>
+                                                    {typeof item.tools.sa_th === 'object' ? item.tools.sa_th.level : item.tools.sa_th}
+                                                </td>
+                                                <td className="cell-nav" onClick={() => handleToolNavigation('SA-PR')}>
+                                                    {typeof item.tools.sa_pr === 'object' ? item.tools.sa_pr.level : item.tools.sa_pr}
+                                                </td>
+                                                <td>{typeof item.tools.ces === 'object' ? item.tools.ces.level : item.tools.ces}</td>
                                                 <td className="fw-bold text-primary">{item.overall_attainment.toFixed(2)}</td>
                                                 <td>{item.target.toFixed(2)}</td>
                                                 <td className={`fw-bold ${item.gap > 0 ? 'text-danger' : 'text-success'}`}>

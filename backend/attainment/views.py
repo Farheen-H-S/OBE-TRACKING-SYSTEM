@@ -9,6 +9,7 @@ from .serializers import (
     COAttainmentSerializer, POAttainmentSerializer, 
     PSOAttainmentSerializer, AttainmentSnapshotSerializer
 )
+from django.db.models import Avg
 from django.http import HttpResponse
 
 # from academics.models import Course, Program
@@ -330,16 +331,66 @@ class CourseCOBreakdownView(APIView):
     authentication_classes = []
     def get(self, request, course_id):
         academic_year = request.query_params.get('academic_year')
+        po_id = request.query_params.get('po_id')
+        pso_id = request.query_params.get('pso_id')
+        
         preview_data = AttainmentService.get_attainment_preview(course_id, academic_year)
         
-        # We need to add contribution weight for the specific PO/PSO if requested?
-        # Actually the frontend uses it generic. 
-        # But let's add co mapping info
+        # Add contribution weight context if backtracking from PO/PSO
+        from academics.models import COPOMapping, COPSOMapping
         for item in preview_data:
             co_id = item['co_id']
-            # We don't know which PO/PSO the user is backtracking from here unless we pass it.
-            # But the frontend design shows "CO Att.", "Weight".
-            # This weight depends on the PO/PSO.
-            pass
+            weight = None
+            if po_id:
+                mapping = COPOMapping.objects.filter(co_id=co_id, po_id=po_id).first()
+                weight = mapping.weightage if mapping else 0
+            elif pso_id:
+                mapping = COPSOMapping.objects.filter(co_id=co_id, pso_id=pso_id).first()
+                weight = mapping.weightage if mapping else 0
+            
+            # Map numeric weight (1,2,3) to percentage (assuming max weight 3 = 100%)
+            # Or just provide the raw weight. Frontend shows `${weight}%`. 
+            # If weight is 3, it shows 3%. Let's calculate percentage if that's expected,
+            # but usually in these systems weight 3 is just level 3.
+            # Looking at screenshot 3, it shows "undefined%".
+            # Let's provide it as a percentage of 3.
+            if weight is not None:
+                item['contribution_weight'] = round((weight / 3.0) * 100, 1) if weight > 0 else 0
+            else:
+                item['contribution_weight'] = None
 
         return Response({"cos": preview_data}, status=status.HTTP_200_OK)
+
+class CourseStatusView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request):
+        academic_year = request.query_params.get('academic_year')
+        batch_id = request.query_params.get('batch_id')
+        program_id = request.query_params.get('program_id')
+        
+        if not academic_year or not batch_id:
+            return Response({"error": "academic_year and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        courses = Course.objects.filter(is_active=True)
+        if program_id and program_id != 'All':
+            courses = courses.filter(program_id=program_id)
+            
+        data = {}
+        for course in courses:
+            attainments = COAttainment.objects.filter(course_id=course.course_id, academic_year=academic_year)
+            
+            if attainments.exists():
+                overall = attainments.aggregate(Avg('overall_attainment'))['overall_attainment__avg'] or 0
+                # Use Course.course_atr for consolidated status
+                status_flag = 'submitted' if course.course_atr and course.course_atr.strip() and course.course_atr != "No ATR Submitted" else 'not_submitted'
+            else:
+                overall = 0
+                status_flag = 'not_submitted'
+                
+            data[course.course_id] = {
+                "overall_level": round(overall, 2),
+                "atr_status": status_flag
+            }
+            
+        return Response(data, status=status.HTTP_200_OK)
