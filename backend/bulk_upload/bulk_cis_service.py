@@ -20,6 +20,17 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower()
             for text in re.split('([0-9]+)', str(s))]
 
+def normalize_roll(r):
+    s = str(r).strip()
+    if s.endswith('.'): s = s[:-1]
+    try:
+        # Avoid stripping valid zeroes if it's not a true number, but handle 01 == 1
+        if float(s).is_integer():
+            return str(int(float(s)))
+    except:
+        pass
+    return s.lower()
+
 def generate_cis_multi_sheet_template(course_id, academic_year=None):
     course = get_object_or_404(Course, pk=course_id)
     
@@ -83,10 +94,6 @@ def generate_cis_multi_sheet_template(course_id, academic_year=None):
                     ws.cell(row=2, column=col_idx, value=2 if q_num == 1 else 4) # Sample weight
                     ws.cell(row=3, column=col_idx, value="CO1") # Sample CO
                     col_idx += 1
-            
-            # Students
-            for r_idx, student in enumerate(students_list, start=4):
-                ws.cell(row=r_idx, column=1, value=student.roll_no)
                 
         elif tool_type == "PR" or tool_type == "SLA":
             label_row1 = "Practical No" if tool_type == "PR" else "Assignment"
@@ -104,18 +111,12 @@ def generate_cis_multi_sheet_template(course_id, academic_year=None):
                 apply_header_style(cell, fill_color="FFFF00", font_color="000000")
                 ws.cell(row=2, column=col_idx, value=25 if tool_type == "PR" else 20)
                 ws.cell(row=3, column=col_idx, value=f"CO{i}")
-                
-            for r_idx, student in enumerate(students_list, start=4):
-                ws.cell(row=r_idx, column=1, value=student.roll_no)
 
         elif tool_type == "SA":
             # Image 4/5: Roll No (A), Total Marks (B)
             ws['B1'] = "Total Marks"
             apply_header_style(ws['A1'])
             apply_header_style(ws['B1'])
-            
-            for r_idx, student in enumerate(students_list, start=2):
-                ws.cell(row=r_idx, column=1, value=student.roll_no)
                 
     wb.save(output)
     output.seek(0)
@@ -148,7 +149,7 @@ def process_bulk_cis_apply(file, course_id, academic_year, semester, user):
     if academic_year:
         filters['academic_year'] = academic_year
 
-    students_in_context = {s.roll_no: s for s in Student.objects.filter(**filters)}
+    students_in_context = {normalize_roll(s.roll_no): s for s in Student.objects.filter(**filters)}
     
     for sheet_name, df in all_sheets.items():
         if sheet_name not in tool_map:
@@ -191,8 +192,9 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
         for row in range(3, len(df)):
             roll = str(df.iloc[row, 0]).strip()
             if not roll or roll == "nan": continue
-            if roll in students_map:
-                student = students_map[roll]
+            norm_roll = normalize_roll(roll)
+            if norm_roll in students_map:
+                student = students_map[norm_roll]
                 s_marks = {}
                 row_total = 0
                 for col_idx, q in enumerate(questions):
@@ -232,8 +234,9 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
         for row in range(3, len(df)):
             roll = str(df.iloc[row, 0]).strip()
             if not roll or roll == "nan": continue
-            if roll in students_map:
-                student = students_map[roll]
+            norm_roll = normalize_roll(roll)
+            if norm_roll in students_map:
+                student = students_map[norm_roll]
                 s_marks = {}
                 row_sum = 0
                 for col_idx, q in enumerate(questions):
@@ -252,8 +255,9 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
         for row in range(1, len(df)):
             roll = str(df.iloc[row, 0]).strip()
             if not roll or roll == "nan": continue
-            if roll in students_map:
-                student = students_map[roll]
+            norm_roll = normalize_roll(roll)
+            if norm_roll in students_map:
+                student = students_map[norm_roll]
                 try: total = float(df.iloc[row, 1])
                 except: total = 0
                 marks_data.append((student, {'0': total, 'total': total}, total))

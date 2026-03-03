@@ -384,7 +384,14 @@ const Cisentry = () => {
 
       setCourses(filtered);
       setCoursesLoading(false);
-      // Removed auto-selection of course to allow list view
+
+      // Auto-clear selected course if it's no longer in the filtered list
+      if (selectedCourse) {
+        const isValid = filtered.some(c => String(c.course_id) === String(selectedCourse));
+        if (!isValid) {
+          setSelectedCourse('');
+        }
+      }
     } catch (error) {
       console.error("Error fetching courses:", error);
       setCoursesLoading(false);

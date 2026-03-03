@@ -274,14 +274,13 @@ class CourseListCreateAPIView(APIView):
                 
                 # Handle batches (M2M) - Input is ['2025-26', ...]
                 batch_years = request.data.get('batches', [])
-                if batch_years:
+                if batch_years is not None:
                     batch_objs = []
                     for by in batch_years:
                         try:
                             year_val = int(str(by).split('-')[0].strip())
-                            batch = Batch.objects.filter(batch_year=year_val).first()
-                            if batch:
-                                batch_objs.append(batch)
+                            batch, _ = Batch.objects.get_or_create(batch_year=year_val, defaults={'batch_name': str(by)})
+                            batch_objs.append(batch)
                         except ValueError:
                             continue
                     course.batches.set(batch_objs)
@@ -345,15 +344,14 @@ class CourseDetailAPIView(APIView):
             course = serializer.save()
             
             # Handle batches (M2M)
-            batch_years = request.data.get('batches', [])
-            if batch_years:
+            if 'batches' in request.data:
+                batch_years = request.data.get('batches', [])
                 batch_objs = []
                 for by in batch_years:
                     try:
                         year_val = int(str(by).split('-')[0].strip())
-                        batch = Batch.objects.filter(batch_year=year_val).first()
-                        if batch:
-                            batch_objs.append(batch)
+                        batch, _ = Batch.objects.get_or_create(batch_year=year_val, defaults={'batch_name': str(by)})
+                        batch_objs.append(batch)
                     except ValueError:
                         continue
                 course.batches.set(batch_objs)

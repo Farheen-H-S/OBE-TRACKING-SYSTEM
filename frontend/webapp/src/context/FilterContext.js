@@ -53,16 +53,7 @@ export const FilterProvider = ({ children }) => {
 
     // Persist to localStorage whenever context changes
     useEffect(() => {
-        // Validate if selectedCourse is still valid under new context
-        let courseValid = true;
-        if (selectedCourse && typeof selectedCourse === 'object') {
-            // If course has these properties, check them. Otherwise assume valid to prevent unwanted un-selections.
-            if (selectedCourse.class_year && selectedClass !== 'All' && !selectedClass.includes(selectedCourse.class_year)) courseValid = false;
-            if (selectedCourse.semester && selectedSemester !== 'All' && String(selectedCourse.semester) !== String(selectedSemester)) courseValid = false;
-        }
-
-        const finalCourse = courseValid ? selectedCourse : '';
-        if (!courseValid) setSelectedCourse('');
+        const finalCourse = selectedCourse || '';
 
         const context = {
             selectedDept,
