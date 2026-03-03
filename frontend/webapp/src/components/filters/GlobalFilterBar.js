@@ -41,7 +41,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
 
     const isVisible = (id) => visibleFilters === null || visibleFilters.includes(id);
 
-    const DIV_OPTIONS = ['A', 'B', 'C', 'All'];
+    const DIV_OPTIONS = ['A', 'B', 'C'];
 
     // --- Smart Academic Year options (filtered by selected Batch) ---
     // Batch is primary: show ALL batches, but filter academic years based on selected batch
@@ -56,15 +56,15 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
 
     // --- Smart Semester options (filtered by selected Class) ---
     const filteredSems = (selectedClass && CLASS_SEMS[selectedClass])
-        ? [...CLASS_SEMS[selectedClass], 'All']
-        : ['1', '2', '3', '4', '5', '6', 'All'];
+        ? [...CLASS_SEMS[selectedClass]]
+        : ['1', '2', '3', '4', '5', '6'];
 
     // --- Handlers with auto-sync ---
     const handleClassChange = (cls) => {
         setSelectedClass(cls);
         const validSems = CLASS_SEMS[cls] || [];
-        if (selectedSemester !== 'All' && !validSems.includes(selectedSemester)) {
-            setSelectedSemester(validSems[0] || 'All');
+        if (!validSems.includes(selectedSemester)) {
+            setSelectedSemester(validSems[0] || '1');
         }
     };
 

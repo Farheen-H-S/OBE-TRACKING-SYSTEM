@@ -17,8 +17,8 @@ export const FilterProvider = ({ children }) => {
             selectedBatch: '2025-26',
             selectedYear: '2025 - 26',
             selectedClass: 'TY',
-            selectedSemester: 'All',
-            selectedDivision: 'All',
+            selectedSemester: '1',
+            selectedDivision: 'A',
             selectedIntroYear: '2025-26'
         };
 
@@ -72,6 +72,26 @@ export const FilterProvider = ({ children }) => {
     for (let i = 2018; i <= 2030; i++) {
         generatedBatches.push(`${i}-${(i + 1).toString().slice(-2)}`);
     }
+
+    // Auto-select Class based on Academic Year and Batch
+    useEffect(() => {
+        if (!selectedYear || !selectedBatch) return;
+        try {
+            const batchStartYear = parseInt(selectedBatch.replace(/\s/g, '').split('-')[0], 10);
+            const currentAyStartYear = parseInt(selectedYear.replace(/\s/g, '').split('-')[0], 10);
+
+            const diff = currentAyStartYear - batchStartYear;
+            if (diff === 0) {
+                setSelectedClass('FY');
+            } else if (diff === 1) {
+                setSelectedClass('SY');
+            } else if (diff >= 2) {
+                setSelectedClass('TY');
+            }
+        } catch (e) {
+            console.error("Error calculating class from year:", e);
+        }
+    }, [selectedYear, selectedBatch]);
 
     // Generate academic years (fallback if API fails)
     const years = [];
@@ -145,7 +165,7 @@ export const FilterProvider = ({ children }) => {
             introYear: selectedIntroYear
         };
 
-        const missingFields = requiredFields.filter(field => !context[field] || context[field] === 'All' || context[field] === '');
+        const missingFields = requiredFields.filter(field => !context[field] || context[field] === '');
 
         return {
             isValid: missingFields.length === 0,

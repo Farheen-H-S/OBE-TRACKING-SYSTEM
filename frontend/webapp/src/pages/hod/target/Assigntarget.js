@@ -426,6 +426,10 @@ const Assigntarget = () => {
             <div className="text-center py-5">Loading data...</div>
           ) : viewMode === 'course' ? (
             <div className="table-responsive">
+              <div className="alert alert-info py-2 small mb-2">
+                <i className="bi bi-info-circle me-1"></i>
+                <strong>Helper Note:</strong> Course Targets change and are evaluated per Semester.
+              </div>
               <table className="table table-bordered align-middle target-table-refined">
                 <thead>
                   <tr>
@@ -502,6 +506,10 @@ const Assigntarget = () => {
             </div>
           ) : (
             <div className="program-view-container">
+              <div className="alert alert-info py-2 small mb-3">
+                <i className="bi bi-info-circle me-1"></i>
+                <strong>Helper Note:</strong> Program Targets (POs & PSOs) change and are evaluated per Batch.
+              </div>
               <h5 className="fw-bold mb-3 text-secondary">Program Outcomes (POs)</h5>
               <div className="table-responsive mb-5">
                 <table className="table table-bordered align-middle target-table-refined">

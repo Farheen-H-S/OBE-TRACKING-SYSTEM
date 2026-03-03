@@ -883,7 +883,7 @@ class TargetListCreateAPIView(APIView):
                     t_val = item.get('target_value')
                     if not p_id: continue
                     try: t_val = float(t_val)
-                    except: t_val = 2.0 # Default fallback
+                    except: t_val = 0.0 # Default fallback
                     
                     POTarget.objects.filter(po_id_id=p_id, academic_year=academic_year).delete()
                     POTarget.objects.create(
@@ -900,7 +900,7 @@ class TargetListCreateAPIView(APIView):
                     t_val = item.get('target_value')
                     if not p_id: continue
                     try: t_val = float(t_val)
-                    except: t_val = 2.0
+                    except: t_val = 0.0
                     
                     PSOTarget.objects.filter(pso_id_id=p_id, academic_year=academic_year).delete()
                     PSOTarget.objects.create(
