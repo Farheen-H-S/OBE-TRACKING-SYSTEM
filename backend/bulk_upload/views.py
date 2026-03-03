@@ -23,6 +23,10 @@ from django.conf import settings
 from notifications.utils import send_obe_notification
 from .bulk_cis_service import generate_cis_multi_sheet_template, process_bulk_cis_apply
 
+def natural_sort_key(s):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split('([0-9]+)', str(s))]
+
 class DownloadStudentTemplateView(APIView):
     """
     Serves the pre-generated Excel template for student bulk upload.
@@ -73,7 +77,8 @@ class DownloadCISTemplateView(APIView):
             return Response({"error": "Course ID is required"}, status=400)
             
         course = get_object_or_404(Course, pk=course_id)
-        students = Student.objects.filter(program_id=course.program_id, is_active=True).order_by('roll_no')
+        students = list(Student.objects.filter(program_id=course.program_id, is_active=True))
+        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
         
         assessment_config = course.assessment_tools or {}
         tool_data = assessment_config.get(tool_name, {})

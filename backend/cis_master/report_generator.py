@@ -15,6 +15,10 @@ from users.models import Student, FacultyCourseAssignment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse, SurveyAnswer
 from .models import CISType, CISTerm
 
+def natural_sort_key(s):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split('([0-9]+)', str(s))]
+
 # Color Constants (Matching User Images)
 HEADER_DARK_BLUE = "2F5597"
 HEADER_LIGHT_BLUE = "D9E1F2"
@@ -1471,13 +1475,15 @@ def generate_cis_report(course_id, academic_year=None, batch_id=None):
         else:
             student_filters['batch_id'] = batch_id
 
-    students = Student.objects.filter(**student_filters).order_by('roll_no')
+    students = list(Student.objects.filter(**student_filters))
+    students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
     
-    if not students.exists():
+    if not students:
         # If no students in current semester, try class_year (rough approximation)
         student_filters.pop('semester', None)
         student_filters['class_year'] = course.class_year
-        students = Student.objects.filter(**student_filters).order_by('roll_no')
+        students = list(Student.objects.filter(**student_filters))
+        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
 
     wb = openpyxl.Workbook()
     wb.remove(wb.active) 

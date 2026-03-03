@@ -68,19 +68,22 @@ class SubmitSurveyResponseView(APIView):
         log_action(request.user, 'CREATE', 'SurveyResponse', survey.survey_id, remark=f"Survey submitted for {survey.survey_name}")
         return Response({"message": "Survey submitted successfully"}, status=status.HTTP_201_CREATED)
 
+import re
+def natural_sort_key(s):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split('([0-9]+)', str(s))]
+
 class SurveyStatsView(APIView):
     def get(self, request, survey_id):
         survey = get_object_or_404(SurveyMaster, pk=survey_id)
         course = survey.course_id
-        program = survey.program_id or (course.program_id if course else None)
         
         from users.models import Student
         
-        # 1. Get students who actually responded
+        # 1. Get responders
         responses = SurveyResponse.objects.filter(survey_id=survey).select_related('student_id')
-        responder_ids = [r.student_id_id for r in responses if r.student_id_id]
         
-        # 2. Fetch responses - Allow filtering by student data if provided
+        # 2. Fetch responses with filters
         responses = SurveyResponse.objects.filter(survey_id=survey_id)
         
         batch_id = request.query_params.get('batch_id')
@@ -98,7 +101,7 @@ class SurveyStatsView(APIView):
 
         responder_ids = responses.values_list('student_id', flat=True)
         
-        # 3. Get expected students for this survey's program (and filters)
+        # 3. Get expected students
         expected_students = Student.objects.filter(program_id=survey.program_id, is_active=True)
         if batch_id: expected_students = expected_students.filter(batch_id=batch_id)
         if academic_year: expected_students = expected_students.filter(academic_year=academic_year)
@@ -109,15 +112,10 @@ class SurveyStatsView(APIView):
         expected_students_ids = expected_students.values_list('student_id', flat=True)
         all_student_ids = list(set(responder_ids) | set(expected_students_ids))
 
+        # Fetch full student objects and sort naturally
+        students = list(Student.objects.filter(student_id__in=all_student_ids))
+        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
         
-        # Fetch full student objects
-        students = Student.objects.filter(student_id__in=all_student_ids).order_by('roll_no')
-        
-        # If still no students (e.g. brand new survey, mismatching data), 
-        # fallback to just responders if any, else empty.
-        # But we already included responder_ids.
-        
-        # ... existing student fetch logic ...
         response_map = {r.enrollment_no: r for r in responses}
         
         student_data = []
@@ -125,7 +123,7 @@ class SurveyStatsView(APIView):
             res = response_map.get(student.enrollment_no)
             answers_map = {}
             if res:
-                for ans in res.answers.all().select_related('question_id', 'question_id__co_id', 'question_id__po_id', 'question_id__pso_id'):
+                for ans in res.answers.all().select_related('question_id', 'question_id__co_id'):
                     key = None
                     if ans.question_id:
                         if ans.question_id.co_id:
@@ -134,7 +132,6 @@ class SurveyStatsView(APIView):
                             key = ans.question_id.po_id.po_number
                         elif ans.question_id.pso_id:
                             key = ans.question_id.pso_id.pso_number
-                    
                     if key:
                         answers_map[key] = ans.answer_value
             

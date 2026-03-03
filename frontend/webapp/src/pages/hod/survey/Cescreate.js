@@ -196,6 +196,24 @@ const Cescreate = () => {
         try {
             const res = await api.get(`/surveys/${surveyId}/responses/`);
             // res.data is { survey, statements, responses }
+
+            // Natural Sort Responses by Roll No
+            if (res.data && Array.isArray(res.data.responses)) {
+                const naturalSort = (a, b) => {
+                    const ax = [], bx = [];
+                    a.toString().replace(/(\d+)|(\D+)/g, function (_, $1, $2) { ax.push([$1 || Infinity, $2 || ""]); });
+                    b.toString().replace(/(\d+)|(\D+)/g, function (_, $1, $2) { bx.push([$1 || Infinity, $2 || ""]); });
+                    while (ax.length && bx.length) {
+                        const an = ax.shift();
+                        const bn = bx.shift();
+                        const nn = (an[0] - bn[0]) || an[1].localeCompare(bn[1]);
+                        if (nn) return nn;
+                    }
+                    return ax.length - bx.length;
+                };
+                res.data.responses.sort((a, b) => naturalSort(a.roll_no || "", b.roll_no || ""));
+            }
+
             setSurveyStatsData(prev => ({ ...prev, [courseId]: res.data }));
         } catch (err) {
             console.error('Failed to fetch responses:', err);
@@ -350,7 +368,7 @@ const Cescreate = () => {
                             <th style={{ minWidth: '200px' }}>Name of Student</th>
                             {cos.map(co => (
                                 <th key={co.co_id} className="bg-fath-blue-header co-header-cell">
-                                    {co.co_number.toUpperCase()}
+                                    {(co.co_number || "").toUpperCase()}
                                 </th>
                             ))}
                         </tr>
