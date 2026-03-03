@@ -148,9 +148,12 @@ const OtherIndirectTools = () => {
     // Force TY when Exit Survey / Alumni Feedback is selected
     useEffect(() => {
         if (selectedTool.id === 'program-exit' || selectedTool.id === 'alumni') {
+            if (selectedClass === 'FY' || selectedClass === 'SY') {
+                alert("FY/SY is not applicable for this survey. Automatically switching to TY.");
+            }
             setSelectedClass('TY');
         }
-    }, [selectedTool.id, setSelectedClass]);
+    }, [selectedClass, selectedTool.id, setSelectedClass]);
 
     const isRP = selectedTool.id === 'resource-person';
 

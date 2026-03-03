@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Spinner, Modal, Badge } from 'react-bootstrap';
 // Replaced internal Header/Sidebar with Layout from App.js
 import { getStressSurveys, exportStressReport, previewReport } from '../../../services/stressService';
+import { useFilters } from '../../../context/FilterContext';
 
 const Stressreport = () => {
+  const { selectedYear } = useFilters();
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,12 +18,12 @@ const Stressreport = () => {
 
   useEffect(() => {
     fetchSurveys();
-  }, []);
+  }, [selectedYear]);
 
   const fetchSurveys = async () => {
     try {
       setLoading(true);
-      const res = await getStressSurveys();
+      const res = await getStressSurveys(selectedYear || null);
       // Sort: Active first, then by survey_id descending
       const sortedSurveys = (res.data || []).sort((a, b) => {
         if (a.is_active && !b.is_active) return -1;

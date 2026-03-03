@@ -1,6 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
+import { useFilters } from "../../../context/FilterContext";
 
 import "./Stresscreate.css";
 
@@ -13,6 +14,8 @@ import {
 } from "../../../services/stressService";
 
 const Stresscreate = () => {
+
+    const { selectedYear } = useFilters();
 
     /* ---------------- STATE ---------------- */
 
@@ -46,7 +49,7 @@ const Stresscreate = () => {
     /* ---------------- LOAD DATA ---------------- */
     const fetchSurveys = async () => {
         try {
-            const res = await getStressSurveys();
+            const res = await getStressSurveys(selectedYear || null);
             setSurveys(res.data);
         } catch (err) {
             console.error("Failed to load surveys", err);
@@ -66,7 +69,7 @@ const Stresscreate = () => {
     useEffect(() => {
         fetchSurveys();
         fetchQuestionSets();
-    }, []);
+    }, [selectedYear]);
 
     const updateCountdown = () => {
         if (!activeSurvey || !activeSurvey.end_date) {

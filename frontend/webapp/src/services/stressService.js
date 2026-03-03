@@ -9,8 +9,10 @@ export const submitStressResponses = (payload) =>
 export const generateAnonymousToken = (surveyId) =>
     axios.post(`/stress/surveys/${surveyId}/public-entry/`);
 
-export const getStressSurveys = () =>
-    axios.get('/stress/surveys/');
+export const getStressSurveys = (year = null) => {
+    const params = year ? { year } : {};
+    return axios.get('/stress/surveys/', { params });
+};
 
 
 export const createStressSurvey = (payload) =>

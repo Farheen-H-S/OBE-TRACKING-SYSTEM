@@ -22,9 +22,22 @@ from .report_generator import StressExcelReportGenerator
 
 
 class StressMasterListCreateView(generics.ListCreateAPIView):
-    queryset = StressMaster.objects.all()
     serializer_class = StressMasterSerializer
     permission_classes = [IsAuthenticated, IsHOD]
+
+    def get_queryset(self):
+        queryset = StressMaster.objects.all().order_by('-survey_id')
+        year_param = self.request.query_params.get('year')
+        if year_param:
+            try:
+                # academic year like "2025-26" → filter surveys where year = 2025 or 2026
+                parts = year_param.replace(' ', '').split('-')
+                start_year = int(parts[0])
+                end_year = start_year + 1
+                queryset = queryset.filter(year__in=[start_year, end_year])
+            except (ValueError, IndexError):
+                pass
+        return queryset
 
     def create(self, request, *args, **kwargs):
         """

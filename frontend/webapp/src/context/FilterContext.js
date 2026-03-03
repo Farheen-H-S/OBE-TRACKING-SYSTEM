@@ -84,25 +84,29 @@ export const FilterProvider = ({ children }) => {
         generatedBatches.push(`${i}-${(i + 1).toString().slice(-2)}`);
     }
 
-    // Auto-select Class based on Academic Year and Batch
-    useEffect(() => {
-        if (!selectedYear || !selectedBatch) return;
+    // Auto-select Class based on Academic Year and Batch (runs on change AND initial mount)
+    // Batch year = graduation year. FY = batch-2, SY = batch-1, TY = batch year
+    const computeClassFromYearBatch = (year, batch) => {
+        if (!year || !batch) return null;
         try {
-            const batchStartYear = parseInt(selectedBatch.replace(/\s/g, '').split('-')[0], 10);
-            const currentAyStartYear = parseInt(selectedYear.replace(/\s/g, '').split('-')[0], 10);
-
-            const diff = currentAyStartYear - batchStartYear;
-            if (diff === 0) {
-                setSelectedClass('FY');
-            } else if (diff === 1) {
-                setSelectedClass('SY');
-            } else if (diff >= 2) {
-                setSelectedClass('TY');
-            }
+            const batchStartYear = parseInt(batch.replace(/\s/g, '').split('-')[0], 10);
+            const currentAyStartYear = parseInt(year.replace(/\s/g, '').split('-')[0], 10);
+            const diff = batchStartYear - currentAyStartYear; // e.g. 2025 - 2023 = 2 → FY
+            if (diff === 2) return 'FY';
+            if (diff === 1) return 'SY';
+            if (diff === 0) return 'TY';
         } catch (e) {
             console.error("Error calculating class from year:", e);
         }
-    }, [selectedYear, selectedBatch]);
+        return null;
+    };
+
+    useEffect(() => {
+        const computedClass = computeClassFromYearBatch(selectedYear, selectedBatch);
+        if (computedClass && computedClass !== selectedClass) {
+            setSelectedClass(computedClass);
+        }
+    }, [selectedYear, selectedBatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Generate academic years (fallback if API fails)
     const years = [];
