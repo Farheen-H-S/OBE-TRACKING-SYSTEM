@@ -148,12 +148,20 @@ const OtherIndirectTools = () => {
     // Force TY when Exit Survey / Alumni Feedback is selected
     useEffect(() => {
         if (selectedTool.id === 'program-exit' || selectedTool.id === 'alumni') {
-            if (selectedClass === 'FY' || selectedClass === 'SY') {
-                alert("FY/SY is not applicable for this survey. Automatically switching to TY.");
+            if (selectedClass !== 'TY') {
+                alert("FY/SY is not applicable for this survey. Automatically switching to TY and Academic Year to the batch's final year.");
             }
             setSelectedClass('TY');
+            // Also sync academic year to match the TY year (= batch year itself)
+            if (selectedBatch) {
+                const batchStartYear = parseInt(selectedBatch.replace(/\s/g, '').split('-')[0], 10);
+                const tyYear = `${batchStartYear} - ${(batchStartYear + 1).toString().slice(-2)}`;
+                if (selectedYear !== tyYear) {
+                    setSelectedYear(tyYear);
+                }
+            }
         }
-    }, [selectedClass, selectedTool.id, setSelectedClass]);
+    }, [selectedTool.id]); // Only run when tool changes, not on every state update
 
     const isRP = selectedTool.id === 'resource-person';
 
@@ -166,6 +174,28 @@ const OtherIndirectTools = () => {
 
     // ── Lifecycle ────────────────────────────────────────────────────────
     useEffect(() => { if (selectedProgram && selectedProgram !== 'All') fetchStatements(); }, [selectedProgram]);
+
+    // Persist modifiedQuestions to localStorage whenever they change
+    useEffect(() => {
+        if (Object.keys(modifiedQuestions).length > 0) {
+            localStorage.setItem(`oit_questions_${surveyKey}`, JSON.stringify(modifiedQuestions));
+        }
+    }, [modifiedQuestions, surveyKey]);
+
+    // Restore modifiedQuestions from localStorage when surveyKey changes (tool/program/year change)
+    useEffect(() => {
+        const saved = localStorage.getItem(`oit_questions_${surveyKey}`);
+        if (saved) {
+            try {
+                setModifiedQuestions(JSON.parse(saved));
+            } catch (e) {
+                setModifiedQuestions({});
+            }
+        } else {
+            setModifiedQuestions({});
+        }
+    }, [surveyKey]);
+
     useEffect(() => {
         const saved = localStorage.getItem(surveyKey);
         const parsed = saved ? JSON.parse(saved) : null;
