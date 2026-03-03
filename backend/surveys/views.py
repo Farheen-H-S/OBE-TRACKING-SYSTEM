@@ -31,11 +31,16 @@ class SubmitSurveyResponseView(APIView):
         elif student_id:
             student = Student.objects.filter(enrollment_no=student_id).first()
         
+        if student and not request.data.get('enrollment_no'):
+            enrollment_no = student.enrollment_no
+        else:
+            enrollment_no = request.data.get('enrollment_no')
+
         response = SurveyResponse.objects.create(
             survey_id=survey,
             student_id=student,
-            respondent_name=request.data.get('respondent_name'),
-            enrollment_no=request.data.get('enrollment_no')
+            respondent_name=request.data.get('respondent_name') or (student.name if student else None),
+            enrollment_no=enrollment_no
         )
         
         for ans in answers:
@@ -118,11 +123,11 @@ class SurveyStatsView(APIView):
         students = list(Student.objects.filter(student_id__in=all_student_ids))
         students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
         
-        response_map = {r.enrollment_no: r for r in responses}
+        response_map = {r.student_id_id: r for r in responses if r.student_id_id}
         
         student_data = []
         for student in students:
-            res = response_map.get(student.enrollment_no)
+            res = response_map.get(student.student_id)
             answers_map = {}
             if res:
                 for ans in res.answers.all().select_related('question_id', 'question_id__co_id'):

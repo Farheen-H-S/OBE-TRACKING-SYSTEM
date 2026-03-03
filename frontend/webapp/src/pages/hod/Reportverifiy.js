@@ -135,9 +135,9 @@ const Reportverifiy = () => {
                                 >
                                     <option value="All">All Types</option>
                                     <option value="DAC Report">DAC Reports</option>
-                                    <option value="Direct Attainment">Direct Attainment</option>
-                                    <option value="Indirect Attainment">Indirect Attainment</option>
-                                    <option value="PO/PSO Attainment">PO/PSO Attainment</option>
+                                    <option value="Direct">Direct Attainment</option>
+                                    <option value="Indirect">Indirect Attainment</option>
+                                    <option value="Batch">PO/PSO Attainment</option>
                                 </select>
                             </div>
                             <div className="col-md">
@@ -177,7 +177,7 @@ const Reportverifiy = () => {
                                                 {report.report_name}
                                             </td>
                                             <td className="small">{report.report_type}</td>
-                                            <td className="small">{new Date(report.created_at).toLocaleDateString()}</td>
+                                            <td className="small">{new Date(report.created_at).toLocaleString()}</td>
                                             <td>{report.submitted_by}</td>
                                             <td>
                                                 <div className="d-flex justify-content-center">

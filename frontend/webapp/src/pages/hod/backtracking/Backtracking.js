@@ -112,17 +112,8 @@ const Backtracking = () => {
         ? `/attainment/po/${row.id}/courses/?academic_year=${academic_year}`
         : `/attainment/pso/${row.id}/courses/?academic_year=${academic_year}`;
 
-      let coursesData = [];
-      try {
-        const res = await api.get(endpoint);
-        coursesData = res.data?.courses || res.data || [];
-      } catch {
-        // Mock fallback if endpoint doesn't exist
-        coursesData = [
-          { course_id: 1, course_name: 'Software Engineering', course_code: '22413', level: (Math.random() * 3).toFixed(2) },
-          { course_id: 2, course_name: 'Operating System', course_code: '22415', level: (Math.random() * 3).toFixed(2) },
-        ];
-      }
+      const res = await api.get(endpoint);
+      const coursesData = res.data?.courses || res.data || [];
       setDrillData({ courses: coursesData, row });
     } catch (err) {
       console.error('Course drill-down error:', err);
@@ -140,17 +131,8 @@ const Backtracking = () => {
     try {
       const academic_year = selectedYear.replace(/\s/g, '');
       const endpoint = `/attainment/course/${course.course_id}/cos/?academic_year=${academic_year}`;
-      let cosData = [];
-      try {
-        const res = await api.get(endpoint);
-        cosData = res.data?.cos || res.data || [];
-      } catch {
-        // Mock fallback
-        cosData = [
-          { co_number: 'CO 1', description: 'Study software development life cycle', tools: { fa_th_1: 2.5, sa_th: 2.1 }, overall_attainment: 2.3, contribution_weight: 25 },
-          { co_number: 'CO 2', description: 'Understand requirements engineering', tools: { fa_th_1: 2.8, sa_th: 2.6 }, overall_attainment: 2.7, contribution_weight: 25 },
-        ];
-      }
+      const res = await api.get(endpoint);
+      const cosData = res.data?.cos || res.data || [];
       setDrillData(prev => ({ ...prev, cos: cosData }));
     } catch (err) {
       console.error('CO drill-down error:', err);

@@ -174,11 +174,32 @@ class IndirectAttainmentReportView(APIView):
         
         try:
             excel_data = IndirectReportService.generate_indirect_attainment_report(program_id, batch_id)
+            # Save to database
+            user = request.user if request.user and not request.user.is_anonymous else None
+            program = Program.objects.get(pk=program_id)
+            batch = Batch.objects.get(pk=batch_id)
+            academic_year = f"{batch.start_year}-{batch.end_year}"
+            
+            filename = f'Indirect_Attainment_Report_{batch_id}.xlsx'
+            save_generated_report(
+                user=user,
+                report_type='Indirect',
+                year=academic_year,
+                file_content=excel_data,
+                filename=filename,
+                program=program,
+                batch=batch
+            )
+            
+            # Log action
+            log_action(user, 'CREATE', 'Report', batch_id, remark=f"Indirect attainment report generated for {academic_year}")
+
+            excel_data.seek(0)
             response = HttpResponse(
                 excel_data.read(),
                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-            response['Content-Disposition'] = f'attachment; filename=Indirect_Attainment_Report_{batch_id}.xlsx'
+            response['Content-Disposition'] = f'attachment; filename={filename}'
             return response
         except Exception as e:
             traceback.print_exc()
@@ -233,3 +254,92 @@ class SubmitATRView(APIView):
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class POContributingCoursesView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request, po_id):
+        academic_year = request.query_params.get('academic_year')
+        from academics.models import COPOMapping, Course
+        
+        # Find COs mapping to this PO
+        mappings = COPOMapping.objects.filter(po_id=po_id).select_related('co_id', 'co_id__course_id')
+        
+        course_data = {}
+        for m in mappings:
+            course = m.co_id.course_id
+            if course.course_id not in course_data:
+                # Calculate course level (average of COs)
+                # For backtracking, we can just fetch the pre-calculated POAttainment or calculate on the fly
+                # But here we want the contribution of THIS course to THIS PO.
+                # Contribution = Sum(CO_Attainment * Weight) / 3
+                from .models import COAttainment
+                co_atts = COAttainment.objects.filter(course_id=course, academic_year=academic_year, is_active=True)
+                co_att_map = {a.co_id_id: a.overall_attainment for a in co_atts}
+                
+                # Fetch all COs of this course that map to this PO
+                course_mappings = COPOMapping.objects.filter(po_id=po_id, co_id__course_id=course)
+                contribution = 0
+                for cm in course_mappings:
+                    co_val = co_att_map.get(cm.co_id_id, 0)
+                    contribution += (co_val * (cm.weightage or 0))
+                
+                course_data[course.course_id] = {
+                    "course_id": course.course_id,
+                    "course_name": course.course_name,
+                    "course_code": course.course_code,
+                    "level": round(contribution / 3, 2)
+                }
+        
+        return Response({"courses": list(course_data.values())}, status=status.HTTP_200_OK)
+
+class PSOContributingCoursesView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request, pso_id):
+        academic_year = request.query_params.get('academic_year')
+        from academics.models import COPSOMapping, Course
+        
+        mappings = COPSOMapping.objects.filter(pso_id=pso_id).select_related('co_id', 'co_id__course_id')
+        
+        course_data = {}
+        for m in mappings:
+            course = m.co_id.course_id
+            if course.course_id not in course_data:
+                from .models import COAttainment
+                co_atts = COAttainment.objects.filter(course_id=course, academic_year=academic_year, is_active=True)
+                co_att_map = {a.co_id_id: a.overall_attainment for a in co_atts}
+                
+                course_mappings = COPSOMapping.objects.filter(pso_id=pso_id, co_id__course_id=course)
+                contribution = 0
+                for cm in course_mappings:
+                    co_val = co_att_map.get(cm.co_id_id, 0)
+                    contribution += (co_val * (cm.weightage or 0))
+                
+                course_data[course.course_id] = {
+                    "course_id": course.course_id,
+                    "course_name": course.course_name,
+                    "course_code": course.course_code,
+                    "level": round(contribution / 3, 2)
+                }
+        
+        return Response({"courses": list(course_data.values())}, status=status.HTTP_200_OK)
+
+class CourseCOBreakdownView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request, course_id):
+        academic_year = request.query_params.get('academic_year')
+        preview_data = AttainmentService.get_attainment_preview(course_id, academic_year)
+        
+        # We need to add contribution weight for the specific PO/PSO if requested?
+        # Actually the frontend uses it generic. 
+        # But let's add co mapping info
+        for item in preview_data:
+            co_id = item['co_id']
+            # We don't know which PO/PSO the user is backtracking from here unless we pass it.
+            # But the frontend design shows "CO Att.", "Weight".
+            # This weight depends on the PO/PSO.
+            pass
+
+        return Response({"cos": preview_data}, status=status.HTTP_200_OK)

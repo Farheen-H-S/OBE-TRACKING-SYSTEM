@@ -3,7 +3,9 @@ from .views import (
     CalculateAttainmentView, COAttainmentView, POAttainmentView, 
     PSOAttainmentView, CreateSnapshotView, SnapshotHistoryView,
     BatchEvaluationReportView, IndirectAttainmentReportView, 
-    IndirectAttainmentSummaryView, SubmitATRView
+    IndirectAttainmentSummaryView, SubmitATRView,
+    POContributingCoursesView, PSOContributingCoursesView, 
+    CourseCOBreakdownView
 )
 
 urlpatterns = [
@@ -17,5 +19,8 @@ urlpatterns = [
     path('indirect-report/', IndirectAttainmentReportView.as_view(), name='indirect-attainment-report'),
     path('indirect-summary/', IndirectAttainmentSummaryView.as_view(), name='indirect-attainment-summary'),
     path('atr/submit/', SubmitATRView.as_view(), name='submit-atr'),
+    path('po/<int:po_id>/courses/', POContributingCoursesView.as_view(), name='po-contributing-courses'),
+    path('pso/<int:pso_id>/courses/', PSOContributingCoursesView.as_view(), name='pso-contributing-courses'),
+    path('course/<int:course_id>/cos/', CourseCOBreakdownView.as_view(), name='course-co-breakdown'),
 ]
 
