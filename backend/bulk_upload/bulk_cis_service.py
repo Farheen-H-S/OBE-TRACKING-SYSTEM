@@ -130,8 +130,8 @@ def process_bulk_cis_apply(file, course_id, academic_year, semester, user):
     
     # Mapping sheet names/tools to internal types
     tool_map = {
-        "Class Test 1 (FA-TH)": {"tool_name": "Class Test 1", "tool_type": "FA_TH", "parser": "CT"},
-        "Class Test 2 (FA-TH)": {"tool_name": "Class Test 2", "tool_type": "FA_TH", "parser": "CT"},
+        "Class Test 1 (FA-TH)": {"tool_name": "FA-TH-CT1", "tool_type": "FA_TH", "parser": "CT"},
+        "Class Test 2 (FA-TH)": {"tool_name": "FA-TH-CT2", "tool_type": "FA_TH", "parser": "CT"},
         "FA-PR (K3)": {"tool_name": "FA-PR", "tool_type": "FA_PR", "parser": "PR"},
         "SLA": {"tool_name": "SLA", "tool_type": "SLA", "parser": "SLA"},
         "SA-TH": {"tool_name": "SA-TH", "tool_type": "SA_TH", "parser": "SA"},
@@ -178,6 +178,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
     weights = []
     cos = []
     marks_data = [] # List of (student, marks_json, total_sum)
+    errors = []
     
     if parser == "CT":
         # Row 0: Qs, Row 1: Wts, Row 2: COs
@@ -186,7 +187,12 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
             q = str(df.iloc[0, col]).strip()
             if not q or q == "nan": break
             questions.append(q)
-            weights.append(float(df.iloc[1, col] or 0))
+            raw_wt = df.iloc[1, col]
+            try:
+                wt = float(raw_wt) if pd.notnull(raw_wt) else 0
+            except:
+                wt = 0
+            weights.append(wt)
             cos.append(str(df.iloc[2, col]).strip())
             
         for row in range(3, len(df)):
@@ -202,6 +208,12 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                     try: 
                         m_val = float(m) if pd.notnull(m) else 0
                     except: m_val = 0
+                    
+                    max_w = weights[col_idx]
+                    if max_w > 0 and m_val > max_w:
+                        errors.append(f"Row {row+1}, Q '{q}': {m_val} exceeds max {max_w} — capped")
+                        m_val = max_w  # Cap and warn, don't abort
+                        
                     s_marks[col_idx] = m_val
                     # Logic for CT usually best of 5, but for storage we just need marksData
                 
@@ -228,7 +240,12 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
             q = str(df.iloc[0, col]).strip()
             if not q or q == "nan": break
             questions.append(q)
-            weights.append(float(df.iloc[1, col] or 0))
+            raw_wt = df.iloc[1, col]
+            try:
+                wt = float(raw_wt) if pd.notnull(raw_wt) else 0
+            except:
+                wt = 0
+            weights.append(wt)
             cos.append(str(df.iloc[2, col]).strip())
             
         for row in range(3, len(df)):
@@ -243,10 +260,16 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                     m = df.iloc[row, 2 + col_idx]
                     try: m_val = float(m) if pd.notnull(m) else 0
                     except: m_val = 0
+                    
+                    max_w = weights[col_idx]
+                    if max_w > 0 and m_val > max_w:
+                        errors.append(f"Row {row+1}, Q '{q}': {m_val} exceeds max {max_w} — capped")
+                        m_val = max_w  # Cap instead of abort
+                    
                     s_marks[col_idx] = m_val
                     row_sum += m_val
                 
-                total = row_sum / len(questions) if questions else 0
+                total = row_sum
                 s_marks['total'] = round(total, 2)
                 marks_data.append((student, s_marks, s_marks['total']))
 
@@ -260,17 +283,34 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 student = students_map[norm_roll]
                 try: total = float(df.iloc[row, 1])
                 except: total = 0
+                
+                max_w = float(course.assessment_tools.get(tool_name, {}).get('maxMarks', 100))
+                if total > max_w:
+                    errors.append(f"Row {row+1}: Total marks ({total}) exceed max configuration ({max_w})")
+                    
                 marks_data.append((student, {'0': total, 'total': total}, total))
         
         questions = ["Total"]
         weights = [course.assessment_tools.get(tool_name, {}).get('maxMarks', 100)]
         cos = ["CO1"] # Default for SA if not specified
     
+    # If no student rows found — return descriptive message, no DB change
+    if not marks_data and not questions:
+        return "Skipped (empty sheet — no headers found)"
+    
     if not marks_data:
-        return "No valid students found"
-
+        return f"No matching students found (check roll numbers match the system)"
+    
+    # Build warning prefix if any caps were applied
+    warning_prefix = ""
+    if errors:
+        warning_prefix = "⚠️ Warning (marks capped): " + "; ".join(errors[:3])
+        if len(errors) > 3:
+            warning_prefix += f" ...and {len(errors)-3} more."
+        warning_prefix += "\n"
+    
     # Save Assessment
-    max_m = sum(weights) if parser == "CT" else (weights[0] if parser == "SA" else sum(weights)/len(weights))
+    max_m = sum(weights) if parser in ["CT", "PR", "SLA"] else (weights[0] if parser == "SA" else sum(weights))
     
     assessment, _ = Assessment.objects.update_or_create(
         course_id=course, assessment_name=tool_name, 
@@ -310,4 +350,5 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
     ]
     MarksEntry.objects.bulk_create(entries)
     
-    return f"Success: {len(marks_data)} student(s) updated"
+    success_msg = f"Success: {len(marks_data)} student(s) updated"
+    return warning_prefix + success_msg if warning_prefix else success_msg

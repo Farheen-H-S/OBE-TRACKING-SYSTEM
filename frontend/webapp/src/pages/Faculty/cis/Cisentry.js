@@ -423,6 +423,13 @@ const Cisentry = () => {
   }, [selectedCourse, selectedTool]);
 
   const loadSavedData = async () => {
+    // Reset data state before loading new tool data to prevent cross-tool state leakage
+    setMarksData({});
+    setCustomQuestions(new Array(60).fill(''));
+    setCustomWeights(new Array(60).fill(''));
+    setUserCos(new Array(60).fill(''));
+    setAssessmentId(null);
+
     // Always calculate max marks from course configuration (not from localStorage)
     let configMax = 0;
     let toolKey = selectedTool;
@@ -431,10 +438,10 @@ const Cisentry = () => {
       configMax = parseInt(assessmentTools[toolKey].maxMarks, 10);
     }
     if (selectedTool === 'FA-PR') {
-      setColumnCount(30);
+      setColumnCount(10); // Template generates 10 practicals by default
       setTotalMaxMarks(configMax || 25);
     } else if (selectedTool.startsWith('SLA')) {
-      setColumnCount(4);
+      setColumnCount(4); // Template generates 4 SLA assignments by default
       setTotalMaxMarks(configMax || 20);
     } else if (selectedTool === 'SA-TH' || selectedTool === 'SA-PR') {
       setColumnCount(1);
@@ -579,7 +586,7 @@ const Cisentry = () => {
         };
         total = getBest5Sum(0, 6) + getBest5Sum(7, 13);
       } else if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
-        // Normalization: Average (Sum / total number of columns)
+        // Normalization: Sum
         let sum = 0;
         for (let i = 0; i < columnCount; i++) {
           const mark = studentMarks[i];
@@ -587,7 +594,7 @@ const Cisentry = () => {
             sum += parseFloat(mark);
           }
         }
-        total = columnCount > 0 ? sum / columnCount : 0;
+        total = sum;
         // Round to 2 decimal places
         total = Math.round(total * 100) / 100;
       } else {
@@ -1222,10 +1229,19 @@ const Cisentry = () => {
 
       const resData = response.data;
       let summary = "Bulk Apply completed!\n\n";
+      let hasErrors = false;
       if (resData.report) {
         Object.entries(resData.report).forEach(([tool, info]) => {
+          const isError = typeof info === 'string' && (info.startsWith('Error') || info.startsWith('Validation') || info === 'No valid students found');
+          if (isError) hasErrors = true;
           summary += `${tool}: ${info}\n`;
         });
+      }
+      if (hasErrors) {
+        summary += "\n⚠️ Some sheets had errors. Check the messages above. Make sure:\n";
+        summary += "• Roll numbers in the sheet match those in the system\n";
+        summary += "• Mark values do not exceed the configured maximum weights\n";
+        summary += "• You have selected the correct Course and Academic Year";
       }
 
       alert(summary);
