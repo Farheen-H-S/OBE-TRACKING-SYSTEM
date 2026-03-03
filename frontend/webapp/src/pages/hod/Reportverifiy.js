@@ -193,7 +193,7 @@ const Reportverifiy = () => {
                                                 </div>
                                             </td>
                                             <td className="text-center">
-                                                <span className={`status-badge status-${report.display_status.toLowerCase()}`}>
+                                                <span className={`status-badge status-${(report.display_status || '').toLowerCase()}`}>
                                                     {report.display_status}
                                                 </span>
                                             </td>

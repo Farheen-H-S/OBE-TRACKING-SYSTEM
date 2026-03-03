@@ -1459,8 +1459,8 @@ const Cisentry = () => {
                       <div className="search-results-overlay shadow border rounded mt-1 bg-white" style={{ position: 'absolute', zIndex: 1000, width: '100%', maxHeight: '300px', overflowY: 'auto' }}>
                         {allCourses
                           .filter(c =>
-                            (c.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              c.course_code.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                            ((c.course_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              (c.course_code || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
                             !['TEST101', 'CS101'].includes(c.course_code)
                           )
                           .slice(0, 10)

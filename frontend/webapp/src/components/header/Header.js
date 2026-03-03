@@ -21,7 +21,7 @@ const Header = ({ onToggleSidebar }) => {
   const {
     selectedDept, setSelectedDept,
     selectedScheme, setSelectedScheme,
-    selectedCourse,
+    selectedCourse, selectedYear,
     departments, schemes, loadingFilters
   } = useFilters();
 
@@ -107,7 +107,7 @@ const Header = ({ onToggleSidebar }) => {
           alert("Please select a course first in the Marks Entry page.");
           return;
         }
-        url = `/bulk_upload/cis/template-multi/?course_id=${selectedCourse}`;
+        url = `/bulk_upload/cis/template-multi/?course_id=${selectedCourse}&academic_year=${selectedYear}`;
         filename = 'Marks_Bulk_Upload_Template.xlsx';
       }
 

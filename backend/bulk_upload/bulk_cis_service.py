@@ -20,17 +20,21 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower()
             for text in re.split('([0-9]+)', str(s))]
 
-def generate_cis_multi_sheet_template(course_id):
+def generate_cis_multi_sheet_template(course_id, academic_year=None):
     course = get_object_or_404(Course, pk=course_id)
     
-    # Refined filtering to match Student Management UI
-    students = Student.objects.filter(
-        program_id=course.program_id,
-        semester=course.semester,
-        class_year=course.class_year,
-        batches__in=course.batches.all(),
-        is_active=True
-    ).distinct()
+    filters = {
+        'program_id': course.program_id,
+        'semester': course.semester,
+        'class_year': course.class_year,
+        'batch_id__in': course.batches.all(),
+        'is_active': True
+    }
+    
+    if academic_year:
+        filters['academic_year'] = academic_year
+
+    students = Student.objects.filter(**filters).distinct()
     
     # Apply natural sort to students by roll_no
     students_list = sorted(list(students), key=lambda x: natural_sort_key(x.roll_no))
@@ -110,7 +114,7 @@ def generate_cis_multi_sheet_template(course_id):
             apply_header_style(ws['A1'])
             apply_header_style(ws['B1'])
             
-            for r_idx, student in enumerate(students, start=2):
+            for r_idx, student in enumerate(students_list, start=2):
                 ws.cell(row=r_idx, column=1, value=student.roll_no)
                 
     wb.save(output)
@@ -133,10 +137,18 @@ def process_bulk_cis_apply(file, course_id, academic_year, semester, user):
         "SA-PR": {"tool_name": "SA-PR", "tool_type": "SA_PR", "parser": "SA"},
     }
     
-    students_in_context = {s.roll_no: s for s in Student.objects.filter(
-        program_id=course.program_id,
-        is_active=True
-    )}
+    filters = {
+        'program_id': course.program_id,
+        'semester': course.semester,
+        'class_year': course.class_year,
+        'batch_id__in': course.batches.all(),
+        'is_active': True
+    }
+    
+    if academic_year:
+        filters['academic_year'] = academic_year
+
+    students_in_context = {s.roll_no: s for s in Student.objects.filter(**filters)}
     
     for sheet_name, df in all_sheets.items():
         if sheet_name not in tool_map:

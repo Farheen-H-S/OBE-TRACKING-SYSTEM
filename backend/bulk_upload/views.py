@@ -687,11 +687,12 @@ class DownloadCISMultiSheetTemplateView(APIView):
     """
     def get(self, request):
         course_id = request.query_params.get('course_id')
+        academic_year = request.query_params.get('academic_year')
         if not course_id:
             return Response({"error": "Course ID is required"}, status=400)
             
         try:
-            excel_data = generate_cis_multi_sheet_template(course_id)
+            excel_data = generate_cis_multi_sheet_template(course_id, academic_year)
             course = get_object_or_404(Course, pk=course_id)
             
             response = HttpResponse(excel_data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
