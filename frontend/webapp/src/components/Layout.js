@@ -56,13 +56,24 @@ const Layout = ({ children, role }) => {
             return ['dept', 'scheme', 'batch', 'year', 'class', 'semester'];
         }
 
+        // Stress Survey Group
+        const stressPages = ['/stress-create', '/stress-report', '/stress-survey-report'];
+        if (stressPages.includes(path)) {
+            return ['dept', 'scheme', 'year'];
+        }
+
+        // Backtracking Group (No Division)
+        const backtrackingPages = ['/attainment-backtracking'];
+        if (backtrackingPages.includes(path)) {
+            return ['dept', 'scheme', 'batch', 'year', 'class', 'semester'];
+        }
+
         // Full Context Group (Default for other faculty/hod pages)
         const fullContextPages = [
             '/student-management', '/marks-entry', '/course-exit-survey',
             '/other-indirect-tools', '/direct-attainment', '/indirect-attainment',
-            '/po-pso-attainment', '/report-verification', '/attainment-backtracking',
-            '/stress-create', '/stress-report', '/view-reports', '/stress-survey-report',
-            '/view-cis-entries'
+            '/po-pso-attainment', '/report-verification',
+            '/view-reports', '/view-cis-entries'
         ];
 
         if (fullContextPages.includes(path)) {

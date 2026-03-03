@@ -147,30 +147,30 @@ class SurveyStatsView(APIView):
             })
 
         # 4. Fetch Question Statements
-        from academics.models import CO, PO, PSO
-        from academics.serializers import COSerializer, POSerializer, PSOSerializer
+        # Instead of just default statements, fetch the actual SurveyQuestions which might have been customized
+        questions = SurveyQuestion.objects.filter(survey_id=survey_id).select_related('co_id', 'po_id', 'pso_id')
         
         statements = []
-        if survey.course_id:
-            cos = CO.objects.filter(course_id=survey.course_id)
-            s_data = COSerializer(cos, many=True).data
-            for s in s_data:
-                s['id'] = s['co_id']
-                s['number'] = s['co_number']
-                statements.append(s)
-        elif program:
-            pos = PO.objects.filter(program_id=program)
-            psos = PSO.objects.filter(program_id=program)
-            po_data = POSerializer(pos, many=True).data
-            pso_data = PSOSerializer(psos, many=True).data
-            for p in po_data:
-                p['id'] = p['po_number']
-                p['number'] = p['po_number']
-                statements.append(p)
-            for p in pso_data:
-                p['id'] = p['pso_number']
-                p['number'] = p['pso_number']
-                statements.append(p)
+        for q in questions:
+            stmt = {
+                'question_id': q.question_id,
+                'question_text': q.question_text
+            }
+            if q.co_id:
+                stmt['id'] = q.co_id.co_id
+                stmt['number'] = q.co_id.co_number
+                stmt['type'] = 'CO'
+            elif q.po_id:
+                stmt['id'] = q.po_id.po_number
+                stmt['number'] = q.po_id.po_number
+                stmt['type'] = 'PO'
+            elif q.pso_id:
+                stmt['id'] = q.pso_id.pso_number
+                stmt['number'] = q.pso_id.pso_number
+                stmt['type'] = 'PSO'
+            else:
+                continue # Skip if no relation
+            statements.append(stmt)
 
         return Response({
             'survey': SurveyMasterSerializer(survey).data,

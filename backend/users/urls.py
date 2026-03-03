@@ -6,6 +6,7 @@ from .views import (
     ForgotPasswordAPIView, ResetPasswordAPIView
 )
 from .dashboard_views import AdminDashboardAPIView
+from .hod_dashboard_views import HODDashboardAPIView
 
 urlpatterns = [
     path('auth/forgot-password/', ForgotPasswordAPIView.as_view(), name='forgot-password'),
@@ -15,6 +16,7 @@ urlpatterns = [
     path('profile/', UserProfileAPIView.as_view(), name='user-profile'),
     path('', UserListCreateAPIView.as_view(), name='user-list-create'),
     path('dashboard/', AdminDashboardAPIView.as_view(), name='admin-dashboard'),
+    path('hod-dashboard/', HODDashboardAPIView.as_view(), name='hod-dashboard'),
     path('<int:pk>/', UserDetailAPIView.as_view(), name='user-detail'),
     path('roles/', RoleListAPIView.as_view(), name='role-list'),
     path('students/', StudentListCreateAPIView.as_view(), name='student-list-create'),

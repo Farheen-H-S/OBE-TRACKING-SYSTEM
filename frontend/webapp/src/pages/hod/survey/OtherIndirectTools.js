@@ -145,6 +145,13 @@ const OtherIndirectTools = () => {
         }
     }, [selectedClass, availableSemesters, selectedSem, setSelectedSem]);
 
+    // Force TY when Exit Survey / Alumni Feedback is selected
+    useEffect(() => {
+        if (selectedTool.id === 'program-exit' || selectedTool.id === 'alumni') {
+            setSelectedClass('TY');
+        }
+    }, [selectedTool.id, setSelectedClass]);
+
     const isRP = selectedTool.id === 'resource-person';
 
     // localStorage key — unique per tool/program/year/class/sem
@@ -415,6 +422,17 @@ const OtherIndirectTools = () => {
                 }));
                 setResponses(adapted);
                 setFetchedStatements(statements || []);
+
+                // Pre-fill modified questions from backend if they exist for this survey
+                const newModQ = {};
+                if (statements) {
+                    statements.forEach(stmt => {
+                        const qtext = stmt.question_text || getSurveyInquiry({ number: stmt.number, description: stmt.description }, programName);
+                        // Store it using the existing PO / PSO keys
+                        newModQ[`${stmt.type}_${stmt.id}`] = qtext;
+                    });
+                    setModifiedQuestions(newModQ);
+                }
             } catch (err) {
                 console.error('Failed to load responses from backend:', err);
                 setResponses([]);

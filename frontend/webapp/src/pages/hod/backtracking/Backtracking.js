@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../utils/axios';
+import { useFilters } from '../../../context/FilterContext';
 import './Backtracking.css';
 import { Container, Table, Row, Col, Form } from 'react-bootstrap';
 import { FaChevronDown, FaChevronRight, FaArrowRight } from 'react-icons/fa';
@@ -20,18 +21,7 @@ const TOOL_NAMES = {
 };
 
 const Backtracking = () => {
-  const [departments, setDepartments] = useState([]);
-
-  const years = [];
-  for (let i = 2019; i <= 2030; i++) {
-    years.push(`${i} - ${(i + 1).toString().slice(-2)}`);
-  }
-
-  const [selectedDept, setSelectedDept] = useState('');
-  const [selectedYear, setSelectedYear] = useState('2025 - 26');
-  const [selectedBatch, setSelectedBatch] = useState('2025 - 26');
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSem, setSelectedSem] = useState('');
+  const { selectedDept, selectedYear, selectedBatch, selectedClass, selectedSemester: selectedSem } = useFilters();
 
   const [tableData, setTableData] = useState([]);
   const [summary, setSummary] = useState({ achieved: 0, target: 0, gap: 0 });
@@ -44,34 +34,7 @@ const Backtracking = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [drillLoading, setDrillLoading] = useState(false);
 
-  useEffect(() => { fetchInitialFilters(); }, []);
   useEffect(() => { if (selectedDept) fetchData(); }, [selectedDept, selectedBatch, selectedYear, selectedClass, selectedSem]);
-
-  /* ── Initial filter load ── */
-  const fetchInitialFilters = async () => {
-    try {
-      const res = await api.get('/academics/programs/');
-      setDepartments(res.data);
-      const user = JSON.parse(localStorage.getItem('user'));
-      const userDeptVal = user?.department || user?.department_id;
-
-      const setupKey = 'academicSetup';
-      const setup = JSON.parse(localStorage.getItem(setupKey) || '{}');
-      if (setup.academic_year) {
-        const ay = setup.academic_year.replace(/(\d{4})(\d{2})/, "$1 - $2");
-        setSelectedYear(ay);
-      }
-
-      let foundId = '';
-      if (userDeptVal) {
-        const dept = res.data.find(d =>
-          String(d.program_id) === String(userDeptVal) || d.program_name === userDeptVal);
-        if (dept) foundId = dept.program_id;
-      }
-      if (foundId) setSelectedDept(foundId);
-      else if (res.data.length) setSelectedDept(res.data[0].program_id);
-    } catch (err) { console.error(err); }
-  };
 
   /* ── Main summary table data ── */
   const fetchData = async () => {
@@ -218,53 +181,6 @@ const Backtracking = () => {
             Drill-down from PO / PSO → contributing COs → tool scores to trace how attainment was computed.
           </p>
 
-          {/* ── Filters ── */}
-          <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
-            <div className="row g-3">
-              <div className="col-md">
-                <label className="filter-label">BATCH</label>
-                <Form.Select
-                  value={selectedBatch}
-                  onChange={e => setSelectedBatch(e.target.value)}
-                  className="filter-select"
-                >
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </Form.Select>
-              </div>
-              <div className="col-md">
-                <label className="filter-label">ACADEMIC YEAR</label>
-                <Form.Select
-                  value={selectedYear}
-                  onChange={e => setSelectedYear(e.target.value)}
-                  className="filter-select"
-                >
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </Form.Select>
-              </div>
-              <div className="col-md" style={{ maxWidth: '100px' }}>
-                <label className="filter-label">CLASS</label>
-                <Form.Select
-                  value={selectedClass}
-                  onChange={e => setSelectedClass(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="">All</option>
-                  {['FY', 'SY', 'TY'].map(c => <option key={c} value={c}>{c}</option>)}
-                </Form.Select>
-              </div>
-              <div className="col-md" style={{ maxWidth: '100px' }}>
-                <label className="filter-label">SEM</label>
-                <Form.Select
-                  value={selectedSem}
-                  onChange={e => setSelectedSem(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="">All</option>
-                  {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}</option>)}
-                </Form.Select>
-              </div>
-            </div>
-          </div>
 
           {/* ── Summary cards ── */}
           <div className="mb-4">
