@@ -277,10 +277,13 @@ class CourseListCreateAPIView(APIView):
                 if batch_years:
                     batch_objs = []
                     for by in batch_years:
-                        year_val = by.split('-')[0]
-                        batch = Batch.objects.filter(batch_year=year_val).first()
-                        if batch:
-                            batch_objs.append(batch)
+                        try:
+                            year_val = int(str(by).split('-')[0].strip())
+                            batch = Batch.objects.filter(batch_year=year_val).first()
+                            if batch:
+                                batch_objs.append(batch)
+                        except ValueError:
+                            continue
                     course.batches.set(batch_objs)
 
                 # Handle Faculty Assignment
@@ -346,10 +349,13 @@ class CourseDetailAPIView(APIView):
             if batch_years:
                 batch_objs = []
                 for by in batch_years:
-                    year_val = by.split('-')[0]
-                    batch = Batch.objects.filter(batch_year=year_val).first()
-                    if batch:
-                        batch_objs.append(batch)
+                    try:
+                        year_val = int(str(by).split('-')[0].strip())
+                        batch = Batch.objects.filter(batch_year=year_val).first()
+                        if batch:
+                            batch_objs.append(batch)
+                    except ValueError:
+                        continue
                 course.batches.set(batch_objs)
 
             # Handle Faculty Assignment

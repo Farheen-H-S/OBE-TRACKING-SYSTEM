@@ -1,0 +1,103 @@
+.scrollable-content {
+    background-color: #f0f4f8;
+}
+
+.main-paper-container {
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    /* Soft shadow as requested */
+    min-height: auto;
+    width: 100%;
+}
+
+.chart-heading {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4a4a4a;
+    font-family: 'Inter', sans-serif;
+}
+
+.chart-heading span {
+    font-weight: 700;
+    color: #5d6d7e;
+}
+
+.chart-wrapper {
+    background-color: #fff;
+    border: 1px solid #eef2f7 !important;
+}
+
+.border-end {
+    border-right: 1px solid #f0f2f5 !important;
+}
+
+/* --- New Styles --- */
+
+.custom-comp-table {
+    font-size: 0.85rem;
+    border: 1px solid #ced4da;
+}
+
+.custom-comp-table thead th {
+    background-color: #3b82f6;
+    /* Matching the blue in the image */
+    color: white;
+    font-weight: 500;
+    padding: 6px;
+    border: 1px solid #2563eb;
+}
+
+.custom-comp-table td {
+    padding: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.diff-val.positive {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.diff-val.negative {
+    background-color: #1e3a8a;
+    color: white;
+}
+
+.diff-val.neutral {
+    background-color: #fff;
+}
+
+/* Attainment Progress Bar */
+.attainment-progress-bar {
+    height: 35px;
+    background-color: #e5edf5;
+    border-radius: 10px t;
+}
+
+.attainment-progress-bar .progress-bar {
+    background-color: #1e3a8a;
+    /* Dark blue from image */
+    border-radius: 10px !;
+}
+
+.attainment-text {
+    font-size: 1rem;
+    color: #1e3a8a;
+}
+
+/* Histogram Styling */
+.histogram-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+@media (max-width: 991px) {
+    .border-end {
+        border-right: none !important;
+        border-bottom: 1px solid #f0f2f5 !important;
+        padding-bottom: 2rem;
+        margin-bottom: 2rem;
+    }
+}
