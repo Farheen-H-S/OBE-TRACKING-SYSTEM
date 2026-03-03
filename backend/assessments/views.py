@@ -115,6 +115,17 @@ class SaveAssessmentMarksView(APIView):
         course = get_object_or_404(Course, pk=course_id)
         user = request.user if request.user.is_authenticated else User.objects.first()
 
+        # RBAC: Faculty only enter marks for assigned courses
+        if user.role_id.role_name == "Faculty":
+            from users.models import FacultyCourseAssignment
+            is_assigned = FacultyCourseAssignment.objects.filter(
+                faculty_id=user, 
+                course_id=course, 
+                is_active=True
+            ).exists()
+            if not is_assigned:
+                return Response({"error": "You are not assigned to this course and cannot enter marks."}, status=status.HTTP_403_FORBIDDEN)
+
         with transaction.atomic():
             # 1. Upsert Assessment
             assessment, created = Assessment.objects.update_or_create(

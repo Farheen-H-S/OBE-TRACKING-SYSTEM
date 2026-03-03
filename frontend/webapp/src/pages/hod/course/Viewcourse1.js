@@ -31,7 +31,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
 
     const user = getLoggedInUser();
     const userRole = (user?.role || user?.role_name || "").toLowerCase();
-    const isAuthorizedToEdit = ['hod', 'coordinator'].includes(userRole);
+    const isAuthorizedToEdit = ['admin', 'hod', 'coordinator'].includes(userRole);
 
     useEffect(() => {
         fetchAcademicSetup();
@@ -167,7 +167,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            {!isMyCourses && (
+                            {!isMyCourses && isAuthorizedToEdit && (
                                 <button
                                     className="add-course-btn-v1"
                                     onClick={() => navigate('/add-course', {

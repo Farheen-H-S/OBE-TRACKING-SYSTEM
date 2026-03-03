@@ -4,8 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from users.permissions import IsAdmin
-from audit.utils import log_action
+from users.permissions import IsAdmin, IsHOD, IsFaculty, IsCoordinator, IsAuditor
 from audit.utils import log_action
 
 from .models import (
@@ -230,13 +229,21 @@ class ProgramDetailAPIView(APIView):
 class CourseListCreateAPIView(APIView):
 
     def get(self, request):
+        user = request.user
         program_id = request.query_params.get('program_id')
         semester = request.query_params.get('semester')
         class_year = request.query_params.get('class_year')
         scheme_id = request.query_params.get('scheme_id')
         intro_year = request.query_params.get('intro_year')
         
-        courses = Course.objects.filter(is_active=True).distinct()
+        # RBAC: Faculty only see assigned courses
+        if user.is_authenticated and user.role_id.role_name == "Faculty":
+            from users.models import FacultyCourseAssignment
+            assignments = FacultyCourseAssignment.objects.filter(faculty_id=user, is_active=True)
+            course_ids = assignments.values_list('course_id', flat=True)
+            courses = Course.objects.filter(course_id__in=course_ids, is_active=True).distinct()
+        else:
+            courses = Course.objects.filter(is_active=True).distinct()
 
         if program_id:
             courses = courses.filter(program_id=program_id)
@@ -253,6 +260,9 @@ class CourseListCreateAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
+            return Response({"error": "Only Admins, HODs, and Coordinators can create courses."}, status=status.HTTP_403_FORBIDDEN)
+        
         data = request.data.copy()
 
         if 'name' in data:
@@ -317,7 +327,7 @@ class CourseListCreateAPIView(APIView):
 
 
 class CourseDetailAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         print(f"DEBUG: CourseDetailAPIView GET hit for pk={pk}")
@@ -331,6 +341,9 @@ class CourseDetailAPIView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk):
+        if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
+            return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+        
         course = get_object_or_404(Course, pk=pk)
         data = request.data.copy()
 
@@ -731,6 +744,9 @@ class MappingListCreateAPIView(APIView):
         return Response(combined_data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator", "Faculty"]:
+            return Response({"error": "Auditors cannot edit mappings."}, status=status.HTTP_403_FORBIDDEN)
+            
         course_id = request.data.get('course_id')
         matrix = request.data.get('mapping_matrix', [])
 

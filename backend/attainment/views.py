@@ -32,6 +32,15 @@ class CalculateAttainmentView(APIView):
         if not course_id:
             return Response({"error": "course_id is required"}, status=status.HTTP_400_BAD_REQUEST)
         
+        # RBAC: Faculty or HOD/Coordinator/Admin
+        user = request.user
+        if user.is_authenticated and user.role_id.role_name == "Faculty":
+            from users.models import FacultyCourseAssignment
+            if not FacultyCourseAssignment.objects.filter(faculty_id=user, course_id=course_id, is_active=True).exists():
+                return Response({"error": "You can only calculate attainment for your assigned courses."}, status=status.HTTP_403_FORBIDDEN)
+        elif user.is_authenticated and user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
+            return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+        
         try:
             results = AttainmentService.calculate_attainment(course_id, academic_year)
             if results:
@@ -231,6 +240,23 @@ class SubmitATRView(APIView):
         
         if not all([co_id, academic_year, action_proposed]):
             return Response({"error": "co_id, academic_year and action_proposed are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # RBAC: Only assigned Faculty can submit ATR
+        user = request.user
+        if user.is_authenticated and user.role_id.role_name == "Faculty":
+            from users.models import FacultyCourseAssignment
+            from .models import COAttainment
+            att_check = COAttainment.objects.filter(co_id=co_id, academic_year=academic_year).first()
+            if att_check:
+                is_assigned = FacultyCourseAssignment.objects.filter(
+                    faculty_id=user, 
+                    course_id=att_check.course_id, 
+                    is_active=True
+                ).exists()
+                if not is_assigned:
+                    return Response({"error": "You are not assigned to this course and cannot submit ATR."}, status=status.HTTP_403_FORBIDDEN)
+        elif user.is_authenticated and user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
+            return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
             
         try:
             # co_id might be a CO object ID or a number. If it's a number, we need to find the CO.

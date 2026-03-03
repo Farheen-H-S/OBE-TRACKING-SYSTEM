@@ -6,8 +6,14 @@ from .serializers import ReportSerializer, DACReportSerializer
 from audit.utils import log_action
 
 class ReportListCreateView(generics.ListCreateAPIView):
-    queryset = Report.objects.all()
     serializer_class = ReportSerializer
+    
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Report.objects.all()
+        if user.is_authenticated and user.role_id.role_name == "Auditor":
+            queryset = queryset.filter(status='Approved')
+        return queryset
 
 class ReportDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Report.objects.all()
@@ -89,6 +95,9 @@ class DACReportListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def create(self, request, *args, **kwargs):
+        if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
+            return Response({"error": "Only HODs and Coordinators can upload DAC reports."}, status=status.HTTP_403_FORBIDDEN)
+            
         # Intercept string batch_id (e.g. "2025 - 26") and map to pk before validation
         data = request.data.copy()
         batch_val = data.get('batch_id')

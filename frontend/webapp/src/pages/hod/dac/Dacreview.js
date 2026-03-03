@@ -134,7 +134,9 @@ const Dacreview = () => {
 
     // Checking role directly against 'hod' and 'coordinator'. Also allowing it unconditionally if user object is somehow malformed.
     // The previous check was `user?.role?.toLowerCase() === 'hod'`. If that's failing, we might not have `role` in the `user` object.
-    const canUpload = !user || !user.role || user.role.toLowerCase() === 'hod' || user.role.toLowerCase() === 'coordinator' || user.role.toLowerCase() === 'admin';
+    // Updated role check for DAC upload/delete
+    const role = (user?.role || user?.role_name || "").toLowerCase();
+    const canUpload = ['hod', 'coordinator', 'admin'].includes(role);
 
     const isUploadDisabled = loading ||
         !selectedDept || selectedDept === 'All' ||

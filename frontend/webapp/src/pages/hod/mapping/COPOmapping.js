@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../../utils/axios';
 import './COPOmapping.css';
 import { useFilters } from '../../../context/FilterContext';
+import { getLoggedInUser } from '../../../utils/auth';
 
 const COPOmapping = () => {
     const {
@@ -29,6 +30,9 @@ const COPOmapping = () => {
     const [showStatements, setShowStatements] = useState(false);
     const [cos, setCos] = useState([]);
     const navigate = useNavigate();
+    const user = getLoggedInUser();
+    const role = (user?.role || user?.role_name || "").toUpperCase();
+    const canEditMapping = ['ADMIN', 'HOD', 'COORDINATOR', 'FACULTY'].includes(role);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -382,7 +386,7 @@ const COPOmapping = () => {
                                                                 <input
                                                                     type="text"
                                                                     value={row[`pso${p.pso_id}`]}
-                                                                    readOnly={selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing}
+                                                                    readOnly={!canEditMapping || (selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing)}
                                                                     onChange={(e) => handleInputChange(index, `pso${p.pso_id}`, e.target.value)}
                                                                     onKeyDown={(e) => handleKeyDown(e, index, colIdx)}
                                                                     data-row={index}
