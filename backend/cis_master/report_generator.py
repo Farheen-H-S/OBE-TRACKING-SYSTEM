@@ -287,27 +287,47 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
         ws.cell(row=row, column=2).alignment = Alignment(horizontal="center")
         
         # Internal
-        ct1 = tools.get('FA_TH_1', "-")
-        ct2 = tools.get('FA_TH_2', "-")
-        sla = tools.get('SLA', "-")
-        fa_pr = tools.get('FA_PR', "-")
-        sa_pr_int = tools.get('SA_PR', "-")
+        ct1_obj = tools.get('FA_TH_1', "-")
+        ct1 = ct1_obj.get('level', "-") if isinstance(ct1_obj, dict) else ct1_obj
+        
+        ct2_obj = tools.get('FA_TH_2', "-")
+        ct2 = ct2_obj.get('level', "-") if isinstance(ct2_obj, dict) else ct2_obj
+        
+        sla_obj = tools.get('SLA', "-")
+        sla = sla_obj.get('level', "-") if isinstance(sla_obj, dict) else sla_obj
+        
+        fa_pr_obj = tools.get('FA_PR', "-")
+        fa_pr = fa_pr_obj.get('level', "-") if isinstance(fa_pr_obj, dict) else fa_pr_obj
+        
+        sa_pr_int_obj = tools.get('SA_PR', "-")
+        sa_pr_int = sa_pr_int_obj.get('level', "-") if isinstance(sa_pr_int_obj, dict) else sa_pr_int_obj
         
         ws.cell(row=row, column=3, value=ct1).border = get_border()
+        ws.cell(row=row, column=3).alignment = Alignment(horizontal="center")
         ws.cell(row=row, column=4, value=ct2).border = get_border()
+        ws.cell(row=row, column=4).alignment = Alignment(horizontal="center")
         ws.cell(row=row, column=5, value=sla).border = get_border()
+        ws.cell(row=row, column=5).alignment = Alignment(horizontal="center")
         ws.cell(row=row, column=6, value=fa_pr).border = get_border()
+        ws.cell(row=row, column=6).alignment = Alignment(horizontal="center")
         ws.cell(row=row, column=7, value=sa_pr_int).border = get_border()
+        ws.cell(row=row, column=7).alignment = Alignment(horizontal="center")
         
         int_vals = [v for v in [ct1, ct2, sla, fa_pr, sa_pr_int] if isinstance(v, (int, float))]
         avg_i = sum(int_vals)/len(int_vals) if int_vals else 0
         ws.cell(row=row, column=8, value=round(avg_i, 2) if avg_i else "-").border = get_border()
         
         # External
-        sa_th = tools.get('SA_TH', "-")
-        sa_pr_ext = tools.get('SA_PR', "-")
+        sa_th_obj = tools.get('SA_TH', "-")
+        sa_th = sa_th_obj.get('level', "-") if isinstance(sa_th_obj, dict) else sa_th_obj
+        
+        sa_pr_ext_obj = tools.get('SA_PR', "-")
+        sa_pr_ext = sa_pr_ext_obj.get('level', "-") if isinstance(sa_pr_ext_obj, dict) else sa_pr_ext_obj
+        
         ws.cell(row=row, column=10, value=sa_th).border = get_border()
+        ws.cell(row=row, column=10).alignment = Alignment(horizontal="center")
         ws.cell(row=row, column=11, value=sa_pr_ext).border = get_border()
+        ws.cell(row=row, column=11).alignment = Alignment(horizontal="center")
         
         ext_vals = [v for v in [sa_th, sa_pr_ext] if isinstance(v, (int, float))]
         avg_b = sum(ext_vals)/len(ext_vals) if ext_vals else 0

@@ -27,12 +27,13 @@ const AcademicSetup = lazy(() => import("./pages/admin/AcademicSetup"));
 const Auditlog = lazy(() => import("./pages/admin/Auditlog"));
 
 // Faculty
-const FacultyDashboard = lazy(() => import("./pages/hod/HodDashboardContent"));
+const FacultyDashboard = lazy(() => import("./pages/faculty/Facdash"));
 const Cisentry = lazy(() => import("./pages/faculty/cis/Cisentry"));
 const ViewCisEntries = lazy(() => import("./pages/faculty/cis/ViewCisEntries"));
 
 // HOD / Coordinator
 const HodDashboard = lazy(() => import("./pages/hod/HodDashboardContent"));
+const CoordinatorDashboard = lazy(() => import("./pages/coordinator/Codash"));
 const StudentManagement = lazy(() => import("./pages/hod/student/StudentManagement"));
 const OtherIndirectTools = lazy(() => import("./pages/hod/survey/OtherIndirectTools"));
 const Statement1 = lazy(() => import("./pages/common/statement/Statement1")); // PEO, PO, PSO
@@ -119,7 +120,7 @@ function App() {
 
               {/* HOD / Coordinator Routes - REFACTORED */}
               <Route path="/hod-dashboard" element={<Layout><HodDashboard /></Layout>} />
-              <Route path="/coordinator-dashboard" element={<Layout><HodDashboard /></Layout>} />
+              <Route path="/coordinator-dashboard" element={<Layout><CoordinatorDashboard /></Layout>} />
               <Route path="/peo-po-pso" element={<Layout><Statement1 /></Layout>} />
               <Route path="/statement2" element={<Layout><Statement2 /></Layout>} /> {/* Linked from Statement1 */}
               <Route path="/student-management" element={<Layout><StudentManagement /></Layout>} />
