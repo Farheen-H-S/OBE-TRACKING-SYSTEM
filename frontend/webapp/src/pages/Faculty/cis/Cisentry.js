@@ -22,7 +22,7 @@ const Cisentry = () => {
     selectedBatch,
     setSelectedBatch,
     selectedYear: selectedAcademicYear,
-    setSelectedYear: setSelectedAcademicYear,
+    setSelectedYear,
     selectedClass,
     setSelectedClass,
     selectedSemester,
@@ -85,6 +85,7 @@ const Cisentry = () => {
   const fileInputRef = useRef(null);  // Refs
   const bulkApplyRef = useRef(null);
   const [bulkUploadButtonText, setBulkUploadButtonText] = useState('Bulk Upload Marks');
+  const isSyncingRef = useRef(false);
 
 
   // Editable headers state
@@ -207,6 +208,7 @@ const Cisentry = () => {
   // Handle incoming navigation state from Direct Attainment Preview
   useEffect(() => {
     if (location.state) {
+      isSyncingRef.current = true;
       const {
         course_id, academic_year, batch_id,
         class_year, semester, division, tool,
@@ -227,6 +229,11 @@ const Cisentry = () => {
         if (tool.startsWith('SA-')) setAssessmentType('External');
         else setAssessmentType('Internal');
       }
+
+      // Release sync lock after context updates have settled
+      setTimeout(() => {
+        isSyncingRef.current = false;
+      }, 1000);
     }
   }, [location.state]);
 
@@ -389,7 +396,8 @@ const Cisentry = () => {
       setCoursesLoading(false);
 
       // Auto-clear selected course if it's no longer in the filtered list
-      if (selectedCourse) {
+      // BUT skip this if we are currently syncing from navigation
+      if (selectedCourse && !isSyncingRef.current) {
         const isValid = filtered.some(c => String(c.course_id) === String(selectedCourse));
         if (!isValid) {
           setSelectedCourse('');
@@ -543,16 +551,20 @@ const Cisentry = () => {
   };
 
   const handleCourseClick = (courseId) => {
+    isSyncingRef.current = true;
     const course = allCourses.find(c => c.course_id === courseId);
     if (course) {
       if (course.program_id) setSelectedProgram(course.program_id);
       if (course.scheme_id) setSelectedScheme(course.scheme_id);
       if (course.class_year) setSelectedClass(course.class_year);
       if (course.semester) setSelectedSemester(course.semester.toString());
-      // academic year is usually global but we could set it if stored
     }
     setSelectedCourse(courseId);
     setSearchTerm('');
+
+    setTimeout(() => {
+      isSyncingRef.current = false;
+    }, 1000);
   };
 
   const handleMarkChange = (enrollment, qIndex, value) => {
