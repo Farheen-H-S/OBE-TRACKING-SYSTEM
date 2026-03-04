@@ -76,7 +76,7 @@ class SaveAssessmentMarksView(APIView):
             auth_filters['academic_year'] = academic_year
             
         # Get the most recently created/updated assessment matching the criteria
-        assessment = Assessment.objects.filter(**auth_filters).order_by('-id').first()
+        assessment = Assessment.objects.filter(**auth_filters).order_by('-assessment_id').first()
         
         if not assessment:
             return Response([], status=status.HTTP_200_OK)
