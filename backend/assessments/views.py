@@ -62,15 +62,21 @@ class SaveAssessmentMarksView(APIView):
     def get(self, request):
         course_id = request.query_params.get('course_id')
         tool_name = request.query_params.get('tool_name')
+        academic_year = request.query_params.get('academic_year')
         
         if not course_id or not tool_name:
             return Response({"error": "course_id and tool_name are required"}, status=status.HTTP_400_BAD_REQUEST)
             
-        assessment = Assessment.objects.filter(
-            course_id=course_id, 
-            assessment_name=tool_name,
-            is_active=True
-        ).first()
+        auth_filters = {
+            'course_id': course_id,
+            'assessment_name': tool_name,
+            'is_active': True
+        }
+        if academic_year:
+            auth_filters['academic_year'] = academic_year
+            
+        # Get the most recently created/updated assessment matching the criteria
+        assessment = Assessment.objects.filter(**auth_filters).order_by('-id').first()
         
         if not assessment:
             return Response([], status=status.HTTP_200_OK)
@@ -92,7 +98,7 @@ class SaveAssessmentMarksView(APIView):
             "configuration": assessment.configuration,
             "marks_data": MarksEntrySerializer(marks, many=True).data,
             "co_mappings": [
-                {"co_id": m.co_id_id, "weight": m.co_weightage} for m in co_mappings
+                {"co_id": m.co_id.co_id if hasattr(m.co_id, 'co_id') else getattr(m, 'co_id_id', None), "weight": m.co_weightage} for m in co_mappings
             ],
             "evidence": CisEvidenceSerializer(evidence, many=True).data
         }, status=status.HTTP_200_OK)

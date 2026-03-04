@@ -466,7 +466,7 @@ const Cisentry = () => {
     }
 
     try {
-      const params = { course_id: selectedCourse, tool_name: selectedTool };
+      const params = { course_id: selectedCourse, tool_name: selectedTool, academic_year: selectedYear };
       const res = await api.get('/assessments/marks/', { params });
 
       if (res.data && res.data.assessment_id) {

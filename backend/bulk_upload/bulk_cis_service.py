@@ -113,11 +113,23 @@ def generate_cis_multi_sheet_template(course_id, academic_year=None):
                 ws.cell(row=3, column=col_idx, value=f"CO{i}")
 
         elif tool_type == "SA":
-            # Image 4/5: Roll No (A), Total Marks (B)
-            ws['B1'] = "Total Marks"
+            # Roll No (A), Name (B), Total Marks (C)
+            ws['C1'] = "Total Marks"
             apply_header_style(ws['A1'])
             apply_header_style(ws['B1'])
+            apply_header_style(ws['C1'])
+            ws.column_dimensions['C'].width = 15
                 
+        # Add Students starting row 4
+        for s_idx, student in enumerate(students_list, start=4):
+            ws.cell(row=s_idx, column=1, value=student.roll_no)
+            ws.cell(row=s_idx, column=2, value=student.name)
+            # Empty column for Label spacer in CT/PR, or marks start in SA
+            if tool_type == "SA":
+                ws.cell(row=s_idx, column=3, value="") 
+            else:
+                ws.cell(row=s_idx, column=3, value="") 
+            
     wb.save(output)
     output.seek(0)
     return output.read()
@@ -187,12 +199,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
             q = str(df.iloc[0, col]).strip()
             if not q or q == "nan": break
             questions.append(q)
-            raw_wt = df.iloc[1, col]
-            try:
-                wt = float(raw_wt) if pd.notnull(raw_wt) else 0
-            except:
-                wt = 0
-            weights.append(wt)
+            weights.append(float(df.iloc[1, col]) if pd.notnull(df.iloc[1, col]) else 0.0)
             cos.append(str(df.iloc[2, col]).strip())
             
         for row in range(3, len(df)):
@@ -240,12 +247,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
             q = str(df.iloc[0, col]).strip()
             if not q or q == "nan": break
             questions.append(q)
-            raw_wt = df.iloc[1, col]
-            try:
-                wt = float(raw_wt) if pd.notnull(raw_wt) else 0
-            except:
-                wt = 0
-            weights.append(wt)
+            weights.append(float(df.iloc[1, col]) if pd.notnull(df.iloc[1, col]) else 0.0)
             cos.append(str(df.iloc[2, col]).strip())
             
         for row in range(3, len(df)):
@@ -282,16 +284,17 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
             if norm_roll in students_map:
                 student = students_map[norm_roll]
                 try: total = float(df.iloc[row, 1])
-                except: total = 0
+                except: total = 0.0
                 
-                max_w = float(course.assessment_tools.get(tool_name, {}).get('maxMarks', 100))
+                tool_config = course.assessment_tools.get(tool_name, {}) if course.assessment_tools else {}
+                max_w = float(tool_config.get('maxMarks', 100))
                 if total > max_w:
                     errors.append(f"Row {row+1}: Total marks ({total}) exceed max configuration ({max_w})")
                     
                 marks_data.append((student, {'0': total, 'total': total}, total))
         
         questions = ["Total"]
-        weights = [course.assessment_tools.get(tool_name, {}).get('maxMarks', 100)]
+        weights = [float(tool_config.get('maxMarks', 100))]
         cos = ["CO1"] # Default for SA if not specified
     
     # If no student rows found — return descriptive message, no DB change
@@ -310,7 +313,10 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
         warning_prefix += "\n"
     
     # Save Assessment
-    max_m = sum(weights) if parser in ["CT", "PR", "SLA"] else (weights[0] if parser == "SA" else sum(weights))
+    if parser == "SA":
+        max_m = float(weights[0]) if weights else 100.0
+    else:
+        max_m = sum(float(w) for w in weights)
     
     assessment, _ = Assessment.objects.update_or_create(
         course_id=course, assessment_name=tool_name, 
@@ -335,7 +341,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
         if co_n: 
             # Normalize CO name
             co_norm = f"CO{co_n}" if not str(co_n).upper().startswith("CO") else str(co_n).upper()
-            co_sums[co_norm] = co_sums.get(co_norm, 0) + weights[idx]
+            co_sums[co_norm] = co_sums.get(co_norm, 0) + float(weights[idx])
             
     for co_num, weight in co_sums.items():
         co_obj = CO.objects.filter(course_id=course, co_number__iexact=co_num).first()

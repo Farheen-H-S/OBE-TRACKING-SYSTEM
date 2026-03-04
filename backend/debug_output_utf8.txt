@@ -1,26 +1,27 @@
-﻿DEBUGGING SURVEY: 5 - Expert Lecture ù Test
-Course: None
-Questions Count: 10
-  QID: 5, CO: None, PO: 1, Text: Can you apply basic mathematics, science, and engi
-  QID: 6, CO: None, PO: 2, Text: Can you identify and analyze engineering problems 
-  QID: 7, CO: None, PO: 3, Text: Can you design solutions for technical problems an
-  QID: 8, CO: None, PO: 4, Text: Can you use modern engineering tools to perform te
-  QID: 9, CO: None, PO: 5, Text: Can you use technology responsibly considering soc
-  QID: 10, CO: None, PO: 6, Text: Can you manage engineering projects and work effec
-  QID: 11, CO: None, PO: 7, Text: Do you update your knowledge to keep up with new t
-  QID: 12, CO: None, PO: None, Text: Can you use modern computer software and hardware 
-  QID: 13, CO: None, PO: None, Text: Can you maintain computer related software and har
-  QID: 14, CO: None, PO: None, Text: Can you solve real time computational problems usi
-Responses Count: 1
-  RID: 4, Student: 16, Enrollment: 23611780186
-    Answers Count: 10
-      AID: 4, QID: 5, Val: 3
-      AID: 5, QID: 6, Val: 2
-      AID: 6, QID: 7, Val: 1
-      AID: 7, QID: 8, Val: 0
-      AID: 8, QID: 9, Val: 3
-      AID: 9, QID: 10, Val: 2
-      AID: 10, QID: 11, Val: 1
-      AID: 11, QID: 12, Val: 0
-      AID: 12, QID: 13, Val: 3
-      AID: 13, QID: 14, Val: 2
+Configured Tools:
+ - FA-TH: max=30
+ - FA-PR: max=25
+ - SLA: max=25
+ - SA-TH: max=70
+ - SA-PR: max=25
+
+Existing Assessments for Course 3:
+ - PK: 1, Name: 'Class Test 1', Type: 'FA_TH', Max: 42
+ - PK: 5, Name: 'Class Test 1', Type: 'FA_TH', Max: 42
+ - PK: 9, Name: 'Class Test 2', Type: 'FA_TH', Max: 42
+ - PK: 2, Name: 'Class Test 2', Type: 'FA_TH', Max: 42
+ - PK: 6, Name: 'Class Test 2', Type: 'FA_TH', Max: 42
+ - PK: 14, Name: 'FA-PR', Type: 'FA_PR', Max: 250
+ - PK: 17, Name: 'FA-PR', Type: 'FA_PR', Max: 250
+ - PK: 3, Name: 'FA-PR', Type: 'FA_PR', Max: 25
+ - PK: 7, Name: 'FA-PR', Type: 'FA_PR', Max: 25
+ - PK: 13, Name: 'FA-TH-CT1', Type: 'FA_TH', Max: 42
+ - PK: 11, Name: 'FA-TH-CT1', Type: 'FA_TH', Max: 42
+ - PK: 10, Name: 'FA-TH-CT2', Type: 'FA_TH', Max: 42
+ - PK: 19, Name: 'SA-PR', Type: 'SA_PR', Max: 25
+ - PK: 16, Name: 'SA-TH', Type: 'SA_TH', Max: 70
+ - PK: 18, Name: 'SA-TH', Type: 'SA_TH', Max: 70
+ - PK: 15, Name: 'SLA', Type: 'SLA', Max: 80
+ - PK: 12, Name: 'SLA', Type: 'SLA', Max: 80
+ - PK: 4, Name: 'SLA', Type: 'SLA', Max: 20
+ - PK: 8, Name: 'SLA', Type: 'SLA', Max: 25
