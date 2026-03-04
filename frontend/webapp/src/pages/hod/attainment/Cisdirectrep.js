@@ -78,7 +78,18 @@ export default function Cisdirectrep() {
                 class_year: (selectedClass && selectedClass !== 'All') ? selectedClass : undefined
             };
             const res = await api.get('/academics/courses/', { params });
-            setCourses(res.data);
+            const fetchedCourses = res.data;
+            setCourses(fetchedCourses);
+
+            // Fetch status summary for these courses
+            if (fetchedCourses.length > 0) {
+                const academic_year = selectedYear.replace(/\s/g, '');
+                const courseIds = fetchedCourses.map(c => c.course_id);
+                const statusRes = await api.get('/attainment/course-status/', {
+                    params: { course_ids: courseIds, academic_year, batch_id: selectedBatch, program_id: selectedDept }
+                });
+                setCourseStatus(statusRes.data);
+            }
         } catch (err) {
             console.error("Error fetching courses:", err);
         }
@@ -124,7 +135,8 @@ export default function Cisdirectrep() {
 
             const atrPayload = {
                 course_id: previewCourse.course_id,
-                course_atr: finalAtr
+                course_atr: finalAtr,
+                academic_year: academic_year
             };
             await api.post('/cis_master/direct/submit-atr/', atrPayload);
 
@@ -146,6 +158,9 @@ export default function Cisdirectrep() {
             link.click();
             link.remove();
             setShowPreview(false);
+
+            // Re-fetch courses and status after submission to update the dashboard
+            fetchCourses();
         } catch (err) {
             console.error("Error generating report:", err);
             alert("Failed to generate report.");
@@ -176,7 +191,9 @@ export default function Cisdirectrep() {
                 class_year: selectedClass,
                 semester: selectedSem,
                 division: selectedDivision,
-                tool: targetTool
+                tool: targetTool,
+                program_id: selectedDept,
+                scheme_id: selectedScheme // ADDED: Required for Cisentry validation
             }
         });
     };

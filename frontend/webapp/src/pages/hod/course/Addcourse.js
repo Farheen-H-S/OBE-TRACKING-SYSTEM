@@ -517,7 +517,7 @@ const Addcourse = () => {
                                                             type="number"
                                                             className="form-control form-control-sm"
                                                             style={{ maxWidth: '100px' }}
-                                                            value={(formData.assessmentTools[tool]?.selected) ? (formData.assessmentTools[tool]?.maxMarks || '') : ''}
+                                                            value={formData.assessmentTools[tool]?.selected ? (formData.assessmentTools[tool]?.maxMarks ?? '') : ''}
                                                             onChange={(e) => handleToolChange(tool, 'maxMarks', e.target.value)}
                                                             placeholder="Max"
                                                             disabled={isViewMode || !formData.assessmentTools[tool]?.selected}

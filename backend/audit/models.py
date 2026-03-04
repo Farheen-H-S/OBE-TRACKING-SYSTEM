@@ -22,7 +22,9 @@ class AuditLog(models.Model):
     )
     role_id = models.ForeignKey(
         'users.UserRole', 
-        on_delete=models.PROTECT, 
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL, 
         db_column='role_id'
     )
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)

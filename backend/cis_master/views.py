@@ -45,12 +45,28 @@ class SubmitATRView(APIView):
     def post(self, request):
         course_id = request.data.get('course_id')
         course_atr = request.data.get('course_atr')
+        academic_year = request.data.get('academic_year')
         
         if not course_id:
             return Response({"error": "course_id is required"}, status=status.HTTP_400_BAD_REQUEST)
             
         from academics.models import Course
+        from attainment.models import COAttainment
+        from django.db import models
+
         Course.objects.filter(pk=course_id).update(course_atr=course_atr)
+        
+        if academic_year:
+            # Update all COAttainment records for this course and year to 'submitted'
+            # if they were pending or required an ATR.
+            ay_clean = academic_year.replace(' ', '')
+            ay_spaced = ay_clean.replace('-', ' - ')
+            ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+            
+            COAttainment.objects.filter(ay_query, course_id=course_id).update(
+                atr_status='submitted',
+                action_proposed=course_atr
+            )
         
         return Response({"message": "ATR submitted successfully"}, status=status.HTTP_200_OK)
 

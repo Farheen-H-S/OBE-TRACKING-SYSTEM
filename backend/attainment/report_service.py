@@ -11,7 +11,14 @@ class ReportService:
     @staticmethod
     def generate_batch_evaluation_report(program_id, batch_id):
         program = Program.objects.get(pk=program_id)
-        batch = Batch.objects.get(pk=batch_id)
+        if isinstance(batch_id, Batch):
+            batch = batch_id
+        else:
+            # Fallback if ID/string passed
+            from attainment.views import resolve_batch
+            batch = resolve_batch(batch_id)
+            if not batch:
+                raise ValueError(f"Batch {batch_id} not found")
         
         # 1. Fetch all courses for this program and scheme
         courses = Course.objects.filter(

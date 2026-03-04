@@ -23,6 +23,24 @@ from audit.utils import log_action
 from reports.utils import save_generated_report
 from academics.models import Course, Program, Batch
 
+def resolve_batch(batch_id):
+    """
+    Resolves a batch_id (which could be a PK or a string like '2025-26') to a Batch object.
+    """
+    if not batch_id:
+        return None
+    try:
+        # Try as PK (integer)
+        return Batch.objects.get(pk=batch_id)
+    except (ValueError, Batch.DoesNotExist):
+        # Try as batch_year (string representation)
+        # Handle formats like '2025-26' or '2025'
+        try:
+            year_val = int(str(batch_id).split('-')[0].strip())
+            return Batch.objects.filter(batch_year=year_val).first()
+        except (ValueError, IndexError):
+            return None
+
 class CalculateAttainmentView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -140,15 +158,18 @@ class BatchEvaluationReportView(APIView):
             return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            excel_data = ReportService.generate_batch_evaluation_report(program_id, batch_id)
+            batch = resolve_batch(batch_id)
+            if not batch:
+                 return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            excel_data = ReportService.generate_batch_evaluation_report(program_id, batch)
             
             # Save to database
             user = request.user if request.user and not request.user.is_anonymous else None
             program = Program.objects.get(pk=program_id)
-            batch = Batch.objects.get(pk=batch_id)
             academic_year = f"{batch.start_year}-{batch.end_year}"
             
-            filename = f'PO_Attainment_Report_Batch_{batch_id}.xlsx'
+            filename = f'PO_Attainment_Report_Batch_{batch.batch_id}.xlsx'
             save_generated_report(
                 user=user,
                 report_type='Batch',
@@ -160,7 +181,7 @@ class BatchEvaluationReportView(APIView):
             )
             
             # Log action
-            log_action(user, 'CREATE', 'Report', batch_id, remark=f"Batch evaluation report generated for {academic_year}")
+            log_action(user, 'CREATE', 'Report', batch.batch_id, remark=f"Batch evaluation report generated for {academic_year}")
 
             excel_data.seek(0)
             response = HttpResponse(
@@ -183,14 +204,17 @@ class IndirectAttainmentReportView(APIView):
             return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            batch = resolve_batch(batch_id)
+            if not batch:
+                 return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+                 
             excel_data = IndirectReportService.generate_indirect_attainment_report(program_id, batch_id)
             # Save to database
             user = request.user if request.user and not request.user.is_anonymous else None
             program = Program.objects.get(pk=program_id)
-            batch = Batch.objects.get(pk=batch_id)
             academic_year = f"{batch.start_year}-{batch.end_year}"
             
-            filename = f'Indirect_Attainment_Report_{batch_id}.xlsx'
+            filename = f'Indirect_Attainment_Report_{batch.batch_id}.xlsx'
             save_generated_report(
                 user=user,
                 report_type='Indirect',
@@ -202,7 +226,7 @@ class IndirectAttainmentReportView(APIView):
             )
             
             # Log action
-            log_action(user, 'CREATE', 'Report', batch_id, remark=f"Indirect attainment report generated for {academic_year}")
+            log_action(user, 'CREATE', 'Report', batch.batch_id, remark=f"Indirect attainment report generated for {academic_year}")
 
             excel_data.seek(0)
             response = HttpResponse(
@@ -226,6 +250,10 @@ class IndirectAttainmentSummaryView(APIView):
             return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            batch = resolve_batch(batch_id)
+            if not batch:
+                 return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+            
             summary = IndirectReportService.get_indirect_attainment_summary_data(program_id, batch_id)
             return Response(summary, status=status.HTTP_200_OK)
         except Exception as e:
@@ -397,6 +425,13 @@ class CourseStatusView(APIView):
         
         if not academic_year or not batch_id:
             return Response({"error": "academic_year and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # In this view, batch_id is used as part of logical filtering if needed,
+        # but interestingly, the original code didn't use batch_id for the Course.objects.filter.
+        # However, let's resolve it to ensure it's valid if we want to add filtering later.
+        batch = resolve_batch(batch_id)
+        if not batch:
+             return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             
         courses = Course.objects.filter(is_active=True)
         if program_id and program_id != 'All':
@@ -404,19 +439,6 @@ class CourseStatusView(APIView):
             
         data = {}
         for course in courses:
-            attainments = COAttainment.objects.filter(course_id=course.course_id, academic_year=academic_year)
-            
-            if attainments.exists():
-                overall = attainments.aggregate(Avg('overall_attainment'))['overall_attainment__avg'] or 0
-                # Use Course.course_atr for consolidated status
-                status_flag = 'submitted' if course.course_atr and course.course_atr.strip() and course.course_atr != "No ATR Submitted" else 'not_submitted'
-            else:
-                overall = 0
-                status_flag = 'not_submitted'
-                
-            data[course.course_id] = {
-                "overall_level": round(overall, 2),
-                "atr_status": status_flag
-            }
+            data[course.course_id] = AttainmentService.get_course_status_summary(course.course_id, academic_year)
             
         return Response(data, status=status.HTTP_200_OK)

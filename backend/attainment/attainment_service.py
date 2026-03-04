@@ -179,6 +179,34 @@ class AttainmentService:
         return False
 
     @staticmethod
+    def get_course_status_summary(course_id, academic_year):
+        """
+        Returns consolidated status (overall level, atr status) for a course.
+        """
+        ay_clean = academic_year.replace(' ', '') if academic_year else ""
+        ay_spaced = ay_clean.replace('-', ' - ')
+        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+
+        all_atts = COAttainment.objects.filter(ay_query, course_id=course_id)
+        if not all_atts.exists():
+            return {"overall_level": "0.00", "atr_status": "not_required"}
+
+        avg_level = all_atts.aggregate(Avg('overall_attainment'))['overall_attainment__avg'] or 0
+        
+        # Course-wide ATR status: 'submitted' if all required are submitted, 'pending' if any gap exists and matches pending
+        if all_atts.filter(atr_status='pending').exists():
+            status = 'pending'
+        elif all_atts.filter(atr_status='submitted').exists():
+            status = 'submitted'
+        else:
+            status = 'not_required'
+
+        return {
+            "overall_level": f"{avg_level:.2f}",
+            "atr_status": status
+        }
+
+    @staticmethod
     def get_attainment_preview(course_id, academic_year):
         """
         Returns structured data for attainment preview, including tool-wise levels.

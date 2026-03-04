@@ -4,7 +4,7 @@ from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
 from django.db.models import Avg
 from django.db import models
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyAnswer
-from academics.models import Program, PO, PSO
+from academics.models import Program, PO, PSO, Batch
 import re
 
 class IndirectReportService:
@@ -60,8 +60,12 @@ class IndirectReportService:
         """Returns 3 academic years for a graduating batch (FY, SY, TY).
            Returns both spaced and unspaced formats to ensure query matching."""
         try:
-            cleaned_year = str(graduating_year).replace(" ", "")
-            start_yr = int(cleaned_year.split("-")[0])
+            if isinstance(graduating_year, Batch):
+                start_yr = graduating_year.batch_year
+            else:
+                cleaned_year = str(graduating_year).replace(" ", "")
+                start_yr = int(cleaned_year.split("-")[0])
+            
             years = []
             for i in range(2, -1, -1):
                 y = start_yr - i
@@ -70,7 +74,7 @@ class IndirectReportService:
                 years.append(f"{y}-{next_yr_short:02d}")
             return years
         except Exception:
-            return [graduating_year]
+            return [str(graduating_year)]
 
     @staticmethod
     def generate_indirect_attainment_report(program_id, batch_id):
@@ -80,12 +84,20 @@ class IndirectReportService:
         wb.remove(default_sheet)
         
         program = Program.objects.get(program_id=program_id)
+        if isinstance(batch_id, Batch):
+            batch = batch_id
+        else:
+            from attainment.views import resolve_batch
+            batch = resolve_batch(batch_id)
+            if not batch:
+                 raise ValueError(f"Batch {batch_id} not found")
+        
         pos = list(PO.objects.filter(program_id=program_id).order_by('po_number'))
         psos = list(PSO.objects.filter(program_id=program_id).order_by('pso_number'))
         outcomes = pos + psos
         num_cols = len(outcomes)
         
-        batch_years = IndirectReportService._get_batch_years(batch_id)
+        batch_years = IndirectReportService._get_batch_years(batch)
         
         border, center_align, header_font, header_fill, title_font, bold_font = IndirectReportService._get_styles()
 
