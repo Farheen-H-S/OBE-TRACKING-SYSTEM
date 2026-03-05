@@ -1,8 +1,8 @@
 import './Login.css';
-import { logo } from "../../assets/images";
+import { logo } from "../../../assets/images";
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
-import { login } from "../../services/authService";
+import { login } from "../../../services/authService";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 function Login() {

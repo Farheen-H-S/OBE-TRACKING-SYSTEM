@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import api from '../../api';
+import api from '../../../api';
 import './Login.css';
-import { logo } from '../../assets/images';
+import { logo } from '../../../assets/images';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 function ResetPassword() {

@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
-import Header from "../components/header/Header";
+import Header from "../header/Header";
 
 // Sidebars
-import AdminSide from "../components/sidebar/Adminside";
-import HodSide from "../components/sidebar/HodSide";
-import FacultySide from "../components/sidebar/FacultySide";
-import CoordinatorSide from "../components/sidebar/CoordinatorSide";
-import AuditorSide from "../components/sidebar/AuditorSide";
+import AdminSide from "../sidebar/Adminside";
+import HodSide from "../sidebar/HodSide";
+import FacultySide from "../sidebar/FacultySide";
+import CoordinatorSide from "../sidebar/CoordinatorSide";
+import AuditorSide from "../sidebar/AuditorSide";
 
 import "./Layout.css";
 
-import { getLoggedInUser } from "../utils/auth";
-import api from "../utils/axios";
-import GlobalFilterBar from "./filters/GlobalFilterBar";
+import { getLoggedInUser } from "../../utils/auth";
+import api from "../../utils/axios";
+import GlobalFilterBar from "../filters/GlobalFilterBar";
 import { useLocation } from "react-router-dom";
 
 const Layout = ({ children, role }) => {
