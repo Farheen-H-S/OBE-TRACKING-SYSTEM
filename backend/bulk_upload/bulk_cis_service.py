@@ -73,62 +73,73 @@ def generate_cis_multi_sheet_template(course_id, academic_year=None):
         # ... logic ...
         tool_type = config["type"]
         
-        # Generic Headers
+        # Generic Headers - A1:A3 merged for CT/PR/SLA (3 header rows), single for SA
+        if tool_type in ("CT", "PR", "SLA"):
+            ws.merge_cells('A1:A3')
+            ws.merge_cells('B1:B3')
+        
         ws['A1'] = "Roll No"
-        ws.column_dimensions['A'].width = 15
+        apply_header_style(ws['A1'], fill_color="2F5597", font_color="FFFFFF")
+        ws.column_dimensions['A'].width = 12
+
+        ws['B1'] = "Name of Student"
+        apply_header_style(ws['B1'], fill_color="D9E1F2", font_color="1F3864")
+        ws.column_dimensions['B'].width = 28
         
         if tool_type == "CT":
-            ws['B1'] = "Q"
-            ws['B2'] = "Wt"
-            ws['B3'] = "CO"
-            apply_header_style(ws['B1'])
-            apply_header_style(ws['B2'])
-            apply_header_style(ws['B3'])
-            
-            # 1(a)-1(g), 2(a)-2(g)
-            col_idx = 3 # Start from C
+            # Col C: row labels (Q / Wt / CO)
+            ws['C1'] = "Q"
+            ws['C2'] = "Wt"
+            ws['C3'] = "CO"
+            apply_header_style(ws['C1'])
+            apply_header_style(ws['C2'])
+            apply_header_style(ws['C3'])
+            ws.column_dimensions['C'].width = 6
+
+            # 1(a)-1(g), 2(a)-2(g) starting from Col D (col_idx=4, 1-based)
+            col_idx = 4
             for q_num in range(1, 3):
                 for sub in 'abcdefg':
                     cell = ws.cell(row=1, column=col_idx, value=f"{q_num}({sub})")
-                    apply_header_style(cell, fill_color="FFFF00", font_color="000000") # Highlighted yellow
-                    ws.cell(row=2, column=col_idx, value=2 if q_num == 1 else 4) # Sample weight
-                    ws.cell(row=3, column=col_idx, value="CO1") # Sample CO
+                    apply_header_style(cell, fill_color="FFFF00", font_color="000000")
+                    ws.cell(row=2, column=col_idx, value=2 if q_num == 1 else 4)
+                    ws.cell(row=3, column=col_idx, value="CO1")
                     col_idx += 1
                 
-        elif tool_type == "PR" or tool_type == "SLA":
+        elif tool_type in ("PR", "SLA"):
+            # Col C: row labels
             label_row1 = "Practical No" if tool_type == "PR" else "Assignment"
-            ws['B1'] = label_row1
-            ws['B2'] = "Max Marks"
-            ws['B3'] = "Course Outcome" if tool_type == "PR" else "CO"
-            apply_header_style(ws['B1'])
-            apply_header_style(ws['B2'])
-            apply_header_style(ws['B3'])
-            
+            label_row3 = "Course Outcome" if tool_type == "PR" else "CO"
+            ws['C1'] = label_row1
+            ws['C2'] = "Max Marks"
+            ws['C3'] = label_row3
+            apply_header_style(ws['C1'])
+            apply_header_style(ws['C2'])
+            apply_header_style(ws['C3'])
+            ws.column_dimensions['C'].width = 14
+
+            # Questions start from Col D (col_idx=4, 1-based)
             count = 10 if tool_type == "PR" else 4
             for i in range(1, count + 1):
-                col_idx = 2 + i
+                col_idx = 3 + i  # 4, 5, 6 ...
                 cell = ws.cell(row=1, column=col_idx, value=i)
                 apply_header_style(cell, fill_color="FFFF00", font_color="000000")
                 ws.cell(row=2, column=col_idx, value=25 if tool_type == "PR" else 20)
                 ws.cell(row=3, column=col_idx, value=f"CO{i}")
 
         elif tool_type == "SA":
-            # Roll No (A), Name (B), Total Marks (C)
+            # SA has only 1 header row: Roll No | Name of Student | Total Marks
             ws['C1'] = "Total Marks"
             apply_header_style(ws['A1'])
-            apply_header_style(ws['B1'])
             apply_header_style(ws['C1'])
             ws.column_dimensions['C'].width = 15
                 
-        # Add Students starting row 4
-        for s_idx, student in enumerate(students_list, start=4):
+        # Add Students starting row 4 (row 2 for SA since it has only 1 header row)
+        data_start_row = 4 if tool_type != "SA" else 2
+        for s_idx, student in enumerate(students_list, start=data_start_row):
             ws.cell(row=s_idx, column=1, value=student.roll_no)
             ws.cell(row=s_idx, column=2, value=student.name)
-            # Empty column for Label spacer in CT/PR, or marks start in SA
-            if tool_type == "SA":
-                ws.cell(row=s_idx, column=3, value="") 
-            else:
-                ws.cell(row=s_idx, column=3, value="") 
+
             
     wb.save(output)
     output.seek(0)
@@ -191,11 +202,12 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
     cos = []
     marks_data = [] # List of (student, marks_json, total_sum)
     errors = []
+    unmatched_rolls = []  # Track roll numbers not found in roster
     
     if parser == "CT":
         # Row 0: Qs, Row 1: Wts, Row 2: COs
-        # Start from Col 2 (C)
-        for col in range(2, len(df.columns)):
+        # Col C (index 2) = row labels (Q/Wt/CO) — skip it, start reading from Col D (index 3)
+        for col in range(3, len(df.columns)):
             q = str(df.iloc[0, col]).strip()
             if not q or q == "nan": break
             questions.append(q)
@@ -211,7 +223,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 s_marks = {}
                 row_total = 0
                 for col_idx, q in enumerate(questions):
-                    m = df.iloc[row, 2 + col_idx]
+                    m = df.iloc[row, 3 + col_idx]  # col D (index 3) onwards
                     try: 
                         m_val = float(m) if pd.notnull(m) else 0
                     except: m_val = 0
@@ -240,10 +252,12 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                     
                 s_marks['total'] = total
                 marks_data.append((student, s_marks, total))
+            else:
+                unmatched_rolls.append(roll)
                 
     elif parser in ["PR", "SLA"]:
-        # Similar logic for PR/SLA
-        for col in range(2, len(df.columns)):
+        # Col C (index 2) = row labels (Practical No/Assignment/Max Marks/CO) — skip, read from Col D (index 3)
+        for col in range(3, len(df.columns)):
             q = str(df.iloc[0, col]).strip()
             if not q or q == "nan": break
             questions.append(q)
@@ -259,7 +273,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 s_marks = {}
                 row_sum = 0
                 for col_idx, q in enumerate(questions):
-                    m = df.iloc[row, 2 + col_idx]
+                    m = df.iloc[row, 3 + col_idx]  # col D (index 3) onwards
                     try: m_val = float(m) if pd.notnull(m) else 0
                     except: m_val = 0
                     
@@ -274,6 +288,8 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 total = row_sum
                 s_marks['total'] = round(total, 2)
                 marks_data.append((student, s_marks, s_marks['total']))
+            else:
+                unmatched_rolls.append(roll)
 
     elif parser == "SA":
         # Template: Roll No (col A=0), Name (col B=1), Total Marks (col C=2)
@@ -315,6 +331,8 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                     errors.append(f"Row {row+1}: Total marks ({total}) exceed max configuration ({max_w})")
                     
                 marks_data.append((student, {'0': total, 'total': total}, total))
+            else:
+                unmatched_rolls.append(roll)
         
         questions = ["Total"]
         weights = [max_w]
@@ -380,4 +398,10 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
     MarksEntry.objects.bulk_create(entries)
     
     success_msg = f"Success: {len(marks_data)} student(s) updated"
+    if unmatched_rolls:
+        # Limit to 5 roll numbers displayed to avoid super long messages
+        sample = unmatched_rolls[:5]
+        extra = f" ...+{len(unmatched_rolls)-5} more" if len(unmatched_rolls) > 5 else ""
+        success_msg += f" | ⚠️ {len(unmatched_rolls)} roll(s) not matched: {', '.join(str(r) for r in sample)}{extra}"
     return warning_prefix + success_msg if warning_prefix else success_msg
+
