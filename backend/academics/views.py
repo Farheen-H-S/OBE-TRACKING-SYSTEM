@@ -279,8 +279,8 @@ class CourseListCreateAPIView(APIView):
                                     )
                                     batch_objs.append(batch)
                             except (ValueError, IndexError): continue
-                        if batch_objs:
-                            course.batches.set(batch_objs)
+                        # Always call set() to handle deselection/empty lists correctly
+                        course.batches.set(batch_objs)
 
                     faculty_id = data.get('faculty_assigned')
                     if faculty_id:

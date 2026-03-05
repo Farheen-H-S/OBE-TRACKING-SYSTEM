@@ -389,8 +389,9 @@ const Cisentry = () => {
       // The backend now handles filtering, but we keep the client-side fallback just in case
       let filtered = response.data;
       if (role !== 'FACULTY') {
-        if (selectedSemester) filtered = filtered.filter(c => c.semester === parseInt(selectedSemester));
-        if (selectedClass) filtered = filtered.filter(c => c.class_year === selectedClass);
+        if (selectedSemester && selectedSemester !== 'All') filtered = filtered.filter(c => c.semester === parseInt(selectedSemester));
+        if (selectedClass && selectedClass !== 'All') filtered = filtered.filter(c => c.class_year === selectedClass);
+        if (selectedBatch && selectedBatch !== 'All') filtered = filtered.filter(c => c.batch_list && c.batch_list.includes(selectedBatch));
       }
 
       setCourses(filtered);

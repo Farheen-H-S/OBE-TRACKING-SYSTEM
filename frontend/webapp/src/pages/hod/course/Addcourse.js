@@ -110,7 +110,7 @@ const Addcourse = () => {
                         semester: data.semester,
                         faculty: data.faculty_assigned || '',
                         introduction_year: data.introduction_year || '',
-                        batches: data.batches || [],
+                        batches: data.batch_list || [],
                         assessmentTools: data.assessment_tools || prev.assessmentTools,
                         courseOutcomes: cos,
                         course_name_suffix: data.course_name ? (data.course_abbr ? data.course_name.replace(`${data.course_abbr}-`, '') : data.course_name) : ''

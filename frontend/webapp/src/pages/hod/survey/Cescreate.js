@@ -112,14 +112,10 @@ const Cescreate = () => {
 
             if (surveyRes.status === 'fulfilled') {
                 const surveyData = Array.isArray(surveyRes.value.data) ? surveyRes.value.data : [];
-                // Sort by survey_id descending to get most recent
-                const sortedSurveys = [...surveyData].sort((a, b) => b.survey_id - a.survey_id);
-                const active = sortedSurveys.find(s => s.status === 'APPROVED');
-                if (active) {
-                    const link = `${window.location.origin}/student/cis-login?course_id=${active.course_id}`;
-                    setActiveSurvey({ ...active, link });
-                    setSelectedCourseId(active.course_id);
-                }
+
+                // Do NOT auto-select the first active survey.
+                // Leave selectedCourseId and activeSurvey as empty/null by default,
+                // forcing the user to select from the dropdown.
 
                 const states = {};
                 surveyData.forEach(s => {
@@ -138,6 +134,11 @@ const Cescreate = () => {
     };
 
     const handleCourseChange = (courseId) => {
+        if (!courseId) {
+            setSelectedCourseId("");
+            setActiveSurvey(null);
+            return;
+        }
         const id = parseInt(courseId);
         setSelectedCourseId(id);
         const state = surveyStates[id];
@@ -176,6 +177,18 @@ const Cescreate = () => {
             response.data.forEach(course => {
                 fetchCosForCourse(course.course_id);
             });
+
+            // Sync check: If we have a selectedCourseId, make sure it's actually in this new list of courses.
+            // If not, clear the selection so the UI doesn't show a ghost link for a course not in the dropdown.
+            if (selectedCourseId) {
+                const courseExistsInList = response.data.some(c => String(c.course_id) === String(selectedCourseId));
+                const courseHasActiveSurvey = surveyStates[selectedCourseId]?.status === 'APPROVED';
+                if (!courseExistsInList || !courseHasActiveSurvey) {
+                    setSelectedCourseId("");
+                    setActiveSurvey(null);
+                }
+            }
+
         } catch (error) {
             console.error("Error fetching courses:", error);
         } finally {
@@ -547,13 +560,13 @@ const Cescreate = () => {
                                     ))}
                                 </select>
                             </div>
-                            {activeSurvey && (
+                            {activeSurvey && selectedCourseId && (
                                 <span className="badge bg-light text-danger fw-bold border border-danger">
                                     Time left: {timeLeft}
                                 </span>
                             )}
                         </div>
-                        {activeSurvey ? (
+                        {activeSurvey && selectedCourseId ? (
                             <div className="link-input-group">
                                 <input
                                     type="text"

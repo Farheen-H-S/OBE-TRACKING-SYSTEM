@@ -148,6 +148,7 @@ const Assigntarget = () => {
             program_id: c.program_id,
             semester: String(c.semester),
             class_year: c.class_year,
+            batch_list: c.batch_list || [],
             targetLevel: tVal,
             achievedLevel: aLevel,
             gap: gapVal,
@@ -192,14 +193,17 @@ const Assigntarget = () => {
       (course.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (course.abbr || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesDept = !selectedDept || String(course.program_id) === String(selectedDept);
-    const matchesScheme = !selectedScheme || String(course.scheme_id) === String(selectedScheme);
+    const matchesDept = !selectedDept || selectedDept === 'All' || String(course.program_id) === String(selectedDept);
+    const matchesScheme = !selectedScheme || selectedScheme === 'All' || String(course.scheme_id) === String(selectedScheme);
 
     // More robust class matching
-    const matchesClass = !selectedClass || (course.class_year && selectedClass.includes(course.class_year));
-    const matchesSem = !selectedSem || String(course.semester) === String(selectedSem);
+    const matchesClass = !selectedClass || selectedClass === 'All' || (course.class_year && selectedClass.includes(course.class_year));
+    const matchesSem = !selectedSem || selectedSem === 'All' || String(course.semester) === String(selectedSem);
 
-    return matchesSearch && matchesDept && matchesScheme && matchesClass && matchesSem;
+    // Check if the current selected batch is in the course's batch list
+    const matchesBatch = !selectedBatch || selectedBatch === 'All' || (course.batch_list && course.batch_list.includes(selectedBatch));
+
+    return matchesSearch && matchesDept && matchesScheme && matchesClass && matchesSem && matchesBatch;
   });
 
 
