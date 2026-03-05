@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../../api';
-import './Login.css'; // Reusable styles from Login.css
+import '../login/Login.css'; // Reusable styles from Login.css
 import { logo } from '../../../assets/images';
 
 function ForgotPassword() {

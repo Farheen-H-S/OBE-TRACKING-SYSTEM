@@ -6,7 +6,7 @@ import { FilterProvider } from './context/FilterContext';
 
 
 // Layout & Components
-import Layout from "./components/Layout";
+import Layout from "./components/layout/Layout";
 import DashboardRedirect from "./components/DashboardRedirect";
 import PlaceholderPage from "./pages/common/PlaceholderPage";
 import GlobalAlert from "./components/GlobalAlert";
@@ -32,8 +32,8 @@ const Cisentry = lazy(() => import("./pages/faculty/cis/Cisentry"));
 const ViewCisEntries = lazy(() => import("./pages/faculty/cis/ViewCisEntries"));
 
 // HOD / Coordinator
-const HodDashboard = lazy(() => import("./pages/hod/HodDashboardContent"));
-const CoordinatorDashboard = lazy(() => import("./pages/coordinator/Codash"));
+const HodDashboard = lazy(() => import("./pages/hod/dashboard/HodDashboardContent"));
+const CoordinatorDashboard = lazy(() => import("./pages/coordinator/Codash")); // Coordinator dashboard
 const StudentManagement = lazy(() => import("./pages/hod/student/StudentManagement"));
 const OtherIndirectTools = lazy(() => import("./pages/hod/survey/OtherIndirectTools"));
 const Statement1 = lazy(() => import("./pages/common/statement/Statement1")); // PEO, PO, PSO
@@ -44,7 +44,7 @@ const Addcourse = lazy(() => import("./pages/hod/course/Addcourse"));
 const Assigntarget = lazy(() => import("./pages/hod/target/Assigntarget")); // Target Mgmt
 const Cisdirectrep = lazy(() => import("./pages/hod/attainment/Cisdirectrep")); // Direct Attainment
 const Dacreview = lazy(() => import("./pages/hod/dac/Dacreview")); // DAC Reports
-const Reportverifiy = lazy(() => import("./pages/hod/Reportverifiy")); // Report Verification
+const Reportverifiy = lazy(() => import("./pages/hod/report/Reportverify")); // Report Verification
 const Backtracking = lazy(() => import("./pages/hod/backtracking/Backtracking")); // Attainment Backtracking
 const IndirectAttainment = lazy(() => import("./pages/hod/attainment/IndirectAttainment")); // Indirect Attainment
 const POPSOAttainment = lazy(() => import("./pages/hod/attainment/POPSOAttainment")); // PO & PSO Attainment

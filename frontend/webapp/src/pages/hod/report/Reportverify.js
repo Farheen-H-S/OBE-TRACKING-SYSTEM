@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import './Reportverifiy.css';
-import { FaCheck, FaTimes, FaEye, FaSearch, FaFilter } from 'react-icons/fa';
-import api from '../../utils/axios';
-import { getLoggedInUser } from '../../utils/auth';
+import './Reportverify.css';
+import api from '../../../utils/axios';
+import { getLoggedInUser } from '../../../utils/auth';
 
 const Reportverifiy = () => {
     const user = getLoggedInUser();

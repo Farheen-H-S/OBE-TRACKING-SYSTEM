@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Chart } from "react-google-charts";
-import { useFilters } from "../../context/FilterContext";
-import GlobalFilterBar from "../../components/filters/GlobalFilterBar";
+import { useFilters } from "../../../context/FilterContext";
+import GlobalFilterBar from "../../../components/filters/GlobalFilterBar";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './HodDashboardContent.css';
-import api from '../../utils/axios';
+import api from '../../../utils/axios';
 
 function HodDashboardContent() {
     const { selectedDept, selectedScheme, selectedYear } = useFilters();
