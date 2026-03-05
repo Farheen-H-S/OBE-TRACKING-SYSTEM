@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../utils/axios';
+import api from '../../../../utils/axios';
 import './POPSOAttainment.css';
 import { Chart } from 'react-google-charts';
 import { BsFileEarmarkExcelFill } from 'react-icons/bs';
 import { Modal, Button } from 'react-bootstrap';
-import { useFilters } from '../../../context/FilterContext';
+import { useFilters } from '../../../../context/FilterContext';
 
 const STATUS_COLOR = (achieved, target) => {
     if (achieved === null || achieved === undefined) return '#9e9e9e';

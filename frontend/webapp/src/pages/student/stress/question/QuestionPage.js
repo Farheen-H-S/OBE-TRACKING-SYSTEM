@@ -6,7 +6,7 @@ import {
     getSurveyQuestions,
     submitStressResponses,
     generateAnonymousToken
-} from '../../../services/stressService';
+} from '../../../../services/stressService';
 
 const QuestionPage = () => {
     const navigate = useNavigate();

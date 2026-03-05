@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Clogin.css';
 import { sflogo2 } from '../../../assets/images';
-import { students } from '../../../data/studentData';
+
 import api from '../../../utils/axios';
 import { FaBook, FaUserGraduate, FaArrowRight } from 'react-icons/fa';
 
@@ -38,20 +38,30 @@ const Clogin = () => {
         }
     };
 
-    const handleLogin = () => {
-        const student = students.find(s => s.enrollment === enrollment);
-        if (student) {
-            setError('');
-            localStorage.setItem('student', JSON.stringify(student));
-            if (surveyType === 'expert-talk') {
-                navigate('/student/expert-talk-welcome');
-            } else if (courseId) {
-                // Navigate to specific course exit survey
-                navigate(`/student/cis-welcome?course_id=${courseId}`);
+    const handleLogin = async () => {
+        if (!enrollment.trim()) {
+            setError('Please enter your enrollment number.');
+            return;
+        }
+        try {
+            const response = await api.get('/users/students/', { params: { enrollment_no: enrollment.trim() } });
+            const data = response.data;
+            const student = Array.isArray(data) ? data[0] : data;
+            if (student && student.enrollment_no) {
+                setError('');
+                localStorage.setItem('student', JSON.stringify(student));
+                if (surveyType === 'expert-talk') {
+                    navigate('/student/expert-talk-welcome');
+                } else if (courseId) {
+                    navigate(`/student/cis-welcome?course_id=${courseId}`);
+                } else {
+                    navigate('/student/cis-welcome');
+                }
             } else {
-                navigate('/student/cis-welcome');
+                setError('Invalid enrollment number. Please try again.');
             }
-        } else {
+        } catch (err) {
+            console.error('Error validating enrollment:', err);
             setError('Invalid enrollment number. Please try again.');
         }
     };

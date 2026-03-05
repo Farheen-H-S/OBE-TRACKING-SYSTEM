@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './OITLogin.css';
 import { sflogo2 } from '../../../assets/images';
-import { students } from '../../../data/studentData';
+import api from '../../../utils/axios';
 import { FaArrowRight } from 'react-icons/fa';
 
 const TOOL_LABELS = {
@@ -38,7 +38,7 @@ const OITLogin = () => {
         return params.toString();
     };
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!inputVal.trim()) {
             setError(isRP ? 'Please enter your name.' : 'Please enter your enrollment number.');
             return;
@@ -53,19 +53,26 @@ const OITLogin = () => {
             }));
             navigate(`/student/oit-welcome?${buildWelcomeParams()}`);
         } else {
-            // Student / Alumni — validate against studentData
-            const student = students.find(s => s.enrollment === inputVal.trim());
-            if (student) {
-                setError('');
-                localStorage.setItem('oit_respondent', JSON.stringify({
-                    type: 'student',
-                    enrollment: student.enrollment,
-                    rollNo: student.roll_no,
-                    respondentName: student.name,
-                    ...student,
-                }));
-                navigate(`/student/oit-welcome?${buildWelcomeParams()}`);
-            } else {
+            // Student / Alumni — validate against backend
+            try {
+                const response = await api.get('/users/students/', { params: { enrollment_no: inputVal.trim() } });
+                const data = response.data;
+                const student = Array.isArray(data) ? data[0] : data;
+                if (student && student.enrollment_no) {
+                    setError('');
+                    localStorage.setItem('oit_respondent', JSON.stringify({
+                        type: 'student',
+                        enrollment: student.enrollment_no,
+                        rollNo: student.roll_no,
+                        respondentName: student.full_name || student.name,
+                        ...student,
+                    }));
+                    navigate(`/student/oit-welcome?${buildWelcomeParams()}`);
+                } else {
+                    setError('Invalid enrollment number. Please try again.');
+                }
+            } catch (err) {
+                console.error('Error validating enrollment:', err);
                 setError('Invalid enrollment number. Please try again.');
             }
         }

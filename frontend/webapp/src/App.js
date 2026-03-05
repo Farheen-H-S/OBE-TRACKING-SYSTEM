@@ -42,12 +42,12 @@ const COPOmapping = lazy(() => import("./pages/hod/mapping/COPOmapping"));
 const Viewcourse1 = lazy(() => import("./pages/hod/course/Viewcourse1")); // Course Mgmt
 const Addcourse = lazy(() => import("./pages/hod/course/Addcourse"));
 const Assigntarget = lazy(() => import("./pages/hod/target/Assigntarget")); // Target Mgmt
-const Cisdirectrep = lazy(() => import("./pages/hod/attainment/Cisdirectrep")); // Direct Attainment
+const Cisdirectrep = lazy(() => import("./pages/hod/attainment/direct/Cisdirectrep")); // Direct Attainment
 const Dacreview = lazy(() => import("./pages/hod/dac/Dacreview")); // DAC Reports
 const Reportverifiy = lazy(() => import("./pages/hod/report/Reportverify")); // Report Verification
 const Backtracking = lazy(() => import("./pages/hod/backtracking/Backtracking")); // Attainment Backtracking
-const IndirectAttainment = lazy(() => import("./pages/hod/attainment/IndirectAttainment")); // Indirect Attainment
-const POPSOAttainment = lazy(() => import("./pages/hod/attainment/POPSOAttainment")); // PO & PSO Attainment
+const IndirectAttainment = lazy(() => import("./pages/hod/attainment/indirect/IndirectAttainment")); // Indirect Attainment
+const POPSOAttainment = lazy(() => import("./pages/hod/attainment/po/POPSOAttainment")); // PO & PSO Attainment
 const Cescreate = lazy(() => import("./pages/hod/survey/Cescreate")); // Course Exit Survey
 const Stresscreate = lazy(() => import("./pages/hod/stress/Stresscreate"));
 const Stressreport = lazy(() => import("./pages/hod/stress/Stressreport"));
@@ -58,10 +58,10 @@ const AuditorViewReports = lazy(() => import("./pages/auditor/report/ViewReports
 const ViewRemark = lazy(() => import("./pages/auditor/remark/ViewRemark"));
 
 // Student (Stress)
-const Welcome = lazy(() => import("./pages/student/stress/Welcome"));
-const Instruction = lazy(() => import("./pages/student/stress/Instruction"));
-const QuestionPage = lazy(() => import("./pages/student/stress/QuestionPage"));
-const Exit = lazy(() => import("./pages/student/stress/Exit"));
+const Welcome = lazy(() => import("./pages/student/stress/welcome/Welcome"));
+const Instruction = lazy(() => import("./pages/student/stress/instruction/Instruction"));
+const QuestionPage = lazy(() => import("./pages/student/stress/question/QuestionPage"));
+const Exit = lazy(() => import("./pages/student/stress/exit/Exit"));
 
 // Student (Indirect CIS)
 const Clogin = lazy(() => import("./pages/student/cis-indirect/Clogin"));

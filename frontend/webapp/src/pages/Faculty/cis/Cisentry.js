@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Cisentry.css';
 // import { students } from '../../../data/studentData'; // REMOVED
-import { sampleCourses, sampleCOs } from '../../../data/sampleData';
+
 import api from '../../../utils/axios';
 import { useFilters } from '../../../context/FilterContext';
 import {
@@ -1046,7 +1046,7 @@ const Cisentry = () => {
                   type="text"
                   className="header-input-transparent shadow-none"
                   value={co}
-                  placeholder={sampleCOs[index % sampleCOs.length]}
+                  placeholder="CO"
                   style={{ padding: '8px 2px', cursor: viewMode === 'view' ? 'default' : 'text' }}
                   readOnly={viewMode === 'view'}
                   data-type="co"
@@ -1134,7 +1134,7 @@ const Cisentry = () => {
                   type="text"
                   className="header-input-transparent shadow-none"
                   value={co}
-                  placeholder={sampleCOs[index % sampleCOs.length]}
+                  placeholder="CO"
                   style={{ padding: '8px 2px', cursor: viewMode === 'view' ? 'default' : 'text' }}
                   readOnly={viewMode === 'view'}
                   data-type="co"
@@ -1215,7 +1215,7 @@ const Cisentry = () => {
                 type="text"
                 className="header-input-transparent shadow-none"
                 value={co}
-                placeholder={sampleCOs[index % sampleCOs.length]}
+                placeholder="CO"
                 style={{ padding: '8px 2px', cursor: viewMode === 'view' ? 'default' : 'text' }}
                 readOnly={viewMode === 'view'}
                 onChange={(e) => handleCoChange(index, e.target.value)}

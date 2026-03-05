@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Welcome.css';
-import { brain } from '../../../assets/images';
+import { brain } from '../../../../assets/images';
 import { useNavigate } from 'react-router-dom';
 
 const Welcome = () => {

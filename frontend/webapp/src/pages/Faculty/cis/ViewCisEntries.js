@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Cisentry.css';
-import { students } from '../../../data/studentData';
-import { sampleCourses, sampleCOs } from '../../../data/sampleData';
+
 import api from '../../../utils/axios';
 import { FaPaperclip, FaFilePdf, FaInfoCircle, FaEye } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
@@ -27,6 +26,7 @@ const ViewCisEntries = () => {
 
     // Loaded data
     const [savedData, setSavedData] = useState(null);
+    const [students, setStudents] = useState([]);
 
     const getCTQuestionLabel = (index) => {
         const qNum = Math.floor(index / 7) + 1;
@@ -96,6 +96,28 @@ const ViewCisEntries = () => {
         const semType = getCachedSemesterType();
         setSelectedSemester(getDefaultSemester(selectedClass, semType));
     }, [selectedClass]);
+
+    // Fetch students whenever filters change
+    useEffect(() => {
+        if (!selectedProgram) return;
+        const fetchStudents = async () => {
+            try {
+                const params = {
+                    program_id: selectedProgram,
+                    class_year: selectedClass,
+                    semester: selectedSemester,
+                    division: selectedDivision,
+                    is_active: true
+                };
+                const response = await api.get('/users/students/', { params });
+                setStudents(response.data);
+            } catch (error) {
+                console.error('Error fetching students:', error);
+                setStudents([]);
+            }
+        };
+        fetchStudents();
+    }, [selectedProgram, selectedClass, selectedSemester, selectedDivision]);
 
     useEffect(() => {
         loadSavedData();
@@ -186,18 +208,16 @@ const ViewCisEntries = () => {
         try {
             const response = await api.get(`/academics/courses/?program_id=${selectedProgram}`);
             const filteredCourses = response.data.filter(c => c.semester === parseInt(selectedSemester));
+            setCourses(filteredCourses);
             if (filteredCourses.length > 0) {
-                setCourses(filteredCourses);
                 setSelectedCourse(filteredCourses[0].course_id);
             } else {
-                const samples = sampleCourses.filter(c => c.semester === parseInt(selectedSemester));
-                setCourses(samples);
-                if (samples.length > 0) setSelectedCourse(samples[0].course_id);
+                setSelectedCourse('');
             }
         } catch (error) {
-            const samples = sampleCourses.filter(c => c.semester === parseInt(selectedSemester));
-            setCourses(samples);
-            if (samples.length > 0) setSelectedCourse(samples[0].course_id);
+            console.error('Error fetching courses:', error);
+            setCourses([]);
+            setSelectedCourse('');
         }
     };
 
@@ -292,14 +312,7 @@ const ViewCisEntries = () => {
                 {selectedCourse && (
                     <div className="mt-4 p-3 rounded" style={{ backgroundColor: '#f8fbff', border: '1px solid #adcaf8' }}>
                         <h5 className="small fw-bold text-primary text-uppercase mb-3" style={{ letterSpacing: '1px' }}>Course Outcome (CO) Statements</h5>
-                        <div className="row g-3">
-                            {(sampleCOs[selectedCourse] || sampleCOs['default']).slice(0, 5).map((co, idx) => (
-                                <div key={idx} className="col-md-12 d-flex gap-3">
-                                    <span className="badge rounded-pill bg-primary d-flex align-items-center justify-content-center" style={{ width: '45px', minWidth: '45px', height: '24px' }}>CO{idx + 1}</span>
-                                    <p className="mb-0 small text-muted" style={{ lineHeight: '1.5' }}>{co}</p>
-                                </div>
-                            ))}
-                        </div>
+                        <p className="text-muted small mb-0">CO statements are loaded via the marks entry sheet for this course.</p>
                     </div>
                 )}
             </div>

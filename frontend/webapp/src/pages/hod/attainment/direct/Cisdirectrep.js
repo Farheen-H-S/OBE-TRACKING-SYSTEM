@@ -1,14 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../../components/header/Header';
-import HodSide from '../../../components/sidebar/HodSide';
+import Header from '../../../../components/header/Header';
+import HodSide from '../../../../components/sidebar/HodSide';
 import { BsFileEarmarkExcelFill, BsDownload, BsEyeFill } from "react-icons/bs";
-import api from '../../../utils/axios';
+import api from '../../../../utils/axios';
 import './Cisdirectrep.css';
 import { Modal, Button, Table, Form, Alert } from 'react-bootstrap';
-import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '../../../utils/semesterUtils';
+import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '../../../../utils/semesterUtils';
 
-import { useFilters } from '../../../context/FilterContext';
+import { useFilters } from '../../../../context/FilterContext';
 
 export default function Cisdirectrep() {
     const navigate = useNavigate();

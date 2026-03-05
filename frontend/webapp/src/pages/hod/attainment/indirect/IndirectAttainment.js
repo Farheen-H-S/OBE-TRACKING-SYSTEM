@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../utils/axios';
+import api from '../../../../utils/axios';
 import './IndirectAttainment.css';
 import { Modal, Button, Table } from 'react-bootstrap';
 import { BsEyeFill, BsFileEarmarkExcelFill } from 'react-icons/bs';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle } from 'react-icons/fa';
-import { useFilters } from '../../../context/FilterContext';
+import { useFilters } from '../../../../context/FilterContext';
 import { Chart } from 'react-google-charts';
 
 const STATUS_COLOR = (achieved) => {

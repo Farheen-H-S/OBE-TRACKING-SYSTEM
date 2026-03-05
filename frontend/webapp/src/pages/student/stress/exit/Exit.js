@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Exit.css';
-import { brain } from '../../../assets/images';
+import { brain } from '../../../../assets/images';
 
 const Exit = () => {
     const navigate = useNavigate();
