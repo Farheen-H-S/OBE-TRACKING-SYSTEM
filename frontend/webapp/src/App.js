@@ -12,19 +12,19 @@ import PlaceholderPage from "./pages/common/PlaceholderPage";
 import GlobalAlert from "./components/GlobalAlert";
 
 // Lazy Loaded Components
-const Login = lazy(() => import("./pages/common/Login"));
-const Profile = lazy(() => import("./pages/common/Profile"));
-const ForgotPassword = lazy(() => import("./pages/common/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/common/ResetPassword"));
+const Login = lazy(() => import("./pages/common/login/Login"));
+const Profile = lazy(() => import("./pages/common/profile/Profile"));
+const ForgotPassword = lazy(() => import("./pages/common/password/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/common/password/ResetPassword"));
 
 // Admin
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboardHome"));
-const CreateUser = lazy(() => import("./pages/admin/CreateUser"));
-const Updateuser = lazy(() => import("./pages/admin/Updateuser"));
-const Viewuser1 = lazy(() => import("./pages/admin/Viewuser1"));
-const Viewuser2 = lazy(() => import("./pages/admin/Viewuser2"));
-const AcademicSetup = lazy(() => import("./pages/admin/AcademicSetup"));
-const Auditlog = lazy(() => import("./pages/admin/Auditlog"));
+const AdminDashboard = lazy(() => import("./pages/admin/dashboard/AdminDashboardHome"));
+const CreateUser = lazy(() => import("./pages/admin/user/create/CreateUser"));
+const Updateuser = lazy(() => import("./pages/admin/user/update/Updateuser"));
+const Viewuser1 = lazy(() => import("./pages/admin/user/view/Viewuser1"));
+const Viewuser2 = lazy(() => import("./pages/admin/user/view/Viewuser2"));
+const AcademicSetup = lazy(() => import("./pages/admin/setup/AcademicSetup"));
+const Auditlog = lazy(() => import("./pages/admin/log/Auditlog"));
 
 // Faculty
 const FacultyDashboard = lazy(() => import("./pages/faculty/Facdash"));

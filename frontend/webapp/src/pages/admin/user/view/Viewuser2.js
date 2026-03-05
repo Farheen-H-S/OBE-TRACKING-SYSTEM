@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Viewuser2.css';
-import { profile } from '../../assets/images';
-import { celebImg } from '../../assets/images';
-import api from '../../utils/axios';
+import { profile } from '../../../../assets/images';
+import { celebImg } from '../../../../assets/images';
+import api from '../../../../utils/axios';
 
 const Viewuser2 = () => {
     const [user, setUser] = useState(null);

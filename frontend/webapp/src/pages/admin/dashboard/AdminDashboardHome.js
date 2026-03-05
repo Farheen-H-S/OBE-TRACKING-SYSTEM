@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Chart } from "react-google-charts";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AdminDashboardHome.css';
-import api from '../../utils/axios';
+import api from '../../../utils/axios';
 import { FaUsers, FaBuilding, FaCalendarAlt, FaLayerGroup, FaRegClock } from 'react-icons/fa';
 
 function AdminDashboardHome() {

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../admin/Viewuser1.css';
 import { FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { profile } from '../../assets/images';
-import api from '../../utils/axios';
+import { profile } from '../../../../assets/images';
+import api from '../../../../utils/axios';
 
 const Viewuser1 = () => {
   const navigate = useNavigate();

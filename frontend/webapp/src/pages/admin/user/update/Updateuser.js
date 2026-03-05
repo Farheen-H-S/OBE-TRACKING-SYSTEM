@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaUserEdit, FaEye, FaEyeSlash } from "react-icons/fa";
-import api from "../../utils/axios";
-import { getLoggedInUser, updateLoggedInUser } from "../../utils/auth";
+import api from "../../../../utils/axios";
+import { getLoggedInUser, updateLoggedInUser } from "../../../../utils/auth";
 import "./Updateuser.css";
 
 const Updateuser = () => {

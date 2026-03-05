@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/axios';
-import { celebImg } from '../../assets/images';
+import api from '../../../utils/axios';
+import { celebImg } from '../../../assets/images';
 
 const AcademicSetup = () => {
     const [academicYear, setAcademicYear] = useState('2025 - 26');

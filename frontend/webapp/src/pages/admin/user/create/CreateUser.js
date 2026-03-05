@@ -1,8 +1,8 @@
 import { FaUser, FaEye, FaEyeSlash, FaUpload } from 'react-icons/fa';
 import './CreateUser.css';
 import React, { useState, useEffect } from 'react';
-import { celebImg } from '../../assets/images';
-import api from '../../utils/axios';
+import { celebImg } from '../../../../assets/images';
+import api from '../../../../utils/axios';
 import { useNavigate } from 'react-router-dom';
 
 const CreateUser = () => {
