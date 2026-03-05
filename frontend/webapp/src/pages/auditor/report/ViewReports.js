@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ViewReports.css';
 import { FaFilter, FaSearch, FaSave, FaPlus, FaTrash, FaEye, FaFileDownload } from 'react-icons/fa';
-import api from '../../utils/axios';
+import api from '../../../utils/axios';
 
 const ViewReports = () => {
     const [reports, setReports] = useState([]);

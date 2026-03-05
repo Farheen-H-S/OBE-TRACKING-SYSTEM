@@ -53,9 +53,9 @@ const Stresscreate = lazy(() => import("./pages/hod/stress/Stresscreate"));
 const Stressreport = lazy(() => import("./pages/hod/stress/Stressreport"));
 
 // Auditor
-const AuditorDashboard = lazy(() => import("./pages/auditor/AuditorDashboardHome"));
-const AuditorViewReports = lazy(() => import("./pages/auditor/ViewReports"));
-const ViewRemark = lazy(() => import("./pages/auditor/ViewRemark"));
+const AuditorDashboard = lazy(() => import("./pages/auditor/dashboard/AuditorDashHome"));
+const AuditorViewReports = lazy(() => import("./pages/auditor/report/ViewReports"));
+const ViewRemark = lazy(() => import("./pages/auditor/remark/ViewRemark"));
 
 // Student (Stress)
 const Welcome = lazy(() => import("./pages/student/stress/Welcome"));
