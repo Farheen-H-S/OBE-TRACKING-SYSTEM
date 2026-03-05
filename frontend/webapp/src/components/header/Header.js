@@ -107,7 +107,24 @@ const Header = ({ onToggleSidebar }) => {
           alert("Please select a course first in the Marks Entry page.");
           return;
         }
-        url = `/bulk_upload/cis/template-multi/?course_id=${selectedCourse}&academic_year=${selectedYear}`;
+
+        // Get selectedDivision from localStorage JSON object
+        let divParam = '';
+        try {
+          const storedContext = window.localStorage.getItem('obe_academic_context');
+          if (storedContext) {
+            const parsed = JSON.parse(storedContext);
+            divParam = parsed.selectedDivision || '';
+          }
+        } catch (e) {
+          console.error("Error reading context from localStorage:", e);
+        }
+
+        let divQuery = '';
+        if (divParam) {
+          divQuery = `&division=${encodeURIComponent(divParam)}`;
+        }
+        url = `/bulk_upload/cis/template-multi/?course_id=${selectedCourse}&academic_year=${selectedYear}${divQuery}`;
         filename = 'Marks_Bulk_Upload_Template.xlsx';
       }
 

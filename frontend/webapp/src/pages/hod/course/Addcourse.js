@@ -181,11 +181,15 @@ const Addcourse = () => {
 
     // Auto-generate course code CO(class)(id)
     useEffect(() => {
-        if (!formData.courseId && !isViewMode && formData.class) {
+        if (!formData.courseId && !isViewMode && formData.class && formData.program_id) {
             const classMap = { 'FY': '1', 'SY': '2', 'TY': '3' };
             const classDigit = classMap[formData.class] || '0';
 
-            const classCourses = existingCourses.filter(c => c.class_year === formData.class);
+            // Filter courses by both class and program_id to ensure uniqueness
+            const classCourses = existingCourses.filter(c =>
+                c.class_year === formData.class &&
+                c.program_id === parseInt(formData.program_id)
+            );
             const nextId = (classCourses.length + 1).toString().padStart(2, '0');
 
             const generatedCode = `CO${classDigit}${nextId}`;
@@ -198,10 +202,10 @@ const Addcourse = () => {
                 }));
                 return { ...prev, courseCode: generatedCode, courseOutcomes: newCOs };
             });
-        } else if (!formData.courseId && !isViewMode && !formData.class) {
+        } else if (!formData.courseId && !isViewMode && (!formData.class || !formData.program_id)) {
             setFormData(prev => ({ ...prev, courseCode: '', courseOutcomes: [{ no: 'CO', text: prev.courseOutcomes[0]?.text || '' }] }));
         }
-    }, [formData.class, existingCourses, isViewMode, formData.courseId]);
+    }, [formData.class, formData.program_id, existingCourses, isViewMode, formData.courseId]);
 
     const getSemesterOptions = () => {
         if (formData.class === 'FY') return [1, 2];

@@ -1236,6 +1236,9 @@ const Cisentry = () => {
     formData.append('course_id', selectedCourse);
     formData.append('academic_year', selectedYear);
     formData.append('semester', selectedSemester);
+    if (selectedDivision) {
+      formData.append('division', selectedDivision);
+    }
 
     try {
       const response = await api.post('/bulk_upload/cis/bulk-apply/', formData, {

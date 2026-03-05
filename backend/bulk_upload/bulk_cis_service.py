@@ -31,7 +31,7 @@ def normalize_roll(r):
         pass
     return s.lower()
 
-def generate_cis_multi_sheet_template(course_id, academic_year=None):
+def generate_cis_multi_sheet_template(course_id, academic_year=None, division=None):
     course = get_object_or_404(Course, pk=course_id)
     
     filters = {
@@ -44,6 +44,8 @@ def generate_cis_multi_sheet_template(course_id, academic_year=None):
     
     if academic_year:
         filters['academic_year'] = academic_year
+    if division:
+        filters['division'] = division
 
     students = Student.objects.filter(**filters).distinct()
     
@@ -145,7 +147,7 @@ def generate_cis_multi_sheet_template(course_id, academic_year=None):
     output.seek(0)
     return output.read()
 
-def process_bulk_cis_apply(file, course_id, academic_year, semester, user):
+def process_bulk_cis_apply(file, course_id, academic_year, semester, user, division=None):
     course = get_object_or_404(Course, pk=course_id)
     all_sheets = pd.read_excel(file, sheet_name=None, header=None)
     
@@ -171,6 +173,8 @@ def process_bulk_cis_apply(file, course_id, academic_year, semester, user):
     
     if academic_year:
         filters['academic_year'] = academic_year
+    if division:
+        filters['division'] = division
 
     students_in_context = {normalize_roll(s.roll_no): s for s in Student.objects.filter(**filters)}
     

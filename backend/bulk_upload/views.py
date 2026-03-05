@@ -693,11 +693,12 @@ class DownloadCISMultiSheetTemplateView(APIView):
     def get(self, request):
         course_id = request.query_params.get('course_id')
         academic_year = request.query_params.get('academic_year')
+        division = request.query_params.get('division') or None
         if not course_id:
             return Response({"error": "Course ID is required"}, status=400)
             
         try:
-            excel_data = generate_cis_multi_sheet_template(course_id, academic_year)
+            excel_data = generate_cis_multi_sheet_template(course_id, academic_year, division=division)
             course = get_object_or_404(Course, pk=course_id)
             
             response = HttpResponse(excel_data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -705,6 +706,7 @@ class DownloadCISMultiSheetTemplateView(APIView):
             return response
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 class BulkCISApplyView(APIView):
     """
@@ -717,6 +719,7 @@ class BulkCISApplyView(APIView):
         course_id = request.data.get('course_id')
         academic_year = request.data.get('academic_year')
         semester = request.data.get('semester')
+        division = request.data.get('division') or None
         
         if not all([file_obj, course_id, academic_year, semester]):
             return Response({"error": "Missing required fields (file, course_id, academic_year, semester)"}, status=400)
@@ -727,7 +730,8 @@ class BulkCISApplyView(APIView):
                 course_id=course_id,
                 academic_year=academic_year,
                 semester=semester,
-                user=request.user if request.user.is_authenticated else User.objects.first()
+                user=request.user if request.user.is_authenticated else User.objects.first(),
+                division=division
             )
             return Response({"message": "Bulk Apply completed", "report": report}, status=200)
         except Exception as e:
