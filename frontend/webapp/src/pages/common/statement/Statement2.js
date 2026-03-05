@@ -84,13 +84,14 @@ const Statement2 = () => {
     );
 
     const isAuditor = (user?.role || user?.role_name || "").toUpperCase() === 'AUDITOR';
+    const isFaculty = (user?.role || user?.role_name || "").toUpperCase() === 'FACULTY';
 
     return (
         <div className="statement2-main-standalone">
             <div className="mx-auto" style={{ maxWidth: '1100px' }}>
 
                 <div className="d-flex justify-content-end align-items-center mb-4 no-print" style={{ width: '100%' }}>
-                    {!isAuditor ? (
+                    {!(isAuditor || isFaculty) ? (
                         <div className="toggle-container shadow-sm">
                             <button className="toggle-btn" onClick={() => navigate('/peo-po-pso')}>Define</button>
                             <button className="toggle-btn active">View</button>
@@ -225,7 +226,7 @@ const Statement2 = () => {
                     </>
                 )}
 
-                {!isAuditor && (
+                {!(isAuditor || isFaculty) && (
                     <div className="text-center mt-4 no-print pb-5">
                         <button className="btn btn-outline-secondary px-5 fw-bold" onClick={() => navigate('/peo-po-pso')}>
                             Edit Statements

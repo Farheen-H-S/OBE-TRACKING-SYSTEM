@@ -1,4 +1,4 @@
-import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
+import { FaCircle, FaSignOutAlt } from "react-icons/fa";
 import { profile } from "../../assets/images"
 import "./FacultySide.css";
 import { useState } from "react";
@@ -62,7 +62,7 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                 <li className="nav-item">
                     <div
                         className="menu-item d-flex align-items-center text-white"
-                        onClick={() => navigate("/peo-po-pso")}
+                        onClick={() => navigate("/statement2")}
                         style={{ cursor: "pointer" }}
                     >
                         <FaCircle className="me-2" style={{ fontSize: '0.5rem' }} /> PEOs, POs, PSOs
