@@ -50,6 +50,7 @@ const Header = ({ onToggleSidebar }) => {
     { name: "Course Management", path: "/course-management", category: "Academics", keywords: ["courses", "view course", "edit course"], allowedRoles: ["Admin", "HOD", "Coordinator", "Faculty"] },
     { name: "Profile", path: "/profile", category: "User", keywords: ["settings", "account", "me"], allowedRoles: ["Admin", "HOD", "Faculty", "Staff", "Auditor", "Coordinator"] },
     { name: "Marks Entry", path: "/marks-entry", category: "Assessment", keywords: ["cis", "entry"], allowedRoles: ["Faculty", "HOD", "Coordinator"] },
+    { name: "Attainment Backtracking", path: "/attainment-backtracking", category: "Reports", keywords: ["backtracking", "trace", "attainment"], allowedRoles: ["HOD", "Coordinator", "Auditor"] },
   ];
 
   const filteredItems = searchItems
@@ -242,10 +243,12 @@ const Header = ({ onToggleSidebar }) => {
                   <FaTimes className="cursor-pointer text-muted" onClick={() => setShowDownloads(false)} />
                 </div>
                 <div className="p-0">
-                  <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
-                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
-                  </button>
+                  {['admin', 'hod', 'coordinator'].includes(userRole) && (
+                    <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                      <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
+                      <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
+                    </button>
+                  )}
                   <button onClick={() => handleDownloadTemplate('cis')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <div className="fw-bold small text-primary">Marks Bulk Upload Template</div>
                     <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>

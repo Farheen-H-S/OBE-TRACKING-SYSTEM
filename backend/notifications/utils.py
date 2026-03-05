@@ -38,6 +38,10 @@ def send_obe_notification(recipient, title, message, notification_type='INFO', m
             return True
             
     except Exception as e:
+        import smtplib
+        if isinstance(e, smtplib.SMTPAuthenticationError):
+            logger.error(f"SMTP Authentication Error sending to {recipient.email}: {str(e)}")
+            raise e
         logger.error(f"Failed to send notification to {recipient.email}: {str(e)}")
         return False
     
@@ -82,5 +86,9 @@ def broadcast_notification(recipients_queryset, title, message, notification_typ
                 
         return True
     except Exception as e:
+        import smtplib
+        if isinstance(e, smtplib.SMTPAuthenticationError):
+            logger.error(f"Broadcast SMTP Authentication Error: {str(e)}")
+            raise e
         logger.error(f"Broadcast failed: {str(e)}")
         return False

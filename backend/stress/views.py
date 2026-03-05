@@ -15,7 +15,7 @@ from .serializers import (
     StressActionPlanSerializer
 )
 from .service import StressCalculationService
-from users.permissions import IsHOD, IsFaculty
+from users.permissions import IsHOD, IsFaculty, IsHODOrFaculty
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from .report_generator import StressExcelReportGenerator
@@ -23,7 +23,7 @@ from .report_generator import StressExcelReportGenerator
 
 class StressMasterListCreateView(generics.ListCreateAPIView):
     serializer_class = StressMasterSerializer
-    permission_classes = [IsAuthenticated, IsHOD]
+    permission_classes = [IsAuthenticated, IsHODOrFaculty]
 
     def get_queryset(self):
         queryset = StressMaster.objects.all().order_by('-survey_id')
@@ -161,7 +161,7 @@ class StressSubmissionCreateView(generics.CreateAPIView):
 
 
 class StressReportExportView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsHOD]
+    permission_classes = [IsAuthenticated, IsHODOrFaculty]
 
     def get(self, request, pk):
         try:
@@ -184,7 +184,7 @@ class StressReportExportView(generics.GenericAPIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class StressReportPreviewView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsHOD]
+    permission_classes = [IsAuthenticated, IsHODOrFaculty]
 
     def get(self, request, pk):
         try:

@@ -106,7 +106,11 @@ class AdminDashboardAPIView(APIView):
             
             users_without_dept = User.objects.filter(
                 department__isnull=True, is_active=True
-            ).exclude(Q(role_id__role_name__iexact='ADMIN') | Q(role_id__role_name__iexact='AUDITOR')).count()
+            ).exclude(
+                Q(role_id__role_name__iexact='ADMIN') | 
+                Q(role_id__role_name__iexact='AUDITOR') |
+                Q(role_id__role_name__iexact='STUDENT')
+            ).count()
             if users_without_dept > 0:
                 structural_issues.append(f"{users_without_dept} active user(s) without department")
         else:

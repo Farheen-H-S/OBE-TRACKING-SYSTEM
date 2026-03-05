@@ -144,7 +144,7 @@ const Reportverifiy = () => {
                                     <input
                                         type="text"
                                         className="form-control"
-                                        placeholder="Search by name or faculty..."
+                                        placeholder="Search..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />

@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Instruction.css';
-import { note } from '../../../assets/images';
+import { note } from '../../../../assets/images';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Instruction = () => {

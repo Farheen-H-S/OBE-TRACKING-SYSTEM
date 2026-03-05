@@ -42,6 +42,7 @@ export default function Cisdirectrep() {
     const [previewCourse, setPreviewCourse] = React.useState(null);
     const [atrInputs, setAtrInputs] = React.useState({}); // {co_id: text}
     const [atrSaving, setAtrSaving] = React.useState(false);
+    const [requestingAtr, setRequestingAtr] = React.useState(null); // course_id
     const [searchTerm, setSearchTerm] = React.useState('');
 
     const CLASS_OPTIONS = ['FY', 'SY', 'TY'];
@@ -170,6 +171,25 @@ export default function Cisdirectrep() {
         }
     };
 
+    const handleRequestATR = async (courseId) => {
+        try {
+            setRequestingAtr(courseId);
+            const academic_year = selectedYear.replace(/\s/g, '');
+            await api.post(`/academics/courses/${courseId}/request-atr/`, {
+                academic_year,
+                batch_id: selectedBatch
+            });
+            alert("ATR request sent successfully to the faculty!");
+            fetchCourses(); // Refresh status
+        } catch (err) {
+            console.error("Error requesting ATR:", err);
+            const msg = err.response?.data?.error || "Failed to send ATR request.";
+            alert(msg);
+        } finally {
+            setRequestingAtr(null);
+        }
+    };
+
     const handleToolNavigation = (toolName) => {
         if (!previewCourse || !toolName) return;
         const toolMap = {
@@ -254,13 +274,28 @@ export default function Cisdirectrep() {
                                                             {courseStatus[c.course_id]?.overall_level || '0.00'}
                                                         </td>
                                                         <td className="text-center">
-                                                            <span
-                                                                className={`badge cursor-pointer ${courseStatus[c.course_id]?.atr_status === 'submitted' ? 'bg-success' : 'bg-warning text-dark'}`}
-                                                                onClick={() => handleViewAttainment(c)}
-                                                                style={{ cursor: 'pointer', minWidth: '100px' }}
-                                                            >
-                                                                {courseStatus[c.course_id]?.atr_status === 'submitted' ? 'Submitted' : 'Not Submitted'}
-                                                            </span>
+                                                            <div className="d-flex flex-column align-items-center gap-2">
+                                                                <span
+                                                                    className={`badge ${courseStatus[c.course_id]?.atr_status === 'submitted' ? 'bg-success' : 'bg-danger'}`}
+                                                                    style={{ minWidth: '120px', padding: '8px 12px' }}
+                                                                >
+                                                                    {courseStatus[c.course_id]?.atr_status === 'submitted' ? 'Submitted' : 'No ATR Submitted'}
+                                                                </span>
+                                                                {courseStatus[c.course_id]?.atr_status === 'pending' && (
+                                                                    <button
+                                                                        className="btn btn-sm btn-link text-decoration-none p-0 fw-bold"
+                                                                        onClick={() => handleRequestATR(c.course_id)}
+                                                                        disabled={requestingAtr === c.course_id}
+                                                                        style={{ fontSize: '0.75rem', color: '#dc3545' }}
+                                                                    >
+                                                                        {requestingAtr === c.course_id ? (
+                                                                            <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                                                                        ) : (
+                                                                            'Request ATR'
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="text-center">
                                                             <button

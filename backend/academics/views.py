@@ -319,7 +319,7 @@ class CourseDetailAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
+        if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator", "Faculty"]:
             return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
         
         course = get_object_or_404(Course, pk=pk)
@@ -354,6 +354,10 @@ class CourseDetailAPIView(APIView):
                         course.batches.set(batch_objs)
 
                     faculty_id = data.get('faculty_assigned')
+                    # RBAC: Prevent faculty from changing assigned faculty
+                    if faculty_id and request.user.role_id.role_name.upper() == 'FACULTY':
+                        faculty_id = None
+                        
                     if faculty_id:
                         try:
                             from users.models import User, FacultyCourseAssignment
@@ -421,11 +425,14 @@ class RequestATRAPIView(APIView):
         faculty = assignment.faculty_id
         try:
             from notifications.utils import send_obe_notification
+            import smtplib
             title = f"ATR Required: {course.course_code}"
             message = f"Dear {faculty.name},\n\nPlease submit ATR for {course.course_name} ({course.course_code})."
             success = send_obe_notification(recipient=faculty, title=title, message=message, notification_type='ALERT', module='TARGETS', priority='HIGH', send_email=True)
             if success: return Response({"message": f"Notification sent to {faculty.name}."})
             return Response({"error": "Failed to dispatch notification."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except smtplib.SMTPAuthenticationError:
+            return Response({"error": "Email notification failed: SMTP Authentication error. Please check server email settings."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e: return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseAssignmentAPIView(APIView):

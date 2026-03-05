@@ -27,3 +27,7 @@ class IsAuditor(BasePermission):
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role_id.role_name == "Student"
+
+class IsHODOrFaculty(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role_id.role_name in ["HOD", "Faculty"]

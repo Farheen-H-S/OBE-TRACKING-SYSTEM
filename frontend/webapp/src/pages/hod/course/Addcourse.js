@@ -493,7 +493,13 @@ const Addcourse = () => {
                                         name="faculty"
                                         value={formData.faculty}
                                         onChange={handleChange}
-                                        disabled={isViewMode || JSON.parse(localStorage.getItem('user'))?.role?.toUpperCase() === 'FACULTY'}
+                                        disabled={isViewMode ||
+                                            (() => {
+                                                const u = JSON.parse(localStorage.getItem('user'));
+                                                const r = (u?.role || u?.role_name || "").toUpperCase();
+                                                return r === 'FACULTY';
+                                            })()
+                                        }
                                     >
                                         <option value="">Select Faculty</option>
                                         {faculties.map(f => (
