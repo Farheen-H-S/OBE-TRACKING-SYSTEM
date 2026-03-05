@@ -64,6 +64,8 @@ class SaveAssessmentMarksView(APIView):
         tool_name = request.query_params.get('tool_name')
         academic_year = request.query_params.get('academic_year')
         
+        semester = request.query_params.get('semester')
+        
         if not course_id or not tool_name:
             return Response({"error": "course_id and tool_name are required"}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -74,6 +76,8 @@ class SaveAssessmentMarksView(APIView):
         }
         if academic_year:
             auth_filters['academic_year'] = academic_year
+        if semester:
+            auth_filters['semester'] = semester
             
         # Get the most recently created/updated assessment matching the criteria
         assessment = Assessment.objects.filter(**auth_filters).order_by('-assessment_id').first()

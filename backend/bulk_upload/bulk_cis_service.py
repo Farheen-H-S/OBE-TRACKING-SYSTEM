@@ -170,7 +170,7 @@ def process_bulk_cis_apply(file, course_id, academic_year, semester, user):
         config = tool_map[sheet_name]
         try:
             with transaction.atomic():
-                result = _parse_and_save_sheet(df, config, course, academic_year, semester, students_in_context, user)
+                result = _parse_and_save_sheet(df, config, course, academic_year, course.semester, students_in_context, user)
                 report[sheet_name] = result
         except Exception as e:
             report[sheet_name] = f"Error: {str(e)}"
@@ -276,26 +276,49 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 marks_data.append((student, s_marks, s_marks['total']))
 
     elif parser == "SA":
-        # Roll No (A), Total (B)
-        for row in range(1, len(df)):
+        # Template: Roll No (col A=0), Name (col B=1), Total Marks (col C=2)
+        # Find the header row to skip it, then read data rows
+        tool_config = course.assessment_tools.get(tool_name, {}) if course.assessment_tools else {}
+        max_w = float(tool_config.get('maxMarks', 100))
+
+        # Detect header row — find row where col 0 says "Roll No" or similar
+        data_start_row = 1  # default: skip row 0 (header)
+        first_row_val = str(df.iloc[0, 0]).strip().lower()
+        if any(kw in first_row_val for kw in ['roll', 'enroll', 'sr', 'no']):
+            data_start_row = 1  # real header row is row 0, data starts at 1
+        
+        # Detect which column holds the Total Marks
+        # In our template: col C (index 2). Fallback: scan header row for "total"/"marks"
+        total_col = 2  # default to column C
+        if len(df.columns) > 2:
+            for c in range(len(df.columns)):
+                hdr = str(df.iloc[0, c]).strip().lower()
+                if 'total' in hdr or 'marks' in hdr:
+                    total_col = c
+                    break
+
+        for row in range(data_start_row, len(df)):
             roll = str(df.iloc[row, 0]).strip()
             if not roll or roll == "nan": continue
+            # Skip footer rows like "Average", "Total" etc.
+            if any(kw in roll.lower() for kw in ['total', 'avg', 'average', 'co attainment']): continue
             norm_roll = normalize_roll(roll)
             if norm_roll in students_map:
                 student = students_map[norm_roll]
-                try: total = float(df.iloc[row, 1])
-                except: total = 0.0
+                try:
+                    total = float(df.iloc[row, total_col])
+                    if pd.isna(total): total = 0.0
+                except:
+                    total = 0.0
                 
-                tool_config = course.assessment_tools.get(tool_name, {}) if course.assessment_tools else {}
-                max_w = float(tool_config.get('maxMarks', 100))
                 if total > max_w:
                     errors.append(f"Row {row+1}: Total marks ({total}) exceed max configuration ({max_w})")
                     
                 marks_data.append((student, {'0': total, 'total': total}, total))
         
         questions = ["Total"]
-        weights = [float(tool_config.get('maxMarks', 100))]
-        cos = ["CO1"] # Default for SA if not specified
+        weights = [max_w]
+        cos = ["CO1"]  # Default for SA if not specified
     
     # If no student rows found — return descriptive message, no DB change
     if not marks_data and not questions:
