@@ -32,6 +32,7 @@ const Addcourse = () => {
         class: '',
         semester: '',
         faculty: '',
+        introduction_year: '',
         batches: [],  // Multiple batches can study this course
         assessmentTools: {
             'FA-TH': { selected: false, maxMarks: 20, type: 'Internal' },
@@ -108,7 +109,8 @@ const Addcourse = () => {
                         class: data.class_year,
                         semester: data.semester,
                         faculty: data.faculty_assigned || '',
-                        batches: data.batch_list || [],
+                        introduction_year: data.introduction_year || '',
+                        batches: data.batches || [],
                         assessmentTools: data.assessment_tools || prev.assessmentTools,
                         courseOutcomes: cos,
                         course_name_suffix: data.course_name ? (data.course_abbr ? data.course_name.replace(`${data.course_abbr}-`, '') : data.course_name) : ''
@@ -124,7 +126,8 @@ const Addcourse = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        const finalValue = name === 'courseAbbr' ? value.toUpperCase() : value;
+        setFormData({ ...formData, [name]: finalValue });
     };
 
     // Auto-update first CO pattern if course code changes and CO1 is still at default
@@ -181,14 +184,15 @@ const Addcourse = () => {
 
     // Auto-generate course code CO(class)(id)
     useEffect(() => {
-        if (!formData.courseId && !isViewMode && formData.class && formData.program_id) {
+        if (!formData.courseId && !isViewMode && formData.class && formData.program_id && formData.scheme) {
             const classMap = { 'FY': '1', 'SY': '2', 'TY': '3' };
             const classDigit = classMap[formData.class] || '0';
 
-            // Filter courses by both class and program_id to ensure uniqueness
+            // Filter courses by class, program_id, and scheme to ensure uniqueness
             const classCourses = existingCourses.filter(c =>
                 c.class_year === formData.class &&
-                c.program_id === parseInt(formData.program_id)
+                c.program_id === parseInt(formData.program_id) &&
+                c.scheme_id === parseInt(formData.scheme)
             );
             const nextId = (classCourses.length + 1).toString().padStart(2, '0');
 
@@ -202,10 +206,10 @@ const Addcourse = () => {
                 }));
                 return { ...prev, courseCode: generatedCode, courseOutcomes: newCOs };
             });
-        } else if (!formData.courseId && !isViewMode && (!formData.class || !formData.program_id)) {
+        } else if (!formData.courseId && !isViewMode && (!formData.class || !formData.program_id || !formData.scheme)) {
             setFormData(prev => ({ ...prev, courseCode: '', courseOutcomes: [{ no: 'CO', text: prev.courseOutcomes[0]?.text || '' }] }));
         }
-    }, [formData.class, formData.program_id, existingCourses, isViewMode, formData.courseId]);
+    }, [formData.class, formData.program_id, formData.scheme, existingCourses, isViewMode, formData.courseId]);
 
     const getSemesterOptions = () => {
         if (formData.class === 'FY') return [1, 2];
@@ -242,16 +246,18 @@ const Addcourse = () => {
             // Use local form data for program and scheme
             const payload = {
                 course_code: formData.courseCode,
-                course_name: formData.courseAbbr ? `${formData.courseAbbr}-${formData.course_name_suffix}` : formData.course_name_suffix,
+                course_name: formData.courseAbbr ? `${formData.courseAbbr.toUpperCase()}-${formData.course_name_suffix}` : formData.course_name_suffix,
                 course_title: formData.courseTitle,
-                course_abbr: formData.courseAbbr,
+                course_abbr: formData.courseAbbr.toUpperCase(),
                 scheme_id: formData.scheme,
                 program_id: formData.program_id,
                 class_year: formData.class,
                 semester: formData.semester,
                 faculty_assigned: formData.faculty,
+                introduction_year: formData.introduction_year,
                 assessment_tools: formData.assessmentTools,
                 batches: formData.batches,
+                cos: coData,
                 co_status: requestedStatus
             };
 
@@ -263,19 +269,30 @@ const Addcourse = () => {
             }
 
             if (response.status === 201 || response.status === 200) {
-                const cId = response.data.course_id || formData.courseId;
-
-                // Save COs (Full Sync)
-                if (coData.length > 0) {
-                    await api.post(`/academics/courses/${cId}/cos/`, coData);
-                }
-
                 alert(requestedStatus === 'COMPLETED' ? "Course and Outcomes saved & completed successfully!" : "Course saved as draft!");
                 navigate('/course-management');
             }
         } catch (err) {
             console.error("Error saving course:", err);
-            alert("Failed to save course. Check console for details.");
+
+            // Check for uniqueness constraint violation (e.g. concurrent course creation)
+            if (err.response?.status === 400 &&
+                (err.response?.data?.non_field_errors?.some(e => String(e).toLowerCase().includes('unique set')) ||
+                    err.response?.data?.course_code)) {
+
+                alert(`The generated Course Code (${formData.courseCode}) is already taken in this Department and Scheme, likely because another course was just created. We are generating a new, unique code for you now. Please verify and click Save again.`);
+
+                // Fetch the latest courses to trigger the generic useEffect & regenerate the code automatically
+                try {
+                    const courseRes = await api.get('/academics/courses/');
+                    setExistingCourses(courseRes.data);
+                } catch (fetchErr) {
+                    console.error("Failed to refresh courses after conflict", fetchErr);
+                }
+                return;
+            }
+
+            alert(err.response?.data?.detail || err.response?.data?.error || "Failed to save course. Check console for details.");
         }
     };
 
@@ -331,6 +348,27 @@ const Addcourse = () => {
                                         {schemes.map(s => (
                                             <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
                                         ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-md-4">
+                                    <label className="form-label fw-bold">Year of Introduction</label>
+                                    <select
+                                        className="form-select"
+                                        name="introduction_year"
+                                        value={formData.introduction_year}
+                                        onChange={handleChange}
+                                        disabled={isViewMode}
+                                    >
+                                        <option value="">Select Year</option>
+                                        {Array.from({ length: 13 }, (_, i) => 2018 + i).map(year => {
+                                            const yearStr = `${year}-${(year + 1) % 100}`;
+                                            return (
+                                                <option key={yearStr} value={yearStr}>
+                                                    {yearStr}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
 
@@ -598,8 +636,8 @@ const Addcourse = () => {
                         </form>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

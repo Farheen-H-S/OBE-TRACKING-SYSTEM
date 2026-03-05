@@ -19,12 +19,17 @@ export const FilterProvider = ({ children }) => {
             selectedClass: 'TY',
             selectedSemester: '1',
             selectedDivision: 'A',
-            selectedIntroYear: '2025-26'
+            selectedIntroYear: ''
         };
 
         if (saved) {
             try {
-                return { ...defaults, ...JSON.parse(saved) };
+                const parsed = JSON.parse(saved);
+                // Override the cached selectedIntroYear if it was the old default to prevent invisible courses
+                if (parsed.selectedIntroYear === '2025-26') {
+                    parsed.selectedIntroYear = '';
+                }
+                return { ...defaults, ...parsed };
             } catch (e) {
                 console.error("Error parsing saved context:", e);
                 return defaults;

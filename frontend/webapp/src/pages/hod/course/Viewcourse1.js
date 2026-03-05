@@ -25,6 +25,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
         selectedDept,
         selectedScheme,
         selectedIntroYear,
+        selectedBatch,
         years,
         schemes
     } = useFilters();
@@ -74,7 +75,9 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                 const params = {
                     program_id: selectedDept === 'All' ? '' : selectedDept,
                     scheme_id: selectedScheme === 'All' ? '' : selectedScheme,
-                    intro_year: selectedIntroYear
+                    intro_year: selectedIntroYear === 'All' ? '' : selectedIntroYear
+                    // Removed batch_id because the Batch dropdown is not visible on the Course Management page,
+                    // which was causing courses to be silently hidden based on state from other pages.
                 };
 
                 const courseRes = await api.get('/academics/courses/', { params });
@@ -92,7 +95,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
             }
         };
         fetchInitialData();
-    }, [isMyCourses, selectedDept, selectedScheme, selectedIntroYear]);
+    }, [isMyCourses, selectedDept, selectedScheme, selectedIntroYear, selectedBatch]);
 
     const filteredCourses = courses.filter(course => {
         const term = searchTerm.toLowerCase();
@@ -194,15 +197,16 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                                     <th>Course Title</th>
                                     <th>Abbr.</th>
                                     <th>Scheme</th>
+                                    <th>Intro Year</th>
                                     <th>CO Status</th>
                                     <th>Mapping Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="7" className="text-center py-4">Loading courses...</td></tr>
+                                    <tr><td colSpan="8" className="text-center py-4">Loading courses...</td></tr>
                                 ) : filteredCourses.length === 0 ? (
-                                    <tr><td colSpan="7" className="text-center py-4">No courses found.</td></tr>
+                                    <tr><td colSpan="8" className="text-center py-4">No courses found.</td></tr>
                                 ) : filteredCourses.map((course, index) => (
                                     <tr
                                         key={index}
@@ -214,6 +218,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
                                         <td className="name-cell-v1">{course.course_title}</td>
                                         <td>{course.course_abbr}</td>
                                         <td>{course.scheme_name || (schemes.find(s => s.scheme_id === course.scheme_id)?.scheme_name) || "K"}</td>
+                                        <td>{course.introduction_year || '-'}</td>
                                         <td>
                                             <span className={`status-badge-v1 ${course.co_status?.toLowerCase() === 'completed' ? 'status-completed' : 'status-pending'}`}>
                                                 {course.co_status || 'PENDING'}

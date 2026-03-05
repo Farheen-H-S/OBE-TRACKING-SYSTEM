@@ -31,6 +31,18 @@ class SchemeSerializer(serializers.ModelSerializer):
         # Later: scheme access can be filtered by program ownership
 
 
+class COSerializer(serializers.ModelSerializer):
+    course_code = serializers.CharField(
+        source='course_id.course_code',
+        read_only=True
+    )
+
+    class Meta:
+        model = CO
+        fields = '__all__'
+        # Later: CO edit permission based on faculty assignment
+
+
 class CourseSerializer(serializers.ModelSerializer):
     program_name = serializers.CharField(
         source='program_id.program_name',
@@ -39,6 +51,7 @@ class CourseSerializer(serializers.ModelSerializer):
     faculty_assigned = serializers.SerializerMethodField()
     faculty_assigned_name = serializers.SerializerMethodField()
     batch_list = serializers.SerializerMethodField()
+    cos = COSerializer(many=True, read_only=True)
 
     class Meta:
         model = Course
@@ -46,8 +59,8 @@ class CourseSerializer(serializers.ModelSerializer):
             'course_id', 'course_code', 'course_name', 'course_title', 
             'course_abbr', 'semester', 'class_year', 'program_id', 
             'program_name', 'scheme_id', 'assessment_tools', 
-            'faculty_assigned', 'faculty_assigned_name', 'batch_list', 'is_internal', 'co_status', 'mapping_status',
-            'course_atr', 'is_active', 'batches', 'created_at', 'updated_at'
+            'faculty_assigned', 'faculty_assigned_name', 'batch_list', 'cos', 'is_internal', 'co_status', 'mapping_status',
+            'course_atr', 'introduction_year', 'is_active', 'batches', 'created_at', 'updated_at'
         ]
         read_only_fields = ['batches']
 
@@ -63,18 +76,6 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def get_batch_list(self, obj):
         return [f"{b.batch_year}-{(b.batch_year + 1) % 100:02d}" for b in obj.batches.all()]
-
-
-class COSerializer(serializers.ModelSerializer):
-    course_code = serializers.CharField(
-        source='course_id.course_code',
-        read_only=True
-    )
-
-    class Meta:
-        model = CO
-        fields = '__all__'
-        # Later: CO edit permission based on faculty assignment
 
 
 class POSerializer(serializers.ModelSerializer):

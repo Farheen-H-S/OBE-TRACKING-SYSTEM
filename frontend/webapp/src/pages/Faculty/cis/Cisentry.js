@@ -375,7 +375,8 @@ const Cisentry = () => {
         program_id: selectedProgram,
         scheme_id: selectedScheme,
         class_year: selectedClass,
-        semester: selectedSemester
+        semester: selectedSemester,
+        batch_id: selectedBatch
       };
 
       if (role === 'FACULTY') {

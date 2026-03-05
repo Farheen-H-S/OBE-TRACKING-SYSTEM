@@ -56,13 +56,14 @@ class Course(models.Model):
     co_status = models.CharField(max_length=20, default='PENDING') # PENDING, COMPLETED
     mapping_status = models.CharField(max_length=20, default='PENDING') # PENDING, COMPLETED
     course_atr = models.TextField(null=True, blank=True)
+    introduction_year = models.CharField(max_length=15, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     batches = models.ManyToManyField(Batch, related_name='courses', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('course_code', 'program_id')
+        unique_together = ('course_code', 'program_id', 'scheme_id')
 
     def __str__(self):
         return f"{self.course_code} - {self.course_name}"
