@@ -16,7 +16,7 @@ const Updateuser = () => {
     username: '',
     password: '',
     is_active: true,
-    is_staff: false
+    user_id: null
   });
   const [profilePic, setProfilePic] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -86,7 +86,6 @@ const Updateuser = () => {
         username: userData.username || userData.email || '',
         password: '', // Don't pre-fill password
         is_active: userData.is_active,
-        is_staff: userData.is_staff || false,
         user_id: userData.user_id // Keep ID for save
       });
     } catch (err) {
@@ -246,7 +245,7 @@ const Updateuser = () => {
 
               {/* Flags */}
               <div className="row mb-3 align-items-center">
-                <label className="col-sm-3 col-form-label fw-bold text-secondary">Status & Access :</label>
+                <label className="col-sm-3 col-form-label fw-bold text-secondary">Status :</label>
                 <div className="col-sm-9 d-flex gap-4">
                   <div className="form-check">
                     <input
@@ -260,12 +259,9 @@ const Updateuser = () => {
                     />
                     <label className="form-check-label" htmlFor="isActive">Active</label>
                   </div>
-                  <div className="form-check">
-                    <input className="form-check-input" type="checkbox" name="is_staff" id="isStaff" checked={formData.is_staff} onChange={handleInputChange} disabled={!isAdmin} />
-                    <label className="form-check-label" htmlFor="isStaff">Staff Access</label>
-                  </div>
                 </div>
               </div>
+
 
               {/* Date of Joining */}
               <div className="row mb-3 align-items-center">
@@ -310,35 +306,37 @@ const Updateuser = () => {
               </div>
             </form>
           </div>
-        </div>
-      </main>
+        </div >
+      </main >
 
       {/* Success Popup */}
-      {showSuccessPopup && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="bg-white p-5 rounded shadow d-flex flex-column align-items-center justify-content-center text-center" style={{ maxWidth: '600px', width: '90%' }}>
-            <h3 className="mb-4 text-primary fw-bold">User updated successfully!</h3>
-            <button
-              onClick={() => {
-                const queryId = new URLSearchParams(location.search).get('id');
-                const targetId = queryId || formData.user_id;
-                const currentUser = getLoggedInUser();
+      {
+        showSuccessPopup && (
+          <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+            <div className="bg-white p-5 rounded shadow d-flex flex-column align-items-center justify-content-center text-center" style={{ maxWidth: '600px', width: '90%' }}>
+              <h3 className="mb-4 text-primary fw-bold">User updated successfully!</h3>
+              <button
+                onClick={() => {
+                  const queryId = new URLSearchParams(location.search).get('id');
+                  const targetId = queryId || formData.user_id;
+                  const currentUser = getLoggedInUser();
 
-                // If it was the current user, or profile, reload to sync UI
-                if (targetId === 'profile' || (currentUser && String(currentUser.user_id) === String(targetId))) {
-                  window.location.href = `/view-user2${targetId !== 'profile' ? `?id=${targetId}` : ''}`;
-                } else {
-                  navigate(`/view-user2${targetId ? `?id=${targetId}` : ''}`);
-                }
-              }}
-              className="btn btn-primary px-4 py-2"
-            >
-              Back to Profile
-            </button>
+                  // If it was the current user, or profile, reload to sync UI
+                  if (targetId === 'profile' || (currentUser && String(currentUser.user_id) === String(targetId))) {
+                    window.location.href = `/view-user2${targetId !== 'profile' ? `?id=${targetId}` : ''}`;
+                  } else {
+                    navigate(`/view-user2${targetId ? `?id=${targetId}` : ''}`);
+                  }
+                }}
+                className="btn btn-primary px-4 py-2"
+              >
+                Back to Profile
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

@@ -13,6 +13,7 @@ const Header = ({ onToggleSidebar }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const [showDownloads, setShowDownloads] = useState(false);
   const searchRef = useRef(null);
   const bellRef = useRef(null);
@@ -61,6 +62,29 @@ const Header = ({ onToggleSidebar }) => {
     );
 
   useEffect(() => {
+    if (showNotifications) fetchNotifications();
+  }, [showNotifications]);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get('/notifications/');
+      setNotifications(response.data);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    }
+  };
+
+  const handleMarkRead = async (id) => {
+    try {
+      await api.post(`/notifications/${id}/read/`);
+      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: true } : n));
+    } catch (err) {
+      console.error("Error marking read:", err);
+    }
+  };
+
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSearchResults(false);
@@ -103,6 +127,9 @@ const Header = ({ onToggleSidebar }) => {
       } else if (type === 'course') {
         url = '/bulk_upload/courses/template/';
         filename = 'Course_Bulk_Upload_Template.xlsx';
+      } else if (type === 'user') {
+        url = '/bulk_upload/users/template/';
+        filename = 'User_Bulk_Upload_Template.xlsx';
       } else if (type === 'cis') {
         if (!selectedCourse) {
           alert("Please select a course first in the Marks Entry page.");
@@ -243,16 +270,27 @@ const Header = ({ onToggleSidebar }) => {
                   <FaTimes className="cursor-pointer text-muted" onClick={() => setShowDownloads(false)} />
                 </div>
                 <div className="p-0">
-                  {['admin', 'hod', 'coordinator'].includes(userRole) && (
-                    <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                      <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
-                      <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
+                  {userRole === 'admin' ? (
+                    <button onClick={() => handleDownloadTemplate('user')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                      <div className="fw-bold small text-primary">User Bulk Upload Template</div>
+                      <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for HOD, Faculty, etc.</div>
                     </button>
+                  ) : (
+                    <>
+                      {['hod', 'coordinator'].includes(userRole) && (
+                        <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                          <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
+                          <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
+                        </button>
+                      )}
+                      {['hod', 'coordinator', 'faculty'].includes(userRole) && (
+                        <button onClick={() => handleDownloadTemplate('cis')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                          <div className="fw-bold small text-primary">Marks Bulk Upload Template</div>
+                          <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
+                        </button>
+                      )}
+                    </>
                   )}
-                  <button onClick={() => handleDownloadTemplate('cis')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                    <div className="fw-bold small text-primary">Marks Bulk Upload Template</div>
-                    <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
-                  </button>
                 </div>
               </div>
             )}
@@ -273,9 +311,30 @@ const Header = ({ onToggleSidebar }) => {
                   <span>Notifications</span>
                   <FaTimes className="cursor-pointer text-muted" onClick={() => setShowNotifications(false)} />
                 </div>
-                <div className="p-4 text-center text-muted">
-                  <FaBell size={30} className="mb-2 opacity-25" />
-                  <p className="mb-0">You have no new notifications</p>
+                <div className="notification-list overflow-auto" style={{ maxHeight: '350px' }}>
+                  {notifications.length > 0 ? (
+                    notifications.map((n) => (
+                      <div
+                        key={n.notification_id}
+                        className={`p-3 border-bottom cursor-pointer notification-item ${!n.is_read ? 'bg-light' : ''}`}
+                        onClick={() => handleMarkRead(n.notification_id)}
+                      >
+                        <div className="d-flex justify-content-between">
+                          <span className={`badge ${n.notification_type === 'DANGER' ? 'bg-danger' : n.notification_type === 'WARNING' ? 'bg-warning' : 'bg-primary'} mb-1`}>
+                            {n.notification_type}
+                          </span>
+                          <span className="text-muted" style={{ fontSize: '10px' }}>{new Date(n.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="fw-bold small">{n.title}</div>
+                        <div className="text-muted small" style={{ fontSize: '12px' }}>{n.message}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted">
+                      <FaBell size={30} className="mb-2 opacity-25" />
+                      <p className="mb-0">You have no new notifications</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

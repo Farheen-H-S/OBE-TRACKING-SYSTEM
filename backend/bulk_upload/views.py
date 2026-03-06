@@ -909,3 +909,133 @@ class BulkCourseUploadView(APIView):
 
         except Exception as e:
             return Response({"error": f"Failed to parse file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DownloadUserTemplateView(APIView):
+    """
+    Generates and serves an Excel template for user bulk upload (HOD, Coordinator, Faculty, Auditor).
+    """
+    def get(self, request):
+        cols = [
+            'Name', 'Email', 'Contact No', 'Role', 'Department Name', 'Date of Joining'
+        ]
+        df = pd.DataFrame(columns=cols)
+        
+        # Add sample rows
+        df.loc[0] = ['John Doe', 'john@example.com', '9876543210', 'Faculty', 'Computer Engineering', '2023-01-15']
+        df.loc[1] = ['Jane Smith', 'jane@example.com', '9123456789', 'HOD', 'Information Technology', '2022-06-01']
+        
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Users')
+        output.seek(0)
+        
+        response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=User_Bulk_Upload_Template.xlsx'
+        return response
+
+class BulkUserUploadView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not (file_obj.name.endswith('.xlsx') or file_obj.name.endswith('.xls')):
+            return Response({"error": "Only Excel files (.xlsx, .xls) are allowed"}, status=status.HTTP_400_BAD_REQUEST)
+
+        results = {"total": 0, "success": 0, "updated": 0, "skipped": 0, "errors": []}
+
+        try:
+            df = pd.read_excel(file_obj, dtype=str)
+            df = df.fillna('')
+            
+            # Map column names
+            def clean_k(s): return "".join(c.lower() for c in str(s) if c.isalnum())
+            
+            alias_map = {
+                'name': ['name', 'fullname', 'username', 'user'],
+                'email': ['email', 'emailid', 'mail', 'emailaddress'],
+                'contact_no': ['contactno', 'contact', 'mobile', 'phone', 'mobileno'],
+                'role': ['role', 'designation', 'usertype'],
+                'dept_name': ['departmentname', 'department', 'dept', 'program', 'programname'],
+                'doj': ['dateofjoining', 'doj', 'joiningdate']
+            }
+
+            rename_map = {}
+            for col in df.columns:
+                ck = clean_k(col)
+                for internal_key, aliases in alias_map.items():
+                    if ck in aliases:
+                        rename_map[col] = internal_key
+                        break
+            
+            df = df.rename(columns=rename_map)
+            results["total"] = len(df)
+
+            for index, row in df.iterrows():
+                row_num = index + 2
+                try:
+                    name = str(row.get('name', '')).strip()
+                    email = str(row.get('email', '')).strip().lower()
+                    role_name = str(row.get('role', '')).strip()
+                    dept_name = str(row.get('dept_name', '')).strip()
+                    
+                    if not email or not role_name:
+                        results["errors"].append(f"Row {row_num}: Missing email or role.")
+                        results["skipped"] += 1
+                        continue
+
+                    if role_name.upper() == 'STUDENT':
+                        results["errors"].append(f"Row {row_num}: Students should be uploaded via Student Bulk Upload.")
+                        results["skipped"] += 1
+                        continue
+
+                    # Resolve Role
+                    role_obj = UserRole.objects.filter(role_name__iexact=role_name).first()
+                    if not role_obj:
+                        results["errors"].append(f"Row {row_num}: Role '{role_name}' not found.")
+                        results["skipped"] += 1
+                        continue
+
+                    # Resolve Department
+                    dept_obj = None
+                    if dept_name:
+                        from academics.models import Program
+                        dept_obj = Program.objects.filter(Q(program_name__icontains=dept_name) | Q(program_abbr__iexact=dept_name)).first()
+
+                    with transaction.atomic():
+                        user, created = User.objects.get_or_create(
+                            email=email,
+                            defaults={
+                                'username': email,
+                                'name': name or email.split('@')[0],
+                                'role_id': role_obj,
+                                'department': dept_obj,
+                                'contact_no': str(row.get('contact_no', '')).strip(),
+                                'date_of_joining': str(row.get('doj', '')).strip()
+                            }
+                        )
+
+                        if created:
+                            user.set_password("Admin@123")
+                            user.save()
+                            results["success"] += 1
+                        else:
+                            # Update existing
+                            user.name = name or user.name
+                            user.role_id = role_obj
+                            user.department = dept_obj or user.department
+                            user.contact_no = str(row.get('contact_no', '')).strip() or user.contact_no
+                            user.date_of_joining = str(row.get('doj', '')).strip() or user.date_of_joining
+                            user.save()
+                            results["updated"] += 1
+
+                except Exception as e:
+                    results["errors"].append(f"Row {row_num}: {str(e)}")
+                    results["skipped"] += 1
+
+            return Response(results, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

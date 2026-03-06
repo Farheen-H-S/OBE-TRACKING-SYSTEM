@@ -3,7 +3,8 @@ from .views import (
     BulkStudentUploadView, BulkMarksUploadView, DownloadStudentTemplateView, 
     PromoteStudentsView, BulkCISUploadView, BulkCourseUploadView,
     DownloadCourseTemplateView, DownloadCISTemplateView,
-    DownloadCISMultiSheetTemplateView, BulkCISApplyView
+    DownloadCISMultiSheetTemplateView, BulkCISApplyView,
+    DownloadUserTemplateView, BulkUserUploadView
 )
 
 urlpatterns = [
@@ -17,4 +18,7 @@ urlpatterns = [
     path('cis/template/', DownloadCISTemplateView.as_view(), name='download-cis-template'),
     path('courses/', BulkCourseUploadView.as_view(), name='bulk-course-upload'),
     path('courses/template/', DownloadCourseTemplateView.as_view(), name='download-course-template'),
+    path('users/', BulkUserUploadView.as_view(), name='bulk-user-upload'),
+    path('users/template/', DownloadUserTemplateView.as_view(), name='download-user-template'),
 ]
+
