@@ -163,6 +163,7 @@ const Reportverifiy = () => {
                                     <th>Submission Date</th>
                                     <th>Submitted By</th>
                                     <th className="text-center">View</th>
+                                    <th className="text-center">Remarks</th>
                                     <th className="text-center">Status</th>
                                     {!isFaculty && <th className="text-center">Actions</th>}
                                 </tr>
@@ -190,6 +191,9 @@ const Reportverifiy = () => {
                                                         View
                                                     </a>
                                                 </div>
+                                            </td>
+                                            <td className="text-center small text-muted">
+                                                {report.auditor_remark || '-'}
                                             </td>
                                             <td className="text-center">
                                                 <span className={`status-badge status-${(report.display_status || '').toLowerCase()}`}>

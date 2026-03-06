@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
 import { useFilters } from "../../../context/FilterContext";
+import GlobalFilterBar from "../../../components/filters/GlobalFilterBar";
 
 import "./Stresscreate.css";
 
@@ -218,6 +219,10 @@ const Stresscreate = () => {
             <div className="p-3 bg-light overflow-y-auto" style={{ height: '100%' }}>
                 <div className="container-fluid bg-white p-4 shadow-sm rounded">
 
+                    <div className="mb-4" style={{ position: 'relative', zIndex: 10 }}>
+                        <GlobalFilterBar visibleFilters={['dept', 'scheme', 'batch', 'year']} disableYearFiltering={true} />
+                    </div>
+
                     {/* Survey URL */}
                     <div className="mb-5">
                         <h5 className="section-title fw-bold">
@@ -391,7 +396,7 @@ const Stresscreate = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
-        </div>
+        </div >
     );
 };
 

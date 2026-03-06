@@ -335,8 +335,26 @@ class StudentListCreateAPIView(APIView):
             # Handle spacing mismatches like '2025-26' vs '2025 - 26'
             from django.db.models import Q
             ay_clean = str(academic_year).replace(" ", "")
+            # e.g. "2025-26" -> "2025 - 26"
             ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else str(academic_year)
-            queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
+            
+            # If academic_year is just a prefix like "2025", match by icontains
+            if len(ay_clean) == 4:
+                queryset = queryset.filter(academic_year__icontains=ay_clean)
+            else:
+                queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
+
+            # Fallback: If no students match the exact year, but we have a batch_id, 
+            # allow fetching by batch_id as long as it's active.
+            if not queryset.exists() and batch_id:
+                if str(batch_id).isdigit():
+                    queryset = Student.objects.filter(batch_id=batch_id, is_active=True)
+                else:
+                    import re
+                    match = re.search(r'\d{4}', str(batch_id))
+                    if match:
+                        base_year = int(match.group(0))
+                        queryset = Student.objects.filter(batch_id__batch_year=base_year, is_active=True)
             
         serializer = StudentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

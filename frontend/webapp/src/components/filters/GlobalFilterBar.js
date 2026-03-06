@@ -21,7 +21,7 @@ const PROGRAM_DURATION = 3; // years
 const CLASS_SEMS = { FY: ['1', '2'], SY: ['3', '4'], TY: ['5', '6'] };
 const SEM_CLASS = { '1': 'FY', '2': 'FY', '3': 'SY', '4': 'SY', '5': 'TY', '6': 'TY' };
 
-const GlobalFilterBar = ({ visibleFilters = null }) => {
+const GlobalFilterBar = ({ visibleFilters = null, disableYearFiltering = false }) => {
     const {
         selectedDept, setSelectedDept,
         selectedScheme, setSelectedScheme,
@@ -46,7 +46,7 @@ const GlobalFilterBar = ({ visibleFilters = null }) => {
     // --- Smart Academic Year options (filtered by selected Batch) ---
     // Batch is primary: show ALL batches, but filter academic years based on selected batch
     const selBatchYear = parseYear(selectedBatch);
-    const filteredYears = selBatchYear
+    const filteredYears = (selBatchYear && !disableYearFiltering)
         ? years.filter(y => {
             const yy = parseYear(y);
             // Batch selBatchYear is active in years: selBatchYear-2, selBatchYear-1, selBatchYear

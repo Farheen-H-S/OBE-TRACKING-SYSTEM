@@ -26,7 +26,7 @@ class ReportVerificationView(generics.ListAPIView):
     serializer_class = ReportSerializer
     
     def get_queryset(self):
-        return Report.objects.filter(status__in=['Draft', 'Pending']).order_by('-created_at')
+        return Report.objects.filter(status__in=['Draft', 'Pending', 'Rejected']).order_by('-created_at')
 
 class ApproveReportView(APIView):
     def post(self, request, pk):
@@ -50,6 +50,7 @@ class RejectReportView(APIView):
         try:
             report = Report.objects.get(pk=pk)
             report.status = 'Rejected'
+            report.auditor_remark = remark # Save remark
             report.save()
             
             # Log action
@@ -59,6 +60,38 @@ class RejectReportView(APIView):
             return Response({"message": "Report rejected successfully"}, status=status.HTTP_200_OK)
         except Report.DoesNotExist:
             return Response({"error": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class ApproveDACReportView(APIView):
+    def post(self, request, pk):
+        try:
+            report = DACReport.objects.get(pk=pk)
+            report.status = 'Approved'
+            report.save()
+            
+            # Log action
+            user = request.user if request.user and not request.user.is_anonymous else None
+            log_action(user, 'APPROVE', 'DACReport', pk, remark=f"DAC Report approved: {report.file.name}")
+            
+            return Response({"message": "DAC Report approved successfully"}, status=status.HTTP_200_OK)
+        except DACReport.DoesNotExist:
+            return Response({"error": "DAC Report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class RejectDACReportView(APIView):
+    def post(self, request, pk):
+        remark = request.data.get('remark', '')
+        try:
+            report = DACReport.objects.get(pk=pk)
+            report.status = 'Rejected'
+            report.auditor_remark = remark
+            report.save()
+            
+            # Log action
+            user = request.user if request.user and not request.user.is_anonymous else None
+            log_action(user, 'UPDATE', 'DACReport', pk, remark=f"DAC Report rejected: {remark}")
+            
+            return Response({"message": "DAC Report rejected successfully"}, status=status.HTTP_200_OK)
+        except DACReport.DoesNotExist:
+            return Response({"error": "DAC Report not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class DACReportListCreateView(generics.ListCreateAPIView):
     serializer_class = DACReportSerializer

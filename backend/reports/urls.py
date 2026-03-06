@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     ReportListCreateView, ReportDetailView, 
     ReportVerificationView, ApproveReportView, RejectReportView,
-    DACReportListCreateView, DACReportDetailView
+    DACReportListCreateView, DACReportDetailView,
+    ApproveDACReportView, RejectDACReportView
 )
 
 urlpatterns = [
@@ -15,4 +16,6 @@ urlpatterns = [
     # DAC Reports
     path('dac-reports/', DACReportListCreateView.as_view(), name='dac-report-list-create'),
     path('dac-reports/<int:pk>/', DACReportDetailView.as_view(), name='dac-report-detail'),
+    path('dac-reports/<int:pk>/approve/', ApproveDACReportView.as_view(), name='dac-report-approve'),
+    path('dac-reports/<int:pk>/reject/', RejectDACReportView.as_view(), name='dac-report-reject'),
 ]

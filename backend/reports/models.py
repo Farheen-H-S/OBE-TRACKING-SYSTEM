@@ -154,5 +154,17 @@ class DACReport(models.Model):
     
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
+    status = models.CharField(
+        max_length=20,
+        default='Pending',
+        help_text="Pending/Approved/Rejected/Verified"
+    )
+    
+    auditor_remark = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Rejection reason or auditor comments"
+    )
+    
     def __str__(self):
         return f"DAC Report - {self.academic_year}"

@@ -87,7 +87,7 @@ function HodDashboardContent() {
                 <div className="col-12 mb-4">
                     <div className="hod-main-container">
                         <div className="mb-4">
-                            <GlobalFilterBar visibleFilters={['dept', 'scheme', 'year']} />
+                            <GlobalFilterBar visibleFilters={['dept', 'scheme', 'year']} disableYearFiltering={true} />
                         </div>
                         {/* 1. Top Stats Row */}
                         <div className="row mb-4 text-center">
