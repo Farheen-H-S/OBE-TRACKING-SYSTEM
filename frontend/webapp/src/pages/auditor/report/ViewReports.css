@@ -1,150 +1,184 @@
 .view-reports-container {
-    padding: 0;
-    background-color: #f8f9fc;
-    height: 100vh;
-    overflow: hidden;
+    background-color: #f1f5f9;
+    min-height: 100vh;
+    padding: 1.5rem;
 }
 
 .view-reports-main-layout {
-    display: flex;
-    height: 100%;
+    width: 100%;
 }
 
-.view-reports-content-panel {
-    flex: 1;
-    padding: 30px;
-    overflow-y: auto;
-    transition: all 0.3s ease;
+.view-reports-header h2 {
+    font-size: 1.75rem;
+    color: #0f172a;
+    letter-spacing: -0.025em;
 }
 
-.remarks-expanded .view-reports-content-panel {
-    margin-right: 0;
+/* Horizontal Split Layout - Top and Bottom */
+.content-row {
+    flex-direction: column !important;
+    /* Stack vertically */
+    gap: 2rem;
 }
 
-/* Side Panel */
-.excel-remarks-side-panel {
-    width: 0;
-    background: #fff;
-    border-left: 1px solid #e3e6f0;
-    transition: width 0.3s ease;
+.col-lg-5,
+.col-lg-7 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 auto !important;
+}
+
+.reports-card,
+.audit-board-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid #e2e8f0;
+    transition: box-shadow 0.2s;
+}
+
+.reports-card {
+    height: calc(100vh - 120px);
+}
+
+.audit-board-card {
+    height: calc(100vh - 120px);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
-.excel-remarks-side-panel.show {
-    width: 600px;
+/* Reports List */
+.report-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.report-item:hover {
+    background: #f8fafc;
+    border-left-color: #cbd5e1;
+}
+
+.report-item.active-report {
+    background: #f0f7ff;
+    border-left-color: #2563eb;
+}
+
+/* Excel Grid */
+.excel-panel-header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
 }
 
 .excel-grid-container {
-    flex: 1;
+    flex-grow: 1;
     overflow: auto;
-    background-color: #fff;
+    background: #f8fafc;
+    position: relative;
 }
 
-/* Excel Style Table */
 .excel-table {
     border-collapse: collapse;
     width: 100%;
     table-layout: fixed;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #cbd5e1;
+    /* Grid line color */
 }
 
-.excel-table th,
-.excel-table td {
-    border: 1px solid #d4d4d4;
-    min-width: 100px;
-}
-
-.excel-corner {
-    background-color: #f3f3f3;
-    width: 40px !important;
+.excel-corner,
+.excel-col-header,
+.excel-row-header {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.7rem;
+    border: 1px solid #cbd5e1;
+    user-select: none;
 }
 
 .excel-col-header {
-    background-color: #f3f3f3;
+    height: 28px;
     text-align: center;
-    padding: 5px;
-    font-size: 0.8rem;
-    color: #666;
-    font-weight: normal;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .excel-row-header {
-    background-color: #f3f3f3;
+    width: 35px;
     text-align: center;
-    width: 40px;
-    font-size: 0.8rem;
-    color: #666;
-    font-weight: normal;
+    position: sticky;
+    left: 0;
+    z-index: 5;
 }
 
 .excel-cell {
-    padding: 0 !important;
-    height: 35px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 0;
 }
 
 .excel-textarea {
     width: 100%;
-    height: 100%;
+    height: 32px;
     border: none;
-    padding: 5px;
-    font-size: 0.85rem;
-    outline: none;
+    padding: 4px 8px;
+    font-size: 0.8rem;
     resize: none;
+    outline: none;
     display: block;
     background: transparent;
+    line-height: 1.4;
+    overflow: hidden;
+    /* Hide scrollbars within cell */
 }
 
 .excel-textarea:focus {
-    background-color: #fff;
-    box-shadow: inset 0 0 0 2px #107c10;
-    /* Excel Green */
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #2563eb;
+    z-index: 2;
+    position: relative;
 }
 
-/* Utility */
-.reports-card,
-.audit-card,
-.empty-state {
-    border-radius: 12px;
-    height: calc(100vh - 180px);
-}
-
-.active-report {
-    background-color: #e8f0fe !important;
-    border-color: #1a73e8 !important;
-}
-
-.report-item {
-    cursor: pointer;
-    transition: all 0.2s;
-    background-color: #ffffff;
-    border-left: 4px solid #d1d3e2;
-}
-
-.report-item:hover {
-    background-color: #f8f9fc;
-    transform: translateX(5px);
-}
-
+/* Clean Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 10px;
+    background: #cbd5e1;
+    border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #999;
+    background: #94a3b8;
 }
 
-.sticky-top {
-    z-index: 100;
+/* Empty State */
+.empty-board {
+    background: #f8fafc;
+    border: 2px dashed #e2e8f0;
+}
+
+/* Icon Styles */
+.text-success {
+    color: #10b981 !important;
+}
+
+.btn-success {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+
+.btn-success:hover {
+    background-color: #059669;
+    border-color: #059669;
 }

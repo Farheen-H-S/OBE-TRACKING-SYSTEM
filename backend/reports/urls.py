@@ -3,7 +3,8 @@ from .views import (
     ReportListCreateView, ReportDetailView, 
     ReportVerificationView, ApproveReportView, RejectReportView,
     DACReportListCreateView, DACReportDetailView,
-    ApproveDACReportView, RejectDACReportView
+    ApproveDACReportView, RejectDACReportView,
+    AuditorBoardView
 )
 
 urlpatterns = [

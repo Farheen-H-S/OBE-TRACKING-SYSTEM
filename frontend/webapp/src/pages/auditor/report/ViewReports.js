@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './ViewReports.css';
-import { FaFilter, FaSearch, FaSave, FaPlus, FaTrash, FaEye, FaFileDownload } from 'react-icons/fa';
+import { FaFilter, FaSearch, FaSave, FaPlus, FaTrash, FaEye, FaFileDownload, FaTimes, FaArrowLeft, FaChevronRight } from 'react-icons/fa';
 import api from '../../../utils/axios';
+import { getLoggedInUser } from '../../../utils/auth';
+import { Badge } from 'react-bootstrap';
 
 const ViewReports = () => {
+    const user = getLoggedInUser();
+    const isUserDisabled = user?.is_active === false;
+
     const [reports, setReports] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [filters, setFilters] = useState({
@@ -16,18 +21,17 @@ const ViewReports = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedReport, setSelectedReport] = useState(null);
 
-    const [showRemarks, setShowRemarks] = useState(false);
-
-    // Remarks State: { reportId: { rows: [['','','']] } }
+    // Remarks State: { uniqueKey: { rows: [['','','']] } }
     const [remarksData, setRemarksData] = useState({});
 
     // Column letters for Excel-like feel
-    const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+    const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
+
+    const gridRefs = React.useRef({});
 
     useEffect(() => {
         fetchPrograms();
         loadApprovedReports();
-        loadRemarks();
     }, []);
 
     const fetchPrograms = async () => {
@@ -41,79 +45,173 @@ const ViewReports = () => {
 
     const loadApprovedReports = async () => {
         try {
-            // Fetch reports from backend
-            const res = await api.get('/reports/', {
-                params: {
-                    status: 'Approved' // Backend should filter or we filter here
-                }
-            });
+            const [regularRes, dacRes] = await Promise.all([
+                api.get('/reports/'),
+                api.get('/reports/dac-reports/')
+            ]);
 
-            // Format for UI
-            const approved = res.data.filter(r => r.status === 'Approved' || r.status === 'Verified').map(r => ({
-                id: r.report_id,
-                name: r.report_type === 'Direct' ? `Direct CIS - ${r.course_id}` : `Batch Report - ${r.batch_id}`,
-                type: r.report_type === 'Direct' ? 'Direct Attainment' : 'PO/PSO Attainment',
-                date: new Date(r.created_at).toLocaleDateString(),
-                submittedBy: r.user_id_created || 'System',
-                status: r.status,
-                filters: { program: r.program_id, batch: r.batch_id }, // Adjusted filters
-                content: r.report_file
-            }));
+            const regularApproved = regularRes.data
+                .filter(r => r.status === 'Approved' || r.status === 'Verified')
+                .map(r => ({
+                    id: r.report_id,
+                    name: r.file_name || (r.report_type === 'Direct' ? `Direct CIS - ${r.course_id}` : `Batch Report - ${r.batch_id}`),
+                    type: r.report_type === 'Direct' ? 'Direct Attainment' : (r.report_type === 'Indirect' ? 'Indirect Attainment' : 'PO/PSO Attainment'),
+                    date: new Date(r.created_at).toLocaleDateString(),
+                    submittedBy: r.user_id_created || 'System',
+                    status: r.status,
+                    filters: { program: r.program_id, batch: r.batch_id },
+                    content: r.report_file,
+                    auditor_remark: r.auditor_remark,
+                    isDac: false,
+                    uniqueKey: `reg-${r.report_id}`
+                }));
 
-            setReports(approved);
+            const dacApproved = dacRes.data
+                .filter(r => r.status === 'Approved' || r.status === 'Verified')
+                .map(r => ({
+                    id: r.dac_report_id,
+                    name: r.file_name || `DAC Report - ${r.academic_year}`,
+                    type: 'DAC Report',
+                    date: new Date(r.uploaded_at).toLocaleDateString(),
+                    submittedBy: r.uploaded_by || 'System',
+                    status: r.status,
+                    filters: { program: r.program_id, batch: r.batch_id },
+                    content: r.file,
+                    auditor_remark: r.auditor_remark,
+                    isDac: true,
+                    uniqueKey: `dac-${r.dac_report_id}`
+                }));
+
+            setReports([...regularApproved, ...dacApproved]);
         } catch (err) {
             console.error("Error loading reports:", err);
         }
     };
 
-    const loadRemarks = () => {
-        const stored = localStorage.getItem('audit_remarks');
-        if (stored) setRemarksData(JSON.parse(stored));
+    const handleReportSelect = (report) => {
+        setSelectedReport(report);
+
+        // Trigger Direct Download
+        if (report.content) {
+            const link = document.createElement('a');
+            link.href = report.content;
+            link.setAttribute('download', report.name);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Parse remarks from report object
+        if (report.auditor_remark) {
+            try {
+                const parsed = JSON.parse(report.auditor_remark);
+                setRemarksData(prev => ({ ...prev, [report.uniqueKey]: parsed }));
+            } catch (e) {
+                setRemarksData(prev => ({
+                    ...prev,
+                    [report.uniqueKey]: { rows: [[report.auditor_remark || '']] }
+                }));
+            }
+        } else {
+            setRemarksData(prev => ({
+                ...prev,
+                [report.uniqueKey]: { rows: Array(25).fill(0).map(() => Array(10).fill('')) }
+            }));
+        }
     };
 
-    const saveRemarks = () => {
-        localStorage.setItem('audit_remarks', JSON.stringify(remarksData));
-        alert("Board remarks saved successfully!");
+    const saveRemarks = async () => {
+        if (isUserDisabled) {
+            alert("Your account is disabled. Remarks cannot be saved.");
+            return;
+        }
+
+        if (!selectedReport) return;
+
+        try {
+            const data = remarksData[selectedReport.uniqueKey];
+            const endpoint = selectedReport.isDac
+                ? `/reports/dac-reports/${selectedReport.id}/`
+                : `/reports/${selectedReport.id}/`;
+
+            await api.patch(endpoint, {
+                auditor_remark: JSON.stringify(data)
+            });
+
+            alert("Board remarks saved to database successfully!");
+            loadApprovedReports();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save remarks to database.");
+        }
     };
 
-    const handleRowChange = (reportId, rowIndex, colIndex, value) => {
-        const current = remarksData[reportId] || { rows: Array(10).fill(0).map(() => Array(5).fill('')) };
+    const handleRowChange = (uniqueKey, rowIndex, colIndex, value) => {
+        if (isUserDisabled) return;
+        const current = remarksData[uniqueKey] || { rows: Array(25).fill(0).map(() => Array(10).fill('')) };
         const newRows = [...current.rows];
         newRows[rowIndex] = [...newRows[rowIndex]];
         newRows[rowIndex][colIndex] = value;
-        setRemarksData({ ...remarksData, [reportId]: { ...current, rows: newRows } });
+        setRemarksData({ ...remarksData, [uniqueKey]: { ...current, rows: newRows } });
     };
 
-    const addRow = (reportId) => {
-        const current = remarksData[reportId] || { rows: Array(10).fill(0).map(() => Array(5).fill('')) };
+    const addRow = (uniqueKey) => {
+        if (isUserDisabled) return;
+        const current = remarksData[uniqueKey] || { rows: Array(25).fill(0).map(() => Array(10).fill('')) };
         const newRows = [...current.rows, Array(current.rows[0].length).fill('')];
-        setRemarksData({ ...remarksData, [reportId]: { ...current, rows: newRows } });
+        setRemarksData({ ...remarksData, [uniqueKey]: { ...current, rows: newRows } });
     };
 
-    const addColumn = (reportId) => {
-        const current = remarksData[reportId] || { rows: Array(10).fill(0).map(() => Array(5).fill('')) };
+    const addColumn = (uniqueKey) => {
+        if (isUserDisabled) return;
+        const current = remarksData[uniqueKey] || { rows: Array(25).fill(0).map(() => Array(10).fill('')) };
         const newRows = current.rows.map(row => [...row, '']);
-        setRemarksData({ ...remarksData, [reportId]: { ...current, rows: newRows } });
+        setRemarksData({ ...remarksData, [uniqueKey]: { ...current, rows: newRows } });
+    };
+
+    const handleKeyDown = (e, rIdx, cIdx, uniqueKey) => {
+        if (isUserDisabled) return;
+        const rows = getCurrentRows(uniqueKey);
+        const maxRows = rows.length;
+        const maxCols = rows[0].length;
+
+        let nextR = rIdx;
+        let nextC = cIdx;
+
+        if (e.key === 'ArrowUp') {
+            nextR = Math.max(0, rIdx - 1);
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+            nextR = Math.min(maxRows - 1, rIdx + 1);
+            e.preventDefault();
+        } else if (e.key === 'ArrowLeft') {
+            nextC = Math.max(0, cIdx - 1);
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight') {
+            nextC = Math.min(maxCols - 1, cIdx + 1);
+            e.preventDefault();
+        }
+
+        if (nextR !== rIdx || nextC !== cIdx) {
+            const nextRef = gridRefs.current[`${nextR}-${nextC}`];
+            if (nextRef) nextRef.focus();
+        }
     };
 
     const filteredReports = reports.filter(r => {
         const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesProgram = !filters.program || r.filters.program === filters.program;
+        const matchesProgram = !filters.program || r.filters.program.toString() === filters.program;
         const matchesType = filters.type === 'All' || r.type === filters.type;
-        const matchesBatch = !filters.batch || r.filters.batch === filters.batch;
-        const matchesClass = !filters.class || r.filters.class === filters.class;
-        return matchesSearch && matchesProgram && matchesType && matchesBatch && matchesClass;
+        return matchesSearch && matchesProgram && matchesType;
     });
 
-    // Helper to get rows for current report
-    const getCurrentRows = (reportId) => {
-        if (remarksData[reportId]?.rows) return remarksData[reportId].rows;
-        // Default 15x6 grid
-        return Array(15).fill(0).map(() => Array(6).fill(''));
+    const getCurrentRows = (uniqueKey) => {
+        if (remarksData[uniqueKey]?.rows) return remarksData[uniqueKey].rows;
+        return Array(25).fill(0).map(() => Array(10).fill(''));
     };
 
     return (
-        <div className={`view-reports-container ${showRemarks ? 'remarks-expanded' : ''}`}>
+        <div className="view-reports-container">
             <div className="view-reports-main-layout">
                 <div className="view-reports-content-panel">
                     <div className="view-reports-header mb-4">
@@ -122,7 +220,6 @@ const ViewReports = () => {
                     </div>
 
                     <div className="row g-4 content-row">
-                        {/* Reports List Section */}
                         <div className="col-lg-5">
                             <div className="reports-card shadow-sm bg-white p-4 rounded-lg border-0 h-100">
                                 <div className="filters-panel mb-4">
@@ -161,9 +258,9 @@ const ViewReports = () => {
                                     {filteredReports.length > 0 ? (
                                         filteredReports.map(report => (
                                             <div
-                                                key={report.id}
-                                                className={`report-item p-3 mb-2 rounded border-start border-4 ${selectedReport?.id === report.id ? 'active-report' : ''}`}
-                                                onClick={() => setSelectedReport(report)}
+                                                key={report.uniqueKey}
+                                                className={`report-item p-3 mb-2 rounded border-start border-4 ${selectedReport?.uniqueKey === report.uniqueKey ? 'active-report' : ''}`}
+                                                onClick={() => handleReportSelect(report)}
                                             >
                                                 <div className="d-flex justify-content-between align-items-start">
                                                     <h6 className="mb-1 text-truncate" style={{ maxWidth: '200px' }}>{report.name}</h6>
@@ -182,100 +279,66 @@ const ViewReports = () => {
                             </div>
                         </div>
 
-                        {/* Report Preview card */}
                         <div className="col-lg-7">
-                            {selectedReport ? (
-                                <div className="audit-card shadow-sm bg-white p-4 rounded-lg border-0 h-100">
-                                    <div className="d-flex justify-content-between align-items-center mb-4">
-                                        <div>
-                                            <h4 className="fw-bold mb-0">{selectedReport.name}</h4>
-                                            <span className="text-primary small fw-bold">{selectedReport.type}</span>
+                            <div className={`audit-board-card shadow-sm bg-white rounded-lg border-0 h-100 ${!selectedReport ? 'empty-board' : ''}`}>
+                                {selectedReport ? (
+                                    <div className="d-flex flex-column h-100">
+                                        <div className="excel-panel-header p-3 border-bottom d-flex justify-content-between align-items-center bg-white rounded-top">
+                                            <div className="d-flex align-items-center gap-2">
+                                                <h5 className="fw-bold m-0"><span className="text-success">Excel</span> Audit Remarks</h5>
+                                                {isUserDisabled && <Badge bg="danger" className="ms-2">Account Frozen</Badge>}
+                                            </div>
+                                            <div className="d-flex gap-2">
+                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => addColumn(selectedReport.uniqueKey)} title="Add Column" disabled={isUserDisabled}>+</button>
+                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => addRow(selectedReport.uniqueKey)} title="Add Row" disabled={isUserDisabled}>↵</button>
+                                                <button className="btn btn-success btn-sm px-3" onClick={saveRemarks} disabled={isUserDisabled}>Save All to DB</button>
+                                            </div>
                                         </div>
-                                        <div className="d-flex gap-2">
-                                            <button
-                                                className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
-                                                onClick={() => {
-                                                    if (selectedReport.content) {
-                                                        const win = window.open();
-                                                        win.document.write(`<iframe src="${selectedReport.content}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                                    } else {
-                                                        alert("Full preview functionality coming soon.");
-                                                    }
-                                                }}
-                                            >
-                                                <FaEye /> View Report
-                                            </button>
-                                            <button
-                                                className={`btn btn-sm d-flex align-items-center gap-2 ${showRemarks ? 'btn-dark' : 'btn-success'}`}
-                                                onClick={() => setShowRemarks(!showRemarks)}
-                                            >
-                                                <FaSave /> {showRemarks ? 'Hide Board' : 'Remarks Board'}
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    <div className="report-mini-preview border rounded d-flex align-items-center justify-content-center bg-light" style={{ height: '400px' }}>
-                                        <div className="text-center text-muted">
-                                            <FaEye className="fs-1 mb-3 opacity-25" />
-                                            <p>Use "View Report" for full screen preview<br />or check the Excel Board on the right.</p>
+                                        <div className="excel-grid-container custom-scrollbar p-0">
+                                            <table className="excel-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="excel-corner"></th>
+                                                        {getCurrentRows(selectedReport.uniqueKey)[0].map((_, idx) => (
+                                                            <th key={idx} className="excel-col-header">{columnLabels[idx] || `C${idx + 1}`}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {getCurrentRows(selectedReport.uniqueKey).map((row, rIdx) => (
+                                                        <tr key={rIdx}>
+                                                            <td className="excel-row-header">{rIdx + 1}</td>
+                                                            {row.map((cell, cIdx) => (
+                                                                <td key={cIdx} className="excel-cell">
+                                                                    <textarea
+                                                                        ref={el => gridRefs.current[`${rIdx}-${cIdx}`] = el}
+                                                                        className="excel-textarea"
+                                                                        value={cell}
+                                                                        onChange={(e) => handleRowChange(selectedReport.uniqueKey, rIdx, cIdx, e.target.value)}
+                                                                        onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx, selectedReport.uniqueKey)}
+                                                                        disabled={isUserDisabled}
+                                                                    /* placeholder={isUserDisabled ? "" : "Type observation..."} */
+                                                                    />
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="empty-state shadow-sm bg-white p-5 rounded-lg border-0 d-flex flex-column align-items-center justify-content-center h-100 text-center">
-                                    <div className="empty-icon-circle mb-4">
-                                        <FaFileDownload className="text-primary fs-1" />
+                                ) : (
+                                    <div className="empty-state p-5 d-flex flex-column align-items-center justify-content-center h-100 text-center">
+                                        <div className="empty-icon-circle mb-4 bg-light p-4 rounded-circle">
+                                            <FaFileDownload className="text-primary fs-1 opacity-50" />
+                                        </div>
+                                        <h4 className="fw-bold">No Report Selected</h4>
+                                        <p className="text-muted">Choose a report from the left to start auditing and fill the remarks board.</p>
                                     </div>
-                                    <h4 className="fw-bold">Select a report to audit</h4>
-                                    <p className="text-muted">Choose any approved report from the left to start auditing.</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Right Side Excel Panel */}
-                <div className={`excel-remarks-side-panel ${showRemarks ? 'show' : ''}`}>
-                    <div className="excel-panel-header p-3 border-bottom d-flex justify-content-between align-items-center bg-white sticky-top">
-                        <h5 className="fw-bold m-0"><span className="text-success">Excel</span> Audit Remarks</h5>
-                        <div className="d-flex gap-2">
-                            <button className="btn btn-sm btn-outline-secondary" onClick={() => addColumn(selectedReport?.id)} title="Add Column">+</button>
-                            <button className="btn btn-sm btn-outline-secondary" onClick={() => addRow(selectedReport?.id)} title="Add Row">↵</button>
-                            <button className="btn btn-success btn-sm" onClick={saveRemarks}>Save</button>
-                        </div>
-                    </div>
-
-                    <div className="excel-grid-container custom-scrollbar">
-                        {selectedReport ? (
-                            <table className="excel-table">
-                                <thead>
-                                    <tr>
-                                        <th className="excel-corner"></th>
-                                        {getCurrentRows(selectedReport.id)[0].map((_, idx) => (
-                                            <th key={idx} className="excel-col-header">{columnLabels[idx] || `C${idx + 1}`}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {getCurrentRows(selectedReport.id).map((row, rIdx) => (
-                                        <tr key={rIdx}>
-                                            <td className="excel-row-header">{rIdx + 1}</td>
-                                            {row.map((cell, cIdx) => (
-                                                <td key={cIdx} className="excel-cell">
-                                                    <textarea
-                                                        className="excel-textarea"
-                                                        value={cell}
-                                                        onChange={(e) => handleRowChange(selectedReport.id, rIdx, cIdx, e.target.value)}
-                                                    />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className="p-5 text-center text-muted">Select a report to edit remarks</div>
-                        )}
                     </div>
                 </div>
             </div>

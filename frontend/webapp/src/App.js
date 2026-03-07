@@ -153,7 +153,7 @@ function App() {
 
               {/* Auditor Routes */}
               <Route path="/auditor-dashboard" element={<Layout><AuditorDashboard /></Layout>} />
-              <Route path="/auditor/view-reports" element={<Layout><PlaceholderPage title="View Reports" /></Layout>} />
+              <Route path="/auditor/view-reports" element={<Layout><AuditorViewReports /></Layout>} />
               <Route path="/auditor/view-my-remarks" element={<Layout><ViewRemark /></Layout>} />
 
               {/* Stress module flow (Student) - No Layout */}

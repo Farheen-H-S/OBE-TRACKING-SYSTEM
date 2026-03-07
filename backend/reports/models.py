@@ -168,3 +168,11 @@ class DACReport(models.Model):
     
     def __str__(self):
         return f"DAC Report - {self.academic_year}"
+
+class AuditorBoard(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='remarks_board')
+    content = models.TextField(null=True, blank=True, help_text="JSON representation of the unified grid")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Board for {self.user.name}"

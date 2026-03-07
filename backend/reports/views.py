@@ -1,8 +1,8 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Report, DACReport
-from .serializers import ReportSerializer, DACReportSerializer
+from .models import Report, DACReport, AuditorBoard
+from .serializers import ReportSerializer, DACReportSerializer, AuditorBoardSerializer
 from audit.utils import log_action
 
 class ReportListCreateView(generics.ListCreateAPIView):
@@ -158,10 +158,16 @@ class DACReportListCreateView(generics.ListCreateAPIView):
         if user:
             log_action(user, 'CREATE', 'DACReport', instance.dac_report_id, remark=f"Uploaded DAC Report: {instance.file.name}")
 
-class DACReportDetailView(generics.RetrieveDestroyAPIView):
+class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = DACReport.objects.all()
     serializer_class = DACReportSerializer
     
+    def perform_update(self, serializer):
+        user = self.request.user if self.request.user and not self.request.user.is_anonymous else None
+        instance = serializer.save()
+        if user:
+            log_action(user, 'UPDATE', 'DACReport', instance.dac_report_id, remark=f"Updated DAC Report: {instance.file.name}")
+
     def perform_destroy(self, instance):
         user = self.request.user if self.request.user and not self.request.user.is_anonymous else None
         
@@ -170,3 +176,20 @@ class DACReportDetailView(generics.RetrieveDestroyAPIView):
             log_action(user, 'DELETE', 'DACReport', instance.dac_report_id, remark=f"Deleted DAC Report: {instance.file.name}")
             
         instance.delete()
+
+class AuditorBoardView(APIView):
+    def get(self, request):
+        board, created = AuditorBoard.objects.get_or_create(user=request.user)
+        serializer = AuditorBoardSerializer(board)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        board, created = AuditorBoard.objects.get_or_create(user=request.user)
+        if not request.user.is_active:
+            return Response({"error": "Account frozen. Cannot save remarks."}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = AuditorBoardSerializer(board, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -46,7 +46,7 @@ const Reportverifiy = () => {
             const regularReports = regularRes.data.map(r => ({
                 ...r,
                 report_id: r.report_id,
-                report_name: `${r.report_type} Report - ${r.course_id || r.batch_id || 'N/A'}`,
+                report_name: r.file_name || `${r.report_type} Report - ${r.course_id || r.batch_id || 'N/A'}`,
                 display_status: r.status,
                 submitted_by: r.user_id_created || 'System'
             }));
@@ -55,8 +55,8 @@ const Reportverifiy = () => {
                 ...r,
                 report_id: r.dac_report_id,
                 report_type: 'DAC Report',
-                report_name: `DAC Report - ${r.academic_year} (${r.semester})`,
-                report_file: r.file_path,
+                report_name: r.file_name || `DAC Report - ${r.academic_year} (${r.semester})`,
+                report_file: r.file,
                 created_at: r.created_at,
                 display_status: r.status,
                 submitted_by: r.uploaded_by || 'System',

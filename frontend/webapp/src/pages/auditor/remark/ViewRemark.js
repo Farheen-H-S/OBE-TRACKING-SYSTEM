@@ -1,71 +1,135 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Modal } from 'react-bootstrap';
-import { FaEdit, FaTrash, FaCheckCircle, FaFileAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaFileAlt, FaCalendarAlt, FaLock } from 'react-icons/fa';
+import api from '../../../utils/axios';
+import { getLoggedInUser } from '../../../utils/auth';
 import './ViewRemark.css';
 
 const ViewRemark = () => {
+    const user = getLoggedInUser();
+    const isUserDisabled = user?.is_active === false;
+
     const [remarksData, setRemarksData] = useState({});
     const [reports, setReports] = useState([]);
-    const [selectedReportId, setSelectedReportId] = useState(null);
+    const [selectedReport, setSelectedReport] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [editData, setEditData] = useState({ headers: [], rows: [] });
+    const [editData, setEditData] = useState({ rows: [] });
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const loadData = () => {
-        const storedRemarks = JSON.parse(localStorage.getItem('audit_remarks') || '{}');
-        const dacReports = JSON.parse(localStorage.getItem('dac_reports') || '[]');
+    const loadData = async () => {
+        try {
+            const [regularRes, dacRes] = await Promise.all([
+                api.get('/reports/'),
+                api.get('/reports/dac-reports/')
+            ]);
 
-        // Combine storage-based DAC reports and mock reports for display purposes
-        // in a real app, this would be a unified 'Reports' database
-        const allReports = [
-            ...dacReports.map(r => ({ id: r.id, name: r.name, type: 'DAC Report', date: r.date })),
-            { id: 102, name: "Direct CIS Report - CS101", type: "Direct Attainment", date: "20-02-2025" },
-            { id: 103, name: "Indirect Attainment - TY Comp", type: "Indirect Attainment", date: "15-02-2025" },
-        ];
+            const allReports = [
+                ...regularRes.data.map(r => ({
+                    id: r.report_id,
+                    name: r.file_name || `Report ${r.report_id}`,
+                    type: r.report_type,
+                    date: new Date(r.created_at).toLocaleDateString(),
+                    auditor_remark: r.auditor_remark,
+                    isDac: false,
+                    uniqueKey: `reg-${r.report_id}`
+                })),
+                ...dacRes.data.map(r => ({
+                    id: r.dac_report_id,
+                    name: r.file_name || `DAC Report ${r.dac_report_id}`,
+                    type: 'DAC Report',
+                    date: new Date(r.uploaded_at).toLocaleDateString(),
+                    auditor_remark: r.auditor_remark,
+                    isDac: true,
+                    uniqueKey: `dac-${r.dac_report_id}`
+                }))
+            ];
 
-        setRemarksData(storedRemarks);
+            const storedRemarks = {};
+            const reportsWithRemarks = allReports.filter(r => {
+                if (r.auditor_remark) {
+                    try {
+                        const parsed = JSON.parse(r.auditor_remark);
+                        // Only count if it has some non-empty cells
+                        const hasContent = parsed.rows?.some(row => row.some(cell => cell && cell.trim() !== ''));
+                        if (hasContent) {
+                            storedRemarks[r.uniqueKey] = parsed;
+                            return true;
+                        }
+                    } catch (e) {
+                        // Old text remark
+                        storedRemarks[r.uniqueKey] = { rows: [[r.auditor_remark]] };
+                        return true;
+                    }
+                }
+                return false;
+            });
 
-        // Filter reports that have remarks
-        const reportsWithRemarks = allReports.filter(r => storedRemarks[r.id]);
-        setReports(reportsWithRemarks);
+            setRemarksData(storedRemarks);
+            setReports(reportsWithRemarks);
+        } catch (err) {
+            console.error("Error loading remarks data:", err);
+        }
     };
 
-    const handleEdit = (reportId) => {
-        setSelectedReportId(reportId);
-        setEditData(remarksData[reportId]);
+    const handleEdit = (report) => {
+        setSelectedReport(report);
+        setEditData(remarksData[report.uniqueKey] || { rows: [[]] });
         setShowEditModal(true);
     };
 
-    const handleHeaderChange = (idx, val) => {
-        const newHeaders = [...editData.headers];
-        newHeaders[idx] = val;
-        setEditData({ ...editData, headers: newHeaders });
-    };
-
     const handleRowChange = (rowIndex, colIndex, val) => {
+        if (isUserDisabled) return;
         const newRows = [...editData.rows];
+        newRows[rowIndex] = [...newRows[rowIndex]];
         newRows[rowIndex][colIndex] = val;
         setEditData({ ...editData, rows: newRows });
     };
 
-    const saveChanges = () => {
-        const updated = { ...remarksData, [selectedReportId]: editData };
-        localStorage.setItem('audit_remarks', JSON.stringify(updated));
-        setRemarksData(updated);
-        setShowEditModal(false);
-        alert("Remarks updated successfully!");
+    const saveChanges = async () => {
+        if (isUserDisabled) {
+            alert("Your account is disabled. Remarks cannot be updated.");
+            return;
+        }
+
+        try {
+            const endpoint = selectedReport.isDac
+                ? `/reports/dac-reports/${selectedReport.id}/`
+                : `/reports/${selectedReport.id}/`;
+
+            await api.patch(endpoint, {
+                auditor_remark: JSON.stringify(editData)
+            });
+
+            alert("Remarks updated in database successfully!");
+            setShowEditModal(false);
+            loadData(); // Reload to sync
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update remarks.");
+        }
     };
 
-    const handleDelete = (reportId) => {
-        if (window.confirm("Are you sure you want to delete all remarks for this report?")) {
-            const updated = { ...remarksData };
-            delete updated[reportId];
-            localStorage.setItem('audit_remarks', JSON.stringify(updated));
-            setRemarksData(updated);
-            setReports(reports.filter(r => r.id !== reportId));
+    const handleDelete = async (report) => {
+        if (isUserDisabled) return;
+        if (window.confirm("Are you sure you want to clear all remarks for this report in the DB?")) {
+            try {
+                const endpoint = report.isDac
+                    ? `/reports/dac-reports/${report.id}/`
+                    : `/reports/${report.id}/`;
+
+                await api.patch(endpoint, {
+                    auditor_remark: null
+                });
+
+                alert("Remarks cleared successfully!");
+                loadData();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to clear remarks.");
+            }
         }
     };
 
@@ -77,12 +141,17 @@ const ViewRemark = () => {
                         <h2 className="fw-bold text-dark m-0">My Audit Remarks</h2>
                         <p className="text-muted">Review and manage all remarks you've submitted across different reports.</p>
                     </div>
+                    {isUserDisabled && (
+                        <Badge bg="danger" className="p-2 d-flex align-items-center gap-2">
+                            <FaLock /> Auditor Account Frozen
+                        </Badge>
+                    )}
                 </div>
 
                 {reports.length > 0 ? (
                     <Row className="g-4">
                         {reports.map((report) => (
-                            <Col key={report.id} lg={4} md={6}>
+                            <Col key={report.uniqueKey} lg={4} md={6}>
                                 <Card className="remark-card h-100 shadow-sm border-0 border-top border-4 border-primary">
                                     <Card.Body className="d-flex flex-column">
                                         <div className="d-flex justify-content-between align-items-start mb-3">
@@ -90,29 +159,31 @@ const ViewRemark = () => {
                                                 {report.type}
                                             </Badge>
                                             <div className="text-muted small d-flex align-items-center gap-1">
-                                                <FaCalendarAlt /> {report.date.split(',')[0]}
+                                                <FaCalendarAlt /> {report.date}
                                             </div>
                                         </div>
 
-                                        <h5 className="fw-bold text-dark mb-3">
+                                        <h5 className="fw-bold text-dark mb-3 text-truncate">
                                             <FaFileAlt className="me-2 text-secondary" />
                                             {report.name}
                                         </h5>
 
                                         <div className="remark-preview mb-4 flex-grow-1">
-                                            <p className="text-muted small mb-1">Latest Remark:</p>
-                                            <div className="p-2 bg-light rounded italic-text border">
-                                                "{remarksData[report.id].rows[0]?.[0] || 'No remarks content.'}"
+                                            <p className="text-muted small mb-1">Snippet:</p>
+                                            <div className="p-2 bg-light rounded italic-text border small text-truncate">
+                                                "{remarksData[report.uniqueKey]?.rows[0]?.[0] || 'No content.'}"
                                             </div>
                                         </div>
 
                                         <div className="d-flex gap-2 justify-content-end border-top pt-3 mt-auto">
-                                            <Button variant="outline-primary" size="sm" onClick={() => handleEdit(report.id)}>
-                                                <FaEdit /> Edit / View Full
+                                            <Button variant="outline-primary" size="sm" onClick={() => handleEdit(report)}>
+                                                <FaEdit /> {isUserDisabled ? 'View Full' : 'Edit / View'}
                                             </Button>
-                                            <Button variant="outline-danger" size="sm" onClick={() => handleDelete(report.id)}>
-                                                <FaTrash />
-                                            </Button>
+                                            {!isUserDisabled && (
+                                                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(report)}>
+                                                    <FaTrash />
+                                                </Button>
+                                            )}
                                         </div>
                                     </Card.Body>
                                 </Card>
@@ -120,11 +191,10 @@ const ViewRemark = () => {
                         ))}
                     </Row>
                 ) : (
-                    <div className="text-center py-5 bg-white rounded shadow-sm">
-                        {/* <FaCheckCircle className="text-success fs-1 mb-3 opacity-25" /> */}
-                        <h4 className="text-muted">No remarks found.</h4>
+                    <div className="text-center py-5 bg-white rounded shadow-sm border">
+                        <h4 className="text-muted">No remarks found in database.</h4>
                         <p className="text-muted">You haven't added any remarks to any reports yet.</p>
-                        <Button variant="primary" onClick={() => window.location.href = '/auditor/view-reports'}>
+                        <Button variant="primary" onClick={() => window.location.href = '/auditor'}>
                             Audit a Report
                         </Button>
                     </div>
@@ -132,36 +202,28 @@ const ViewRemark = () => {
             </Container>
 
             {/* Edit Modal */}
-            <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+            <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="xl">
                 <Modal.Header closeButton>
-                    <Modal.Title className="fw-bold">Edit Remarks: {reports.find(r => r.id === selectedReportId)?.name}</Modal.Title>
+                    <Modal.Title className="fw-bold">
+                        {isUserDisabled ? 'View' : 'Edit'} Remarks: {selectedReport?.name}
+                    </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <div className="table-responsive">
-                        <table className="table table-bordered align-middle">
-                            <thead className="bg-light">
-                                <tr>
-                                    {editData.headers.map((h, i) => (
-                                        <th key={i}>
-                                            <input
-                                                className="form-control form-control-sm fw-bold text-center"
-                                                value={h}
-                                                onChange={(e) => handleHeaderChange(i, e.target.value)}
-                                            />
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
+                        <table className="table table-bordered align-middle small">
+                            <tbody className="bg-light">
                                 {editData.rows.map((row, rIdx) => (
                                     <tr key={rIdx}>
+                                        <td className="bg-secondary-subtle text-center fw-bold" style={{ width: '40px' }}>{rIdx + 1}</td>
                                         {row.map((cell, cIdx) => (
                                             <td key={cIdx}>
                                                 <textarea
-                                                    className="form-control form-control-sm"
+                                                    className="form-control form-control-sm border-0 bg-transparent"
                                                     value={cell}
                                                     onChange={(e) => handleRowChange(rIdx, cIdx, e.target.value)}
-                                                    rows={2}
+                                                    rows={1}
+                                                    disabled={isUserDisabled}
+                                                    style={{ minWidth: '150px' }}
                                                 />
                                             </td>
                                         ))}
@@ -172,8 +234,12 @@ const ViewRemark = () => {
                     </div>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
-                    <Button variant="primary" onClick={saveChanges}>Save Changes</Button>
+                    <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                        {isUserDisabled ? 'Close' : 'Cancel'}
+                    </Button>
+                    {!isUserDisabled && (
+                        <Button variant="primary" onClick={saveChanges}>Save Changes to DB</Button>
+                    )}
                 </Modal.Footer>
             </Modal>
         </div>
