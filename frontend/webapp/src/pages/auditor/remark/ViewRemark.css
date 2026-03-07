@@ -1,39 +1,115 @@
 .view-remark-page {
-    background-color: #f7f9fc;
+    background-color: #f1f5f9;
     min-height: 100vh;
+    padding: 2rem;
 }
 
-.remark-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+.view-remark-header h2 {
+    font-size: 1.75rem;
+    color: #0f172a;
+    letter-spacing: -0.025em;
 }
 
-.remark-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
+.audit-board-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid #e2e8f0;
+    height: calc(100vh - 200px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-.italic-text {
-    font-style: italic;
-    color: #5a6268;
-    min-height: 60px;
+/* Excel Grid Styling (Synced with ViewReports.css) */
+.excel-panel-header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
 }
 
-.remark-preview {
-    max-height: 100px;
+.excel-grid-container {
+    flex-grow: 1;
+    overflow: auto;
+    background: #f8fafc;
+    position: relative;
+}
+
+.excel-table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    background: #cbd5e1;
+}
+
+.excel-corner,
+.excel-col-header,
+.excel-row-header {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.7rem;
+    border: 1px solid #cbd5e1;
+    user-select: none;
+}
+
+.excel-col-header {
+    height: 28px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.excel-row-header {
+    width: 35px;
+    text-align: center;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+}
+
+.excel-cell {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 0;
+}
+
+.excel-textarea {
+    width: 100%;
+    height: 32px;
+    border: none;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    resize: none;
+    outline: none;
+    display: block;
+    background: transparent;
+    line-height: 1.4;
     overflow: hidden;
 }
 
-.badge {
-    font-weight: 600;
-    letter-spacing: 0.3px;
+.excel-textarea:focus {
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #2563eb;
+    z-index: 2;
+    position: relative;
 }
 
-.modal-header {
-    background-color: #f8f9fc;
-    border-bottom: 2px solid #e3e6f0;
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.modal-footer {
-    background-color: #f8f9fc;
-    border-top: 2px solid #e3e6f0;
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }

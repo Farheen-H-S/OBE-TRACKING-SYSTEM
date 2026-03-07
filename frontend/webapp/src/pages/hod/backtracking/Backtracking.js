@@ -204,6 +204,8 @@ const Backtracking = () => {
             <h6 className="fw-bold text-primary mb-3">Attainment Summary</h6>
             {loading ? (
               <div className="text-muted small">Fetching data…</div>
+            ) : !selectedDept ? (
+              <div className="text-muted small">Please select a department to view attainment.</div>
             ) : (
               <div className="d-flex align-items-center gap-3 flex-wrap">
                 <div className="backtracking-card card-achieved shadow-sm">
@@ -218,11 +220,13 @@ const Backtracking = () => {
                   <div className="small opacity-75">Gap</div>
                   <div className="fs-4">{summary.gap}</div>
                 </div>
-                <div className={`ms-2 px-3 py-2 rounded-pill fw-bold d-flex align-items-center gap-2
-                                    ${parseFloat(summary.gap) <= 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'}`}>
-                  <i className={`bi ${parseFloat(summary.gap) <= 0 ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`}></i>
-                  Status: {parseFloat(summary.gap) <= 0 ? 'Target Met' : 'Not Met'}
-                </div>
+                {tableData.length > 0 && (
+                  <div className={`ms-2 px-3 py-2 rounded-pill fw-bold d-flex align-items-center gap-2
+                                      ${parseFloat(summary.gap) <= 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'}`}>
+                    <i className={`bi ${parseFloat(summary.gap) <= 0 ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`}></i>
+                    Status: {parseFloat(summary.gap) <= 0 ? 'Target Met' : 'Not Met'}
+                  </div>
+                )}
               </div>
             )}
           </div>

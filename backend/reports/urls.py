@@ -19,4 +19,5 @@ urlpatterns = [
     path('dac-reports/<int:pk>/', DACReportDetailView.as_view(), name='dac-report-detail'),
     path('dac-reports/<int:pk>/approve/', ApproveDACReportView.as_view(), name='dac-report-approve'),
     path('dac-reports/<int:pk>/reject/', RejectDACReportView.as_view(), name='dac-report-reject'),
+    path('auditor-board/', AuditorBoardView.as_view(), name='auditor-board'),
 ]

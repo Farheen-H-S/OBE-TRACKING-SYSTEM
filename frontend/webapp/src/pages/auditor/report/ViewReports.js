@@ -21,8 +21,8 @@ const ViewReports = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedReport, setSelectedReport] = useState(null);
 
-    // Remarks State: { uniqueKey: { rows: [['','','']] } }
-    const [remarksData, setRemarksData] = useState({});
+    // Remarks State: { rows: [['','','']] } -> Single Unified Board
+    const [remarksData, setRemarksData] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
 
     // Column letters for Excel-like feel
     const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
@@ -32,6 +32,7 @@ const ViewReports = () => {
     useEffect(() => {
         fetchPrograms();
         loadApprovedReports();
+        loadUnifiedBoard();
     }, []);
 
     const fetchPrograms = async () => {
@@ -88,6 +89,17 @@ const ViewReports = () => {
         }
     };
 
+    const loadUnifiedBoard = async () => {
+        try {
+            const res = await api.get('/reports/auditor-board/');
+            if (res.data.content) {
+                setRemarksData(JSON.parse(res.data.content));
+            }
+        } catch (err) {
+            console.error("Error loading board:", err);
+        }
+    };
+
     const handleReportSelect = (report) => {
         setSelectedReport(report);
 
@@ -100,24 +112,6 @@ const ViewReports = () => {
             link.click();
             document.body.removeChild(link);
         }
-
-        // Parse remarks from report object
-        if (report.auditor_remark) {
-            try {
-                const parsed = JSON.parse(report.auditor_remark);
-                setRemarksData(prev => ({ ...prev, [report.uniqueKey]: parsed }));
-            } catch (e) {
-                setRemarksData(prev => ({
-                    ...prev,
-                    [report.uniqueKey]: { rows: [[report.auditor_remark || '']] }
-                }));
-            }
-        } else {
-            setRemarksData(prev => ({
-                ...prev,
-                [report.uniqueKey]: { rows: Array(25).fill(0).map(() => Array(10).fill('')) }
-            }));
-        }
     };
 
     const saveRemarks = async () => {
@@ -126,52 +120,41 @@ const ViewReports = () => {
             return;
         }
 
-        if (!selectedReport) return;
-
         try {
-            const data = remarksData[selectedReport.uniqueKey];
-            const endpoint = selectedReport.isDac
-                ? `/reports/dac-reports/${selectedReport.id}/`
-                : `/reports/${selectedReport.id}/`;
-
-            await api.patch(endpoint, {
-                auditor_remark: JSON.stringify(data)
+            await api.patch('/reports/auditor-board/', {
+                content: JSON.stringify(remarksData)
             });
 
             alert("Board remarks saved to database successfully!");
-            loadApprovedReports();
         } catch (err) {
             console.error(err);
             alert("Failed to save remarks to database.");
         }
     };
 
-    const handleRowChange = (uniqueKey, rowIndex, colIndex, value) => {
+    const handleRowChange = (rowIndex, colIndex, value) => {
         if (isUserDisabled) return;
-        const current = remarksData[uniqueKey] || { rows: Array(25).fill(0).map(() => Array(10).fill('')) };
-        const newRows = [...current.rows];
+        const newRows = [...remarksData.rows];
         newRows[rowIndex] = [...newRows[rowIndex]];
         newRows[rowIndex][colIndex] = value;
-        setRemarksData({ ...remarksData, [uniqueKey]: { ...current, rows: newRows } });
+        setRemarksData({ ...remarksData, rows: newRows });
     };
 
-    const addRow = (uniqueKey) => {
+    const addRow = () => {
         if (isUserDisabled) return;
-        const current = remarksData[uniqueKey] || { rows: Array(25).fill(0).map(() => Array(10).fill('')) };
-        const newRows = [...current.rows, Array(current.rows[0].length).fill('')];
-        setRemarksData({ ...remarksData, [uniqueKey]: { ...current, rows: newRows } });
+        const newRows = [...remarksData.rows, Array(remarksData.rows[0].length).fill('')];
+        setRemarksData({ ...remarksData, rows: newRows });
     };
 
-    const addColumn = (uniqueKey) => {
+    const addColumn = () => {
         if (isUserDisabled) return;
-        const current = remarksData[uniqueKey] || { rows: Array(25).fill(0).map(() => Array(10).fill('')) };
-        const newRows = current.rows.map(row => [...row, '']);
-        setRemarksData({ ...remarksData, [uniqueKey]: { ...current, rows: newRows } });
+        const newRows = remarksData.rows.map(row => [...row, '']);
+        setRemarksData({ ...remarksData, rows: newRows });
     };
 
-    const handleKeyDown = (e, rIdx, cIdx, uniqueKey) => {
+    const handleKeyDown = (e, rIdx, cIdx) => {
         if (isUserDisabled) return;
-        const rows = getCurrentRows(uniqueKey);
+        const rows = remarksData.rows;
         const maxRows = rows.length;
         const maxCols = rows[0].length;
 
@@ -200,14 +183,13 @@ const ViewReports = () => {
 
     const filteredReports = reports.filter(r => {
         const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesProgram = !filters.program || r.filters.program.toString() === filters.program;
+        const matchesProgram = !filters.program || (r.filters.program && r.filters.program.toString() === filters.program);
         const matchesType = filters.type === 'All' || r.type === filters.type;
         return matchesSearch && matchesProgram && matchesType;
     });
 
-    const getCurrentRows = (uniqueKey) => {
-        if (remarksData[uniqueKey]?.rows) return remarksData[uniqueKey].rows;
-        return Array(25).fill(0).map(() => Array(10).fill(''));
+    const getCurrentRows = () => {
+        return remarksData.rows;
     };
 
     return (
@@ -280,63 +262,53 @@ const ViewReports = () => {
                         </div>
 
                         <div className="col-lg-7">
-                            <div className={`audit-board-card shadow-sm bg-white rounded-lg border-0 h-100 ${!selectedReport ? 'empty-board' : ''}`}>
-                                {selectedReport ? (
-                                    <div className="d-flex flex-column h-100">
-                                        <div className="excel-panel-header p-3 border-bottom d-flex justify-content-between align-items-center bg-white rounded-top">
-                                            <div className="d-flex align-items-center gap-2">
-                                                <h5 className="fw-bold m-0"><span className="text-success">Excel</span> Audit Remarks</h5>
-                                                {isUserDisabled && <Badge bg="danger" className="ms-2">Account Frozen</Badge>}
-                                            </div>
-                                            <div className="d-flex gap-2">
-                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => addColumn(selectedReport.uniqueKey)} title="Add Column" disabled={isUserDisabled}>+</button>
-                                                <button className="btn btn-sm btn-outline-secondary" onClick={() => addRow(selectedReport.uniqueKey)} title="Add Row" disabled={isUserDisabled}>↵</button>
-                                                <button className="btn btn-success btn-sm px-3" onClick={saveRemarks} disabled={isUserDisabled}>Save All to DB</button>
-                                            </div>
+                            <div className={`audit-board-card shadow-sm bg-white rounded-lg border-0 h-100`}>
+                                <div className="d-flex flex-column h-100">
+                                    <div className="excel-panel-header p-3 border-bottom d-flex justify-content-between align-items-center bg-white rounded-top">
+                                        <div className="d-flex align-items-center gap-2">
+                                            <h5 className="fw-bold m-0"> Remarks</h5>
+                                            {isUserDisabled && <Badge bg="danger" className="ms-2">Account Frozen</Badge>}
                                         </div>
+                                        <div className="d-flex gap-2">
+                                            <button className="btn btn-sm btn-outline-secondary" onClick={addColumn} title="Add Column" disabled={isUserDisabled}>+</button>
+                                            <button className="btn btn-sm btn-outline-secondary" onClick={addRow} title="Add Row" disabled={isUserDisabled}>↵</button>
+                                            <button className="btn btn-success btn-sm px-3" onClick={saveRemarks} disabled={isUserDisabled}> Save</button>
+                                        </div>
+                                    </div>
 
-                                        <div className="excel-grid-container custom-scrollbar p-0">
-                                            <table className="excel-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th className="excel-corner"></th>
-                                                        {getCurrentRows(selectedReport.uniqueKey)[0].map((_, idx) => (
-                                                            <th key={idx} className="excel-col-header">{columnLabels[idx] || `C${idx + 1}`}</th>
+                                    <div className="excel-grid-container custom-scrollbar p-0">
+                                        <table className="excel-table">
+                                            <thead>
+                                                <tr>
+                                                    <th className="excel-corner"></th>
+                                                    {remarksData.rows[0].map((_, idx) => (
+                                                        <th key={idx} className="excel-col-header">{columnLabels[idx] || `C${idx + 1}`}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {remarksData.rows.map((row, rIdx) => (
+                                                    <tr key={rIdx}>
+                                                        <td className="excel-row-header">{rIdx + 1}</td>
+                                                        {row.map((cell, cIdx) => (
+                                                            <td key={cIdx} className="excel-cell">
+                                                                <textarea
+                                                                    ref={el => gridRefs.current[`${rIdx}-${cIdx}`] = el}
+                                                                    className="excel-textarea"
+                                                                    value={cell}
+                                                                    onChange={(e) => handleRowChange(rIdx, cIdx, e.target.value)}
+                                                                    onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx)}
+                                                                    disabled={isUserDisabled}
+                                                                /* placeholder={isUserDisabled ? "" : "Type observation..."} */
+                                                                />
+                                                            </td>
                                                         ))}
                                                     </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {getCurrentRows(selectedReport.uniqueKey).map((row, rIdx) => (
-                                                        <tr key={rIdx}>
-                                                            <td className="excel-row-header">{rIdx + 1}</td>
-                                                            {row.map((cell, cIdx) => (
-                                                                <td key={cIdx} className="excel-cell">
-                                                                    <textarea
-                                                                        ref={el => gridRefs.current[`${rIdx}-${cIdx}`] = el}
-                                                                        className="excel-textarea"
-                                                                        value={cell}
-                                                                        onChange={(e) => handleRowChange(selectedReport.uniqueKey, rIdx, cIdx, e.target.value)}
-                                                                        onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx, selectedReport.uniqueKey)}
-                                                                        disabled={isUserDisabled}
-                                                                    /* placeholder={isUserDisabled ? "" : "Type observation..."} */
-                                                                    />
-                                                                </td>
-                                                            ))}
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                ) : (
-                                    <div className="empty-state p-5 d-flex flex-column align-items-center justify-content-center h-100 text-center">
-                                        <div className="empty-icon-circle mb-4 bg-light p-4 rounded-circle">
-                                            <FaFileDownload className="text-primary fs-1 opacity-50" />
-                                        </div>
-                                        <h4 className="fw-bold">No Report Selected</h4>
-                                        <p className="text-muted">Choose a report from the left to start auditing and fill the remarks board.</p>
-                                    </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>

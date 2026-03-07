@@ -70,7 +70,7 @@ const Auditlog = () => {
     return (
         <div className="audit-log-container">
             <div className="flex-grow-1 p-5 bg-white overflow-y-auto" style={{ backgroundColor: '#fff' }}>
-                <h2 className="mb-4 text-primary fw-bold" style={{ color: '#2c3e50' }}>System Activity Log</h2>
+                <h2 className="mb-4 text-primary fw-bold" style={{ color: '#2c3e50' }}>System Access & Activity Log</h2>
 
                 <div className="table-wrapper">
                     <table className="table table-bordered audit-table mb-0">
