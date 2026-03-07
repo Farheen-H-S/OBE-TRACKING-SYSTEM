@@ -49,6 +49,9 @@ const Backtracking = lazy(() => import("./pages/hod/backtracking/Backtracking"))
 const IndirectAttainment = lazy(() => import("./pages/hod/attainment/indirect/IndirectAttainment")); // Indirect Attainment
 const POPSOAttainment = lazy(() => import("./pages/hod/attainment/po/POPSOAttainment")); // PO & PSO Attainment
 const Cescreate = lazy(() => import("./pages/hod/survey/Cescreate")); // Course Exit Survey
+const Teachplan = lazy(() => import("./pages/hod/plan/Teachplan"));
+const Teacherfeedbackcreate = lazy(() => import("./pages/hod/feedback/Teacherfeedbackcreate"));
+const TechFeedreport = lazy(() => import("./pages/hod/feedback/report/TechFeedreport"));
 const Stresscreate = lazy(() => import("./pages/hod/stress/Stresscreate"));
 const Stressreport = lazy(() => import("./pages/hod/stress/Stressreport"));
 
@@ -113,7 +116,7 @@ function App() {
               {/* Faculty Routes */}
               <Route path="/faculty-dashboard" element={<Layout><FacultyDashboard /></Layout>} />
               <Route path="/my-courses" element={<Layout><Viewcourse1 isMyCourses={true} /></Layout>} />
-              <Route path="/teaching-plan" element={<Layout><PlaceholderPage title="Teaching Plan" /></Layout>} />
+              <Route path="/teaching-plan" element={<Layout><Teachplan /></Layout>} />
               <Route path="/view-reports" element={<Layout><Reportverifiy /></Layout>} />
               <Route path="/stress-survey-report" element={<Layout><Stressreport /></Layout>} />
               <Route path="/view-cis-entries" element={<Layout><ViewCisEntries /></Layout>} />
@@ -148,8 +151,8 @@ function App() {
               {/* Stress & Feedback (HOD) */}
               <Route path="/stress-create" element={<Layout><Stresscreate /></Layout>} />
               <Route path="/stress-report" element={<Layout><Stressreport /></Layout>} />
-              <Route path="/teacher-feedback-create" element={<Layout><PlaceholderPage title="Teacher Feedback Survey Creation" /></Layout>} />
-              <Route path="/teacher-feedback-report" element={<Layout><PlaceholderPage title="Teacher Feedback Survey Report" /></Layout>} />
+              <Route path="/teacher-feedback-create" element={<Layout><Teacherfeedbackcreate /></Layout>} />
+              <Route path="/teacher-feedback-report" element={<Layout><TechFeedreport /></Layout>} />
 
               {/* Auditor Routes */}
               <Route path="/auditor-dashboard" element={<Layout><AuditorDashboard /></Layout>} />

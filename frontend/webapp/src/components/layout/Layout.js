@@ -56,9 +56,9 @@ const Layout = ({ children, role }) => {
             return ['dept', 'scheme', 'batch', 'year', 'class', 'semester'];
         }
 
-        // Stress Survey Group
-        const stressPages = ['/stress-create', '/stress-report', '/stress-survey-report'];
-        if (stressPages.includes(path)) {
+        // Stress & Feedback Group
+        const feedbackPages = ['/stress-create', '/stress-report', '/stress-survey-report', '/teacher-feedback-create', '/teacher-feedback-report', '/teaching-plan'];
+        if (feedbackPages.includes(path)) {
             return ['dept', 'scheme', 'year'];
         }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Modal, Button, Table } from 'react-bootstrap';
 import './Reportverify.css';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
@@ -9,6 +10,9 @@ const Reportverifiy = () => {
     const [reports, setReports] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
+    const [auditorRemarks, setAuditorRemarks] = useState([]);
+    const [showAuditorBoard, setShowAuditorBoard] = useState(false);
+    const [loadingRemarks, setLoadingRemarks] = useState(false);
 
     // Sync with global filters from localStorage or use defaults
     const [selectedYear, setSelectedYear] = useState(localStorage.getItem('selectedAcademicYear') || '2025 - 26');
@@ -35,6 +39,24 @@ const Reportverifiy = () => {
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
+
+    const fetchAuditorRemarks = async () => {
+        setLoadingRemarks(true);
+        try {
+            const res = await api.get('/reports/auditor-board/');
+            setAuditorRemarks(res.data);
+        } catch (err) {
+            console.error("Error fetching auditor remarks:", err);
+        } finally {
+            setLoadingRemarks(false);
+        }
+    };
+
+    useEffect(() => {
+        if (showAuditorBoard) {
+            fetchAuditorRemarks();
+        }
+    }, [showAuditorBoard]);
 
     const fetchPendingReports = async () => {
         try {
@@ -121,7 +143,18 @@ const Reportverifiy = () => {
         <div className="reportverifiy-wrapper">
             <div className="reportverifiy-main">
                 <div className="reportverifiy-card">
-                    <h2 className="rv-title">Report Verification & Approval</h2>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h2 className="rv-title mb-0">Report Verification & Approval</h2>
+                        <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => setShowAuditorBoard(true)}
+                            className="fw-bold px-3"
+                        >
+                            <i className="bi bi-journal-text me-2"></i>
+                            View Unified Auditor Board
+                        </Button>
+                    </div>
 
                     <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                         <div className="row g-3">
@@ -232,6 +265,56 @@ const Reportverifiy = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Unified Auditor Board Modal */}
+            <Modal show={showAuditorBoard} onHide={() => setShowAuditorBoard(false)} size="xl" centered>
+                <Modal.Header closeButton className="bg-primary text-white">
+                    <Modal.Title className="fs-5 fw-bold">
+                        <i className="bi bi-journal-text me-2"></i>
+                        Unified Auditor Board (Read-Only)
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-0">
+                    <div className="table-responsive" style={{ maxHeight: '70vh' }}>
+                        <Table striped bordered hover className="mb-0 admin-remarks-table">
+                            <thead className="sticky-top bg-light">
+                                <tr>
+                                    <th style={{ width: '50px', textAlign: 'center' }}>#</th>
+                                    <th>Report Name / Component</th>
+                                    <th>Auditor Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loadingRemarks ? (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-5">
+                                            <div className="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+                                            Loading remarks...
+                                        </td>
+                                    </tr>
+                                ) : auditorRemarks.length > 0 ? (
+                                    auditorRemarks.map((row, index) => (
+                                        <tr key={row.auditor_board_id || index}>
+                                            <td className="text-center text-muted">{index + 1}</td>
+                                            <td className="fw-bold text-dark">{row.report_name}</td>
+                                            <td className="text-muted">{row.remark || <span className="opacity-50 italic">No remark provided</span>}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-5 text-muted italic">
+                                            No auditor remarks have been recorded yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </Table>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowAuditorBoard(false)}>Close</Button>
+                </Modal.Footer>
+            </Modal>
         </div>
     );
 };

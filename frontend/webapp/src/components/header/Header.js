@@ -254,91 +254,95 @@ const Header = ({ onToggleSidebar }) => {
           {/* Global Filters - Moved to GlobalFilterBar in Layout.js */}
 
 
-          <div className="notification-container" ref={downloadRef}>
-            <FaDownload
-              size={22}
-              className="text-white cursor-pointer"
-              onClick={() => {
-                setShowDownloads(!showDownloads);
-                setShowNotifications(false);
-              }}
-            />
-            {showDownloads && (
-              <div className="notifications-dropdown shadow position-absolute bg-white rounded mt-2 p-0" style={{ top: '100%', width: '280px', zIndex: 1100, border: '1px solid #dee2e6' }}>
-                <div className="p-3 border-bottom fw-bold small bg-light d-flex justify-content-between align-items-center">
-                  <span>Downloads</span>
-                  <FaTimes className="cursor-pointer text-muted" onClick={() => setShowDownloads(false)} />
+          {userRole !== 'auditor' && (
+            <div className="notification-container" ref={downloadRef}>
+              <FaDownload
+                size={22}
+                className="text-white cursor-pointer"
+                onClick={() => {
+                  setShowDownloads(!showDownloads);
+                  setShowNotifications(false);
+                }}
+              />
+              {showDownloads && (
+                <div className="notifications-dropdown shadow position-absolute bg-white rounded mt-2 p-0" style={{ top: '100%', width: '280px', zIndex: 1100, border: '1px solid #dee2e6' }}>
+                  <div className="p-3 border-bottom fw-bold small bg-light d-flex justify-content-between align-items-center">
+                    <span>Downloads</span>
+                    <FaTimes className="cursor-pointer text-muted" onClick={() => setShowDownloads(false)} />
+                  </div>
+                  <div className="p-0">
+                    {userRole === 'admin' ? (
+                      <button onClick={() => handleDownloadTemplate('user')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <div className="fw-bold small text-primary">User Bulk Upload Template</div>
+                        <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for HOD, Faculty, etc.</div>
+                      </button>
+                    ) : (
+                      <>
+                        {['hod', 'coordinator'].includes(userRole) && (
+                          <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                            <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
+                            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
+                          </button>
+                        )}
+                        {['hod', 'coordinator', 'faculty'].includes(userRole) && (
+                          <button onClick={() => handleDownloadTemplate('cis')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                            <div className="fw-bold small text-primary">Marks Bulk Upload Template</div>
+                            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="p-0">
-                  {userRole === 'admin' ? (
-                    <button onClick={() => handleDownloadTemplate('user')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                      <div className="fw-bold small text-primary">User Bulk Upload Template</div>
-                      <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for HOD, Faculty, etc.</div>
-                    </button>
-                  ) : (
-                    <>
-                      {['hod', 'coordinator'].includes(userRole) && (
-                        <button onClick={() => handleDownloadTemplate('student')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                          <div className="fw-bold small text-primary">Student Bulk Upload Template</div>
-                          <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for student data entry</div>
-                        </button>
-                      )}
-                      {['hod', 'coordinator', 'faculty'].includes(userRole) && (
-                        <button onClick={() => handleDownloadTemplate('cis')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                          <div className="fw-bold small text-primary">Marks Bulk Upload Template</div>
-                          <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
-          <div className="notification-container" ref={bellRef}>
-            <FaBell
-              size={24}
-              className="text-white cursor-pointer"
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                setShowDownloads(false);
-              }}
-            />
-            {showNotifications && (
-              <div className="notifications-dropdown shadow position-absolute bg-white rounded mt-2 p-0" style={{ top: '100%', width: '320px', zIndex: 1100, border: '1px solid #dee2e6' }}>
-                <div className="p-3 border-bottom fw-bold small bg-light d-flex justify-content-between align-items-center">
-                  <span>Notifications</span>
-                  <FaTimes className="cursor-pointer text-muted" onClick={() => setShowNotifications(false)} />
-                </div>
-                <div className="notification-list overflow-auto" style={{ maxHeight: '350px' }}>
-                  {notifications.length > 0 ? (
-                    notifications.map((n) => (
-                      <div
-                        key={n.notification_id}
-                        className={`p-3 border-bottom cursor-pointer notification-item ${!n.is_read ? 'bg-light' : ''}`}
-                        onClick={() => handleMarkRead(n.notification_id)}
-                      >
-                        <div className="d-flex justify-content-between">
-                          <span className={`badge ${n.notification_type === 'DANGER' ? 'bg-danger' : n.notification_type === 'WARNING' ? 'bg-warning' : 'bg-primary'} mb-1`}>
-                            {n.notification_type}
-                          </span>
-                          <span className="text-muted" style={{ fontSize: '10px' }}>{new Date(n.created_at).toLocaleDateString()}</span>
+          {userRole !== 'auditor' && (
+            <div className="notification-container" ref={bellRef}>
+              <FaBell
+                size={24}
+                className="text-white cursor-pointer"
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowDownloads(false);
+                }}
+              />
+              {showNotifications && (
+                <div className="notifications-dropdown shadow position-absolute bg-white rounded mt-2 p-0" style={{ top: '100%', width: '320px', zIndex: 1100, border: '1px solid #dee2e6' }}>
+                  <div className="p-3 border-bottom fw-bold small bg-light d-flex justify-content-between align-items-center">
+                    <span>Notifications</span>
+                    <FaTimes className="cursor-pointer text-muted" onClick={() => setShowNotifications(false)} />
+                  </div>
+                  <div className="notification-list overflow-auto" style={{ maxHeight: '350px' }}>
+                    {notifications.length > 0 ? (
+                      notifications.map((n) => (
+                        <div
+                          key={n.notification_id}
+                          className={`p-3 border-bottom cursor-pointer notification-item ${!n.is_read ? 'bg-light' : ''}`}
+                          onClick={() => handleMarkRead(n.notification_id)}
+                        >
+                          <div className="d-flex justify-content-between">
+                            <span className={`badge ${n.notification_type === 'DANGER' ? 'bg-danger' : n.notification_type === 'WARNING' ? 'bg-warning' : 'bg-primary'} mb-1`}>
+                              {n.notification_type}
+                            </span>
+                            <span className="text-muted" style={{ fontSize: '10px' }}>{new Date(n.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <div className="fw-bold small">{n.title}</div>
+                          <div className="text-muted small" style={{ fontSize: '12px' }}>{n.message}</div>
                         </div>
-                        <div className="fw-bold small">{n.title}</div>
-                        <div className="text-muted small" style={{ fontSize: '12px' }}>{n.message}</div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-muted">
+                        <FaBell size={30} className="mb-2 opacity-25" />
+                        <p className="mb-0">You have no new notifications</p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-muted">
-                      <FaBell size={30} className="mb-2 opacity-25" />
-                      <p className="mb-0">You have no new notifications</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </nav>
