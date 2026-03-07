@@ -69,6 +69,11 @@
     color: #1e7e34;
 }
 
+.status-badge.expired {
+    background-color: #fce8e6;
+    color: #c5221f;
+}
+
 .status-badge.inactive {
     background-color: #f1f3f4;
     color: #5f6368;

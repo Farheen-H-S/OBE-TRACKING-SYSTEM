@@ -65,6 +65,10 @@ const Welcome = lazy(() => import("./pages/student/stress/welcome/Welcome"));
 const Instruction = lazy(() => import("./pages/student/stress/instruction/Instruction"));
 const QuestionPage = lazy(() => import("./pages/student/stress/question/QuestionPage"));
 const Exit = lazy(() => import("./pages/student/stress/exit/Exit"));
+const FWelcome = lazy(() => import("./pages/student/feedback/welcome/Welcome"));
+const FInstruction = lazy(() => import("./pages/student/feedback/instruction/Instruction"));
+const FQuestionPage = lazy(() => import("./pages/student/feedback/question/QuestionPage"));
+const FExit = lazy(() => import("./pages/student/feedback/exit/Exit"));
 
 // Student (Indirect CIS)
 const Clogin = lazy(() => import("./pages/student/cis-indirect/Clogin"));
@@ -164,6 +168,12 @@ function App() {
               <Route path="/stress/instructions" element={<Instruction key="instructions" />} />
               <Route path="/stress/questions" element={<QuestionPage key="questions" />} />
               <Route path="/stress/exit" element={<Exit key="exit" />} />
+
+              {/* Teacher Feedback flow (Student) */}
+              <Route path="/student/feedback" element={<FWelcome key="f-welcome" />} />
+              <Route path="/student/feedback/instructions" element={<FInstruction key="f-instructions" />} />
+              <Route path="/student/feedback/questions" element={<FQuestionPage key="f-questions" />} />
+              <Route path="/student/feedback/exit" element={<FExit key="f-exit" />} />
 
               {/* Student Indirect CIS Survey Routes */}
               <Route path="/student/cis-login" element={<Clogin />} />

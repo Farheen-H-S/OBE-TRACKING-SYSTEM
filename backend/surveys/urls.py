@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SurveyMasterListCreateView, SurveyMasterDetailView, SubmitSurveyResponseView, SurveyStatsView, SurveyLookupView
+from .views import SurveyMasterListCreateView, SurveyMasterDetailView, SubmitSurveyResponseView, SurveyStatsView, SurveyLookupView, SurveyExportView
 
 urlpatterns = [
     path('', SurveyMasterListCreateView.as_view(), name='survey-list'),
@@ -7,4 +7,5 @@ urlpatterns = [
     path('<int:pk>/', SurveyMasterDetailView.as_view(), name='survey-detail'),
     path('respond/', SubmitSurveyResponseView.as_view(), name='survey-respond'),
     path('<int:survey_id>/responses/', SurveyStatsView.as_view(), name='survey-stats'),
+    path('<int:pk>/export/', SurveyExportView.as_view(), name='survey-export'),
 ]

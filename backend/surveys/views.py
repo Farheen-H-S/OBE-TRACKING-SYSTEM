@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from .models import SurveyMaster, SurveyResponse, SurveyAnswer, SurveyQuestion
 from .serializers import SurveyMasterSerializer, SurveyResponseSerializer
+from .report_generator import SurveyExcelReportGenerator
+from django.http import HttpResponse
 
 class SurveyMasterListCreateView(generics.ListCreateAPIView):
     serializer_class = SurveyMasterSerializer
@@ -228,3 +230,81 @@ class SurveyLookupView(APIView):
         } for s in surveys]
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class SurveyExportView(APIView):
+    def get(self, request, pk):
+        survey = get_object_or_404(SurveyMaster, pk=pk)
+        
+        # This re-uses logic from SurveyStatsView to get data for Excel
+        # Ideally this should be a shared service/utility
+        
+        # 1. Get responders
+        responses = SurveyResponse.objects.filter(survey_id=survey).select_related('student_id')
+        
+        # 2. Filter responses (optional filters from query params)
+        batch_id = request.query_params.get('batch_id')
+        academic_year = request.query_params.get('academic_year')
+        
+        if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
+        if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
+
+        from users.models import Student
+        responder_ids = responses.values_list('student_id', flat=True)
+        expected_students = Student.objects.filter(program_id=survey.program_id, is_active=True)
+        if batch_id: expected_students = expected_students.filter(batch_id=batch_id)
+        
+        expected_students_ids = expected_students.values_list('student_id', flat=True)
+        all_student_ids = list(set(responder_ids) | set(expected_students_ids))
+
+        students = list(Student.objects.filter(student_id__in=all_student_ids))
+        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
+        
+        response_map = {r.student_id_id: r for r in responses if r.student_id_id}
+        
+        student_data = []
+        for student in students:
+            res = response_map.get(student.student_id)
+            answers_map = {}
+            if res:
+                for ans in res.answers.all().select_related('question_id'):
+                    key = None
+                    if ans.question_id:
+                        if ans.question_id.co_id: key = ans.question_id.co_id.co_id
+                        elif ans.question_id.po_id: key = ans.question_id.po_id.po_number
+                        elif ans.question_id.pso_id: key = ans.question_id.pso_id.pso_number
+                        else: key = ans.question_id.question_id
+                    if key:
+                        answers_map[key] = ans.answer_value
+            
+            student_data.append({
+                'enrollment': student.enrollment_no,
+                'roll_no': student.roll_no,
+                'name': student.name,
+                'answers': answers_map
+            })
+
+        questions = SurveyQuestion.objects.filter(survey_id=pk).select_related('co_id', 'po_id', 'pso_id')
+        statements = []
+        for q in questions:
+            stmt = {'id': q.question_id, 'question_text': q.question_text}
+            if q.co_id: stmt['id'] = q.co_id.co_id
+            elif q.po_id: stmt['id'] = q.po_id.po_number
+            elif q.pso_id: stmt['id'] = q.pso_id.pso_number
+            statements.append(stmt)
+
+        data = {
+            'survey': SurveyMasterSerializer(survey).data,
+            'statements': statements,
+            'responses': student_data
+        }
+
+        excel_buffer = SurveyExcelReportGenerator.generate(data)
+        
+        filename = f"Feedback_Report_{survey.survey_name.replace(' ', '_')}.xlsx"
+        response = HttpResponse(
+            excel_buffer,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

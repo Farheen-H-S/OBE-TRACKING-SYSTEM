@@ -80,10 +80,6 @@ const HodSide = ({ isOpen, onClose, user: propUser }) => {
             ]
         },
         {
-            title: "Auditor's Remarks",
-            path: ""
-        },
-        {
             title: "Stress & Feedback",
             items: [
                 {

@@ -1,114 +1,90 @@
-.teacher-feedback-container {
-    background-color: #f8f9fa;
-    /* Light background for the dashboard */
-    min-height: 100vh;
-    padding-bottom: 20px;
+/* Teacherfeedbackcreate.css */
+
+.section-title {
+    color: #445D99;
+    font-size: 1.25rem;
+    font-family: 'Inter', sans-serif;
 }
 
-.feedback-content-wrapper {
-    /* margin-left removed as sidebar is relative in flex container */
-    padding: 20px;
-    padding-top: 20px;
-    width: 100%;
+.url-input {
+    border: 1px solid #ced4da;
+    color: #4285F4;
 }
 
-.feedback-card {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-    /* Soft shadow */
-    padding: 30px;
-}
-
-.feedback-section-title {
-    color: #445069;
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 8px;
-    display: inline-block;
-    text-align: left;
-}
-
-
-
-.feedback-section-title  h5
-{
-    text-align: left;
-}
-.url-input-group .form-control {
-    border-color: #ced4da;
-    color: #6c757d;
+.url-input:focus {
+    box-shadow: none;
+    border-color: #86b7fe;
 }
 
 .btn-copy {
-    background-color: #4facfe;
-    border-color: #4facfe;
-    color: white;
-    font-weight: 500;
+    background-color: #6c9bf5;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
 }
 
 .btn-copy:hover {
-    background-color: #507aaa;
-    border-color: #4b88b1;
-    color: white;
+    background-color: #5a8dec;
 }
 
-.status-table {
-    margin-top: 10px;
+.question-set-card {
+    border: 1px solid #e0e6ed;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    background-color: #fff;
+    transition: box-shadow 0.3s ease;
 }
 
-.status-table th {
-    color: #445069;
-    font-weight: 600;
-    border-bottom: 2px solid #e9ecef;
+.question-set-card:hover {
+    box-shadow: 0 4px 12px rgba(68, 93, 153, 0.1);
 }
 
-.status-table td {
-    color: #445069;
-    vertical-align: middle;
+.question-set-header {
+    background-color: #f8faff;
+    border-bottom: 1px solid #e0e6ed;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.text-conducted {
-    color: #445069;
+.question-set-name {
+    color: #445D99;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0;
 }
 
-.text-not-conducted {
-    color: #445069;
-}
-
-.btn-approve {
-    background-color: #4facfe;
-    border: none;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
+.status-badge {
     font-size: 0.75rem;
-    cursor: pointer;
-    margin-left: 10px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
-.btn-approve:hover {
-    background-color: #216c97;
+.status-badge.active {
+    background-color: #e6f4ea;
+    color: #1e7e34;
 }
 
-.question-list {
-    list-style-type: decimal;
-    padding-left: 20px;
-    color: #333;
-    text-align: left;
+.status-badge.expired {
+    background-color: #fce8e6;
+    color: #c5221f;
 }
 
-.question-list li {
-    margin-bottom: 5px;
-    font-size: 0.95rem;
+.status-badge.inactive {
+    background-color: #f1f3f4;
+    color: #5f6368;
 }
 
-/* Responsive adjustments */
-@media (max-width: 991px) {
-    .feedback-content-wrapper {
-        margin-left: 0;
-        padding-top: 80px;
-    }
+/* Specific to Teacher Feedback if any */
+.teacher-feedback-container {
+    padding: 0;
+    height: 100%;
+}
+
+.feedback-content-wrapper {
+    height: 100%;
 }

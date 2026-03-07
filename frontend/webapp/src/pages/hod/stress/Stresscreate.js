@@ -40,7 +40,10 @@ const Stresscreate = () => {
 
     // Find all active surveys for this month, sorted by survey_id descending to get the LATEST one
     const activeSurvey = surveys
-        .filter(s => s.is_active === true && s.month === currentMonth && s.year === currentYear)
+        .filter(s => {
+            const isTimeActive = s.end_date ? new Date(s.end_date) > new Date() : true;
+            return s.is_active === true && s.month === currentMonth && s.year === currentYear && isTimeActive;
+        })
         .sort((a, b) => b.survey_id - a.survey_id)[0];
 
     const surveyUrl = activeSurvey
@@ -273,8 +276,8 @@ const Stresscreate = () => {
                                         <i className="bi bi-file-earmark-text me-2"></i>
                                         Question Set {index + 1}
                                     </h6>
-                                    <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
-                                        {isActive ? 'Active' : 'Draft'}
+                                    <span className={`status-badge ${isActive ? 'active' : (set.is_active && set.end_date && new Date(set.end_date) < new Date() ? 'expired' : 'inactive')}`}>
+                                        {isActive ? 'Active' : (set.is_active && set.end_date && new Date(set.end_date) < new Date() ? 'Expired' : 'Draft')}
                                     </span>
                                 </div>
 
