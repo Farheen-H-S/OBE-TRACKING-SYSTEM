@@ -99,7 +99,7 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                     </div>
                 </li>
 
-                {/* <li className="nav-item">
+                <li className="nav-item">
                     <div
                         className="menu-item d-flex align-items-center text-white"
                         onClick={() => navigate("/teaching-plan")}
@@ -107,7 +107,7 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                     >
                         <FaCircle className="me-2" style={{ fontSize: '0.5rem' }} /> Teaching Plan
                     </div>
-                </li> */}
+                </li>
 
                 <li className="nav-item">
                     <div

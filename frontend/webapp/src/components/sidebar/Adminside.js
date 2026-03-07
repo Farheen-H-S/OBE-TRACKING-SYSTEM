@@ -106,7 +106,7 @@ const AdminSide = ({ isOpen, onClose, user: propUser }) => {
             onClick={() => navigate("/activity-log")}
             style={{ cursor: "pointer" }}
           >
-            <FaCircle className="me-2" />  System Activity Logs
+            <FaCircle className="me-2" />  System Logs
           </div>
         </li>
       </ul>

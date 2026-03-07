@@ -80,32 +80,30 @@ const HodSide = ({ isOpen, onClose, user: propUser }) => {
             ]
         },
         {
-            title: "Student Stress Survey",
-            items: [
-                { name: "Survey Creation", path: "/stress-create" },
-                { name: "Survey Report", path: "/stress-report" }
-            ]
+            title: "Auditor's Remarks",
+            path: ""
         },
+        {
+            title: "Stress & Feedback",
+            items: [
+                {
+                    name: "Stress Survey",
+                    subItems: [
+                        { name: "Survey Creation", path: "/stress-create" },
+                        { name: "Survey Report", path: "/stress-report" }
+                    ]
+                },
+                {
+                    name: "Teacher Feedback",
+                    subItems: [
+                        { name: "Survey Creation", path: "/teacher-feedback-create" },
+                        { name: "Survey Report", path: "/teacher-feedback-report" }
+                    ]
+                }
+            ]
+        }
     ];
-    // {
-    //     title: "Stress & Feedback",
-    //     items: [
-    //         {
-    //             name: "Stress Survey",
-    //             subItems: [
-    //                 { name: "Survey Creation", path: "/stress-create" },
-    //                 { name: "Survey Report", path: "/stress-report" }
-    //             ]
-    //         },
-    //         {
-    //             name: "Teacher Feedback",
-    //             subItems: [
-    //                 { name: "Survey Creation", path: "/teacher-feedback-create" },
-    //                 { name: "Survey Report", path: "/teacher-feedback-report" }
-    //             ]
-    //         }
-    //     ]
-    // }
+
 
     const handleNavigation = (path) => {
         if (path) {
