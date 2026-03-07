@@ -7,8 +7,23 @@ from .models import SurveyMaster, SurveyResponse, SurveyAnswer, SurveyQuestion
 from .serializers import SurveyMasterSerializer, SurveyResponseSerializer
 
 class SurveyMasterListCreateView(generics.ListCreateAPIView):
-    queryset = SurveyMaster.objects.all()
     serializer_class = SurveyMasterSerializer
+
+    def get_queryset(self):
+        queryset = SurveyMaster.objects.filter(is_active=True).order_by('-survey_id')
+        category = self.request.query_params.get('survey_category')
+        program_id = self.request.query_params.get('program_id')
+        academic_year = self.request.query_params.get('academic_year')
+        course_id = self.request.query_params.get('course_id')
+        status = self.request.query_params.get('status')
+
+        if category: queryset = queryset.filter(survey_category=category)
+        if program_id and program_id != 'null': queryset = queryset.filter(program_id=program_id)
+        if academic_year: queryset = queryset.filter(academic_year=academic_year)
+        if course_id: queryset = queryset.filter(course_id=course_id)
+        if status: queryset = queryset.filter(status=status)
+        
+        return queryset
 
 class SurveyMasterDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = SurveyMaster.objects.all()

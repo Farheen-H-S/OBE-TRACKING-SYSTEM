@@ -6,7 +6,7 @@ import { FaCopy, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import './Teacherfeedbackcreate.css';
 
 const Teacherfeedbackcreate = () => {
-    const { selectedDept, selectedAcademicYear, selectedSemester } = useFilters();
+    const { selectedDept, selectedYear, selectedSemester } = useFilters();
 
     const [surveys, setSurveys] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -24,13 +24,13 @@ const Teacherfeedbackcreate = () => {
     ];
 
     const fetchSurveys = useCallback(async () => {
-        if (!selectedDept || !selectedAcademicYear) return;
+        if (!selectedDept || !selectedYear) return;
         setLoading(true);
         try {
             const res = await api.get('/surveys/', {
                 params: {
                     survey_category: 'feedback',
-                    academic_year: selectedAcademicYear,
+                    academic_year: selectedYear,
                     program_id: selectedDept
                 }
             });
@@ -41,7 +41,7 @@ const Teacherfeedbackcreate = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedDept, selectedAcademicYear]);
+    }, [selectedDept, selectedYear]);
 
     useEffect(() => {
         fetchSurveys();
@@ -54,16 +54,16 @@ const Teacherfeedbackcreate = () => {
     };
 
     const handleCreateSurvey = async () => {
-        if (!selectedDept || !selectedAcademicYear) {
+        if (!selectedDept || !selectedYear) {
             alert("Please select Department and Academic Year.");
             return;
         }
 
         try {
             const payload = {
-                survey_name: `Teacher Feedback - ${selectedAcademicYear}`,
+                survey_name: `Teacher Feedback - ${selectedYear}`,
                 survey_category: 'feedback',
-                academic_year: selectedAcademicYear,
+                academic_year: selectedYear,
                 semester: selectedSemester || null,
                 program_id: selectedDept,
                 status: 'APPROVED',

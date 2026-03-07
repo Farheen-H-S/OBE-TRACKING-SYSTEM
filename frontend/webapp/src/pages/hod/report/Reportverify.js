@@ -6,13 +6,20 @@ import { getLoggedInUser } from '../../../utils/auth';
 
 const Reportverifiy = () => {
     const user = getLoggedInUser();
-    const isFaculty = user?.role?.toLowerCase() === 'faculty';
+    const role = (user?.role_name || user?.role || '').toLowerCase();
+    const isFaculty = role === 'faculty';
+    const isHod = role === 'hod';
+    const isCoordinator = role === 'coordinator';
+    const isAdmin = role === 'admin';
+    const isAuditor = role === 'auditor';
+
     const [reports, setReports] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
     const [auditorRemarks, setAuditorRemarks] = useState([]);
     const [showAuditorBoard, setShowAuditorBoard] = useState(false);
     const [loadingRemarks, setLoadingRemarks] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // Sync with global filters from localStorage or use defaults
     const [selectedYear, setSelectedYear] = useState(localStorage.getItem('selectedAcademicYear') || '2025 - 26');
@@ -70,7 +77,7 @@ const Reportverifiy = () => {
                 report_id: r.report_id,
                 report_name: r.file_name || `${r.report_type} Report - ${r.course_id || r.batch_id || 'N/A'}`,
                 display_status: r.status,
-                submitted_by: r.user_id_created || 'System'
+                submitted_by: r.created_by_name || 'System'
             }));
 
             const dacReports = dacRes.data.map(r => ({
@@ -81,7 +88,7 @@ const Reportverifiy = () => {
                 report_file: r.file,
                 created_at: r.created_at,
                 display_status: r.status,
-                submitted_by: r.uploaded_by || 'System',
+                submitted_by: r.uploaded_by_name || 'System',
                 // Map filters for consistent filtering logic
                 filters: {
                     academicYear: r.academic_year,
@@ -145,15 +152,17 @@ const Reportverifiy = () => {
                 <div className="reportverifiy-card">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <h2 className="rv-title mb-0">Report Verification & Approval</h2>
-                        <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => setShowAuditorBoard(true)}
-                            className="fw-bold px-3"
-                        >
-                            <i className="bi bi-journal-text me-2"></i>
-                            View Unified Auditor Board
-                        </Button>
+                        {!isAdmin && (isHod || isCoordinator || isFaculty || isAuditor) && (
+                            <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => setShowAuditorBoard(true)}
+                                className="fw-bold px-3"
+                            >
+                                <i className="bi bi-journal-text me-2"></i>
+                                View Remarks
+                            </Button>
+                        )}
                     </div>
 
                     <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
@@ -206,7 +215,7 @@ const Reportverifiy = () => {
                                     filteredReports.map((report) => (
                                         <tr key={`${report.report_type}-${report.report_id}`}>
                                             <td>{report.report_id}</td>
-                                            <td className="text-start fw-bold">
+                                            <td className="text-start fw-bold report-name-cell" title={report.report_name}>
                                                 {report.report_name}
                                             </td>
                                             <td className="small">{report.report_type}</td>
@@ -266,12 +275,12 @@ const Reportverifiy = () => {
                 </div>
             </div>
 
-            {/* Unified Auditor Board Modal */}
+            {/* Auditor Remarks Modal */}
             <Modal show={showAuditorBoard} onHide={() => setShowAuditorBoard(false)} size="xl" centered>
                 <Modal.Header closeButton className="bg-primary text-white">
                     <Modal.Title className="fs-5 fw-bold">
                         <i className="bi bi-journal-text me-2"></i>
-                        Unified Auditor Board (Read-Only)
+                        Audit Remarks {(!isAuditor) && "(Read-Only)"}
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-0">
@@ -282,12 +291,13 @@ const Reportverifiy = () => {
                                     <th style={{ width: '50px', textAlign: 'center' }}>#</th>
                                     <th>Report Name / Component</th>
                                     <th>Auditor Remark</th>
+                                    {isAuditor && <th style={{ width: '100px' }}>Actions</th>}
                                 </tr>
                             </thead>
                             <tbody>
                                 {loadingRemarks ? (
                                     <tr>
-                                        <td colSpan="3" className="text-center py-5">
+                                        <td colSpan={isAuditor ? 4 : 3} className="text-center py-5">
                                             <div className="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
                                             Loading remarks...
                                         </td>
@@ -297,12 +307,46 @@ const Reportverifiy = () => {
                                         <tr key={row.auditor_board_id || index}>
                                             <td className="text-center text-muted">{index + 1}</td>
                                             <td className="fw-bold text-dark">{row.report_name}</td>
-                                            <td className="text-muted">{row.remark || <span className="opacity-50 italic">No remark provided</span>}</td>
+                                            <td className="text-muted">
+                                                {isAuditor ? (
+                                                    <textarea
+                                                        className="form-control form-control-sm"
+                                                        value={row.remark || ''}
+                                                        onChange={(e) => {
+                                                            const newRemarks = [...auditorRemarks];
+                                                            newRemarks[index].remark = e.target.value;
+                                                            setAuditorRemarks(newRemarks);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    row.remark || <span className="opacity-50 italic">No remark provided</span>
+                                                )}
+                                            </td>
+                                            {isAuditor && (
+                                                <td className="text-center">
+                                                    <Button
+                                                        variant="success"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            setSaving(true);
+                                                            try {
+                                                                await api.patch(`/reports/auditor-board/${row.auditor_board_id}/`, { remark: row.remark });
+                                                                alert("Remark saved!");
+                                                                fetchAuditorRemarks();
+                                                            } catch (err) { alert("Failed to save"); }
+                                                            finally { setSaving(false); }
+                                                        }}
+                                                        disabled={saving}
+                                                    >
+                                                        Save
+                                                    </Button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="3" className="text-center py-5 text-muted italic">
+                                        <td colSpan={isAuditor ? 4 : 3} className="text-center py-5 text-muted italic">
                                             No auditor remarks have been recorded yet.
                                         </td>
                                     </tr>

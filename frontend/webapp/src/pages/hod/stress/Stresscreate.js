@@ -219,10 +219,6 @@ const Stresscreate = () => {
             <div className="p-3 bg-light overflow-y-auto" style={{ height: '100%' }}>
                 <div className="container-fluid bg-white p-4 shadow-sm rounded">
 
-                    <div className="mb-4" style={{ position: 'relative', zIndex: 10 }}>
-                        <GlobalFilterBar visibleFilters={['dept', 'scheme', 'batch', 'year']} disableYearFiltering={true} />
-                    </div>
-
                     {/* Survey URL */}
                     <div className="mb-5">
                         <h5 className="section-title fw-bold">

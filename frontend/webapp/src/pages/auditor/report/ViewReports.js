@@ -3,10 +3,16 @@ import './ViewReports.css';
 import { FaFilter, FaSearch, FaSave, FaPlus, FaTrash, FaEye, FaFileDownload, FaTimes, FaArrowLeft, FaChevronRight } from 'react-icons/fa';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
-import { Badge } from 'react-bootstrap';
+import { Badge, Modal, Table, Button } from 'react-bootstrap';
 
 const ViewReports = () => {
     const user = getLoggedInUser();
+    const role = (user?.role_name || user?.role || '').toLowerCase();
+    const isFaculty = role === 'faculty';
+    const isHod = role === 'hod';
+    const isCoordinator = role === 'coordinator';
+    const isAdmin = role === 'admin';
+    const isAuditor = role === 'auditor';
     const isUserDisabled = user?.is_active === false;
 
     const [reports, setReports] = useState([]);
@@ -23,6 +29,9 @@ const ViewReports = () => {
 
     // Remarks State: { rows: [['','','']] } -> Single Unified Board
     const [remarksData, setRemarksData] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
+    const [showRemarksModal, setShowRemarksModal] = useState(false);
+    const [auditorRemarks, setAuditorRemarks] = useState([]);
+    const [loadingRemarks, setLoadingRemarks] = useState(false);
 
     // Column letters for Excel-like feel
     const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
@@ -98,7 +107,23 @@ const ViewReports = () => {
         } catch (err) {
             console.error("Error loading board:", err);
         }
+    }; const fetchAuditorRemarks = async () => {
+        setLoadingRemarks(true);
+        try {
+            const res = await api.get('/reports/auditor-board/');
+            setAuditorRemarks(res.data);
+        } catch (err) {
+            console.error("Error fetching auditor remarks:", err);
+        } finally {
+            setLoadingRemarks(false);
+        }
     };
+
+    useEffect(() => {
+        if (showRemarksModal) {
+            fetchAuditorRemarks();
+        }
+    }, [showRemarksModal]);
 
     const handleReportSelect = (report) => {
         setSelectedReport(report);
@@ -196,9 +221,20 @@ const ViewReports = () => {
         <div className="view-reports-container">
             <div className="view-reports-main-layout">
                 <div className="view-reports-content-panel">
-                    <div className="view-reports-header mb-4">
-                        <h2 className="fw-bold text-primary">Approved Reports for Audit</h2>
-                        <p className="text-muted">Only verified/approved reports are listed here for your review.</p>
+                    <div className="view-reports-header mb-4 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 className="fw-bold text-primary">Approved Reports for Audit</h2>
+                            <p className="text-muted mb-0">Only verified/approved reports are listed here for your review.</p>
+                        </div>
+                        {!isAdmin && (isHod || isCoordinator || isFaculty || isAuditor) && (
+                            <button
+                                className="btn btn-outline-primary btn-sm fw-bold px-3"
+                                onClick={() => setShowRemarksModal(true)}
+                            >
+                                <i className="bi bi-journal-text me-2"></i>
+                                View Remarks
+                            </button>
+                        )}
                     </div>
 
                     <div className="row g-4 content-row">
@@ -314,6 +350,55 @@ const ViewReports = () => {
                     </div>
                 </div>
             </div>
+            {/* Auditor Remarks Modal (Read-Only) */}
+            <Modal show={showRemarksModal} onHide={() => setShowRemarksModal(false)} size="xl" centered>
+                <Modal.Header closeButton className="bg-primary text-white">
+                    <Modal.Title className="fs-5 fw-bold">
+                        <i className="bi bi-journal-text me-2"></i>
+                        Audit Remarks (Read-Only)
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-0">
+                    <div className="table-responsive" style={{ maxHeight: '70vh' }}>
+                        <Table striped bordered hover className="mb-0 admin-remarks-table">
+                            <thead className="sticky-top bg-light">
+                                <tr>
+                                    <th style={{ width: '50px', textAlign: 'center' }}>#</th>
+                                    <th>Report Name / Component</th>
+                                    <th>Auditor Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loadingRemarks ? (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-5">
+                                            <div className="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+                                            Loading remarks...
+                                        </td>
+                                    </tr>
+                                ) : auditorRemarks.length > 0 ? (
+                                    auditorRemarks.map((row, index) => (
+                                        <tr key={row.auditor_board_id || index}>
+                                            <td className="text-center text-muted">{index + 1}</td>
+                                            <td className="fw-bold text-dark">{row.report_name}</td>
+                                            <td className="text-muted">{row.remark || <span className="opacity-50 italic">No remark provided</span>}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-5 text-muted italic">
+                                            No auditor remarks have been recorded yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </Table>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowRemarksModal(false)}>Close</Button>
+                </Modal.Footer>
+            </Modal>
         </div>
     );
 };

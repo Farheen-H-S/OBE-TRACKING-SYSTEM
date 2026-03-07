@@ -6,7 +6,7 @@ import { Button, Spinner, Alert, Form } from 'react-bootstrap';
 import './Teachplan.css';
 
 const Teachplan = () => {
-    const { selectedDept, selectedScheme, selectedAcademicYear, selectedSemester, selectedBatch } = useFilters();
+    const { selectedDept, selectedScheme, selectedYear, selectedSemester, selectedBatch } = useFilters();
     const user = getLoggedInUser();
 
     const [courses, setCourses] = useState([]);
@@ -19,12 +19,16 @@ const Teachplan = () => {
     const [successMsg, setSuccessMsg] = useState('');
 
     const fetchCourses = useCallback(async () => {
-        if (!selectedDept || !selectedAcademicYear) return;
+        const role = (user?.role_name || user?.role || '').toLowerCase();
+        const isFaculty = role === 'faculty';
+
+        if (!selectedYear) return;
+        if (!isFaculty && !selectedDept) return; // HOD/Coord must select Dept
         try {
             const res = await api.get('/academics/courses/', {
                 params: {
                     program_id: selectedDept,
-                    academic_year: selectedAcademicYear,
+                    academic_year: selectedYear,
                     semester: selectedSemester,
                     scheme_id: selectedScheme
                 }
@@ -36,7 +40,7 @@ const Teachplan = () => {
         } catch (err) {
             console.error("Error fetching courses:", err);
         }
-    }, [selectedDept, selectedAcademicYear, selectedSemester, selectedScheme]);
+    }, [selectedDept, selectedYear, selectedSemester, selectedScheme]);
 
     const fetchPlan = useCallback(async () => {
         if (!selectedCourseId) return;
@@ -47,7 +51,7 @@ const Teachplan = () => {
             const response = await api.get('/teaching-plan/', {
                 params: {
                     course_id: selectedCourseId,
-                    academic_year: selectedAcademicYear,
+                    academic_year: selectedYear,
                     semester: selectedSemester,
                     scheme_id: selectedScheme
                 }
@@ -67,7 +71,7 @@ const Teachplan = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedCourseId, selectedAcademicYear, selectedSemester, selectedScheme]);
+    }, [selectedCourseId, selectedYear, selectedSemester, selectedScheme]);
 
     useEffect(() => {
         fetchCourses();
@@ -87,7 +91,7 @@ const Teachplan = () => {
                 user_id: user.user_id,
                 batch_id: selectedBatch || null,
                 scheme_id: selectedScheme,
-                academic_year: selectedAcademicYear,
+                academic_year: selectedYear,
                 semester: selectedSemester,
                 is_active: true
             };

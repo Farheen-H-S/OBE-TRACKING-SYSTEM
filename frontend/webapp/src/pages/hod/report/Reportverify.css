@@ -55,13 +55,23 @@
 /* Table Styles */
 .rv-table-container {
     width: 100%;
+    overflow-x: auto;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.02);
+}
+
+.rv-table-container {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #e3e6f0;
+    margin: 20px 0;
 }
 
 .rv-table {
     width: 100%;
+    min-width: 1100px;
     border-collapse: separate;
     border-spacing: 0;
-    margin-top: 20px;
 }
 
 .rv-table th {
@@ -73,14 +83,7 @@
     letter-spacing: 1px;
     padding: 15px;
     border: none;
-}
-
-.rv-table th:first-child {
-    border-radius: 10px 0 0 0;
-}
-
-.rv-table th:last-child {
-    border-radius: 0 10px 0 0;
+    white-space: nowrap;
 }
 
 .rv-table td {
@@ -88,6 +91,13 @@
     border-bottom: 1px solid #e3e6f0;
     color: #5a5c69;
     vertical-align: middle;
+}
+
+.report-name-cell {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .rv-table tr:hover td {

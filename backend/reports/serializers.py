@@ -5,6 +5,7 @@ import os
 
 class ReportSerializer(serializers.ModelSerializer):
     file_name = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(source='user_id_created.name', read_only=True)
 
     class Meta:
         model = Report
@@ -12,6 +13,7 @@ class ReportSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'created_at',
             'updated_at',
+            'user_id_created',
         )
 
     def get_file_name(self, obj):
