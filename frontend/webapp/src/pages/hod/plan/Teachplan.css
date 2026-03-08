@@ -54,26 +54,31 @@
 
 /* Specific column widths if needed */
 .col-lecture {
-    width: 8%;
+    width: 6%;
     text-align: center;
 }
 
 .col-date {
-    width: 12%;
+    width: 10%;
     text-align: center;
 }
 
 .col-topics {
-    width: 45%;
+    width: 33%;
+}
+
+.col-description {
+    width: 33%;
 }
 
 .col-status {
-    width: 15%;
+    width: 12%;
     text-align: center;
 }
 
-.col-remark {
-    width: 20%;
+.col-action {
+    width: 6%;
+    text-align: center;
 }
 
 .status-select {

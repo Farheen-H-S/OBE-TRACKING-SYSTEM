@@ -238,7 +238,8 @@ class UploadTeachingPlanExcelView(APIView):
                         lecture_date=l_date,
                         unit_no=int(row['unit']) if pd.notnull(row['unit']) and str(row['unit']).isdigit() else 1,
                         topic_planned=str(row['topic']) if pd.notnull(row['topic']) else "",
-                        remark=str(row['description']) if pd.notnull(row['description']) else ""
+                        actual_topic=str(row['description']) if pd.notnull(row['description']) else "",
+                        remark=""
                     ))
                 
                 TeachingPlanLecture.objects.bulk_create(lectures_to_create)

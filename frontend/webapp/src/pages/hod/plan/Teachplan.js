@@ -10,7 +10,7 @@ const Teachplan = () => {
         selectedDept, selectedScheme, selectedYear, selectedSemester,
         selectedBatch, selectedClass, selectedDivision
     } = useFilters();
-    const user = getLoggedInUser();
+    const user = React.useMemo(() => getLoggedInUser(), []);
 
     const [courses, setCourses] = useState([]);
     const [selectedCourseId, setSelectedCourseId] = useState('');
@@ -60,7 +60,7 @@ const Teachplan = () => {
             console.error("Error fetching courses:", err);
             setCourses([]);
         }
-    }, [selectedDept, selectedYear, selectedSemester, selectedScheme, selectedClass, selectedBatch, user, selectedCourseId]);
+    }, [selectedDept, selectedYear, selectedSemester, selectedScheme, selectedClass, selectedBatch, user]);
 
     const fetchPlan = useCallback(async () => {
         if (!selectedCourseId) return;
@@ -149,10 +149,22 @@ const Teachplan = () => {
                 lecture_no: lectures.length + 1,
                 lecture_date: new Date().toISOString().split('T')[0],
                 topic_planned: "",
+                actual_topic: "",
                 status: "INCOMPLETE",
                 remark: ""
             }
         ]);
+    };
+
+    const handleDeleteRow = (index) => {
+        if (!window.confirm("Are you sure you want to delete this row?")) return;
+        const newLectures = lectures.filter((_, i) => i !== index);
+        // Recalculate lecture numbers
+        const updatedLectures = newLectures.map((lec, i) => ({
+            ...lec,
+            lecture_no: i + 1
+        }));
+        setLectures(updatedLectures);
     };
 
     const handleSave = async () => {
@@ -246,9 +258,10 @@ const Teachplan = () => {
                                     <tr>
                                         <th className="col-lecture">Lec No.</th>
                                         <th className="col-date">Planned Date</th>
-                                        <th className="col-topics">Topics Planned</th>
+                                        <th className="col-topics">Topic</th>
+                                        <th className="col-description">Description</th>
                                         <th className="col-status">Status</th>
-                                        <th className="col-remark">Remark</th>
+                                        <th className="col-action">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -271,6 +284,15 @@ const Teachplan = () => {
                                                     placeholder="Enter topics..."
                                                 />
                                             </td>
+                                            <td className="col-description">
+                                                <textarea
+                                                    className="editable-textarea"
+                                                    value={row.actual_topic || ''}
+                                                    onChange={(e) => handleInputChange(index, 'actual_topic', e.target.value)}
+                                                    placeholder="Enter description..."
+                                                    style={{ minHeight: '40px' }}
+                                                />
+                                            </td>
                                             <td className="col-status text-center">
                                                 <Form.Select
                                                     size="sm"
@@ -283,14 +305,15 @@ const Teachplan = () => {
                                                     <option value="POSTPONED">Postponed</option>
                                                 </Form.Select>
                                             </td>
-                                            <td className="col-remark">
-                                                <input
-                                                    type="text"
-                                                    className="editable-input"
-                                                    value={row.remark || ''}
-                                                    onChange={(e) => handleInputChange(index, 'remark', e.target.value)}
-                                                    placeholder="Add remark..."
-                                                />
+                                            <td className="col-action text-center">
+                                                <Button
+                                                    variant="link"
+                                                    className="text-danger p-0"
+                                                    onClick={() => handleDeleteRow(index)}
+                                                    title="Delete Row"
+                                                >
+                                                    <i className="bi bi-trash"></i>
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))}
