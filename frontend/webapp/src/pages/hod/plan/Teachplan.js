@@ -23,24 +23,38 @@ const Teachplan = () => {
         const isFaculty = role === 'faculty';
 
         if (!selectedYear) return;
-        if (!isFaculty && !selectedDept) return; // HOD/Coord must select Dept
+
+        // HOD/Coord must select Dept. Faculty can proceed without Dept if they want to see all assigned courses,
+        // but typically they'll have Dept pre-selected or can select it.
+        // If isFaculty is true, we allow fetching without selectedDept.
+        if (!isFaculty && !selectedDept) return;
+
         try {
-            const res = await api.get('/academics/courses/', {
-                params: {
-                    program_id: selectedDept,
-                    academic_year: selectedYear,
-                    semester: selectedSemester,
-                    scheme_id: selectedScheme
-                }
-            });
+            const params = {
+                academic_year: selectedYear,
+            };
+
+            // Only add these if they have values to avoid backend "null"/"undefined" string issues
+            if (selectedDept) params.program_id = selectedDept;
+            if (selectedSemester) params.semester = selectedSemester;
+            if (selectedScheme) params.scheme_id = selectedScheme;
+
+            const res = await api.get('/academics/courses/', { params });
             setCourses(res.data);
+
+            // Set first course as default if none selected
             if (res.data.length > 0 && !selectedCourseId) {
                 setSelectedCourseId(res.data[0].course_id);
+            } else if (res.data.length === 0) {
+                setSelectedCourseId('');
+                setPlan(null);
+                setLectures([]);
             }
         } catch (err) {
             console.error("Error fetching courses:", err);
+            setCourses([]);
         }
-    }, [selectedDept, selectedYear, selectedSemester, selectedScheme]);
+    }, [selectedDept, selectedYear, selectedSemester, selectedScheme, user, selectedCourseId]);
 
     const fetchPlan = useCallback(async () => {
         if (!selectedCourseId) return;
@@ -188,7 +202,7 @@ const Teachplan = () => {
                     {error && <Alert variant="danger">{error}</Alert>}
                     {successMsg && <Alert variant="success">{successMsg}</Alert>}
 
-                    {!selectedDept && (
+                    {(!selectedDept && !(['faculty'].includes((user?.role_name || user?.role || '').toLowerCase()))) && (
                         <Alert variant="warning">Please select a Department from the top filters to begin.</Alert>
                     )}
 

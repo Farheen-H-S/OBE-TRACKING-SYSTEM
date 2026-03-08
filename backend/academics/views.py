@@ -202,21 +202,24 @@ class CourseListCreateAPIView(APIView):
         scheme_id = request.query_params.get('scheme_id')
         intro_year = request.query_params.get('intro_year')
         batch_id = request.query_params.get('batch_id')
+        academic_year = request.query_params.get('academic_year')
         
-        # Diagnostics
-        print(f"DEBUG: Course GET params - program_id: {program_id}, scheme_id: {scheme_id}, semester: {semester}, class_year: {class_year}, intro_year: {intro_year}, batch_id: {batch_id}")
-        
+        # Robust filtering helper
+        def is_valid_filter(val):
+            return val and val not in ["All", "0", "", "null", "undefined", "None"]
+
         if user.is_authenticated and user.role_id.role_name == "Faculty":
             from users.models import FacultyCourseAssignment
-            assignments = FacultyCourseAssignment.objects.filter(faculty_id=user, is_active=True)
+            from django.db.models import Q
+            q_assign = Q(faculty_id=user, is_active=True)
+            if is_valid_filter(academic_year):
+                q_assign &= Q(academic_year=academic_year)
+            
+            assignments = FacultyCourseAssignment.objects.filter(q_assign)
             course_ids = assignments.values_list('course_id', flat=True)
             courses = Course.objects.filter(course_id__in=course_ids, is_active=True).distinct()
         else:
             courses = Course.objects.filter(is_active=True).distinct()
-
-        # Robust filtering helper
-        def is_valid_filter(val):
-            return val and val not in ["All", "0", "", "null", "undefined", "None"]
 
         if is_valid_filter(program_id): courses = courses.filter(program_id=program_id)
         if is_valid_filter(semester): courses = courses.filter(semester=semester)

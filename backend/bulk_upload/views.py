@@ -133,6 +133,31 @@ class DownloadCISTemplateView(APIView):
         response['Content-Disposition'] = 'attachment; filename=Marks_Bulk_Upload_Template.xlsx'
         return response
 
+class DownloadTeachingPlanTemplateView(APIView):
+    """
+    Generates and serves an Excel template for Teaching Plan.
+    Headers: Date, Unit, Topic, Description
+    """
+    def get(self, request):
+        cols = ['Date', 'Unit', 'Topic', 'Description']
+        df = pd.DataFrame(columns=cols)
+        
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='TeachingPlan')
+            
+            # Auto-adjust column width for better readability
+            worksheet = writer.sheets['TeachingPlan']
+            for i, col in enumerate(cols):
+                column_letter = get_column_letter(i + 1)
+                worksheet.column_dimensions[column_letter].width = 20
+        
+        output.seek(0)
+        
+        response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=Teaching_Plan_Template.xlsx'
+        return response
+
 def apply_header_style(cell, fill_color="2F5597", font_color="FFFFFF"):
     """Helper for template styling"""
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
