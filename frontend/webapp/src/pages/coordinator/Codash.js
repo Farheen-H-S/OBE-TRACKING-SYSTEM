@@ -8,6 +8,7 @@ import api from "../../utils/axios";
 
 const Codash = () => {
     const { selectedDept, selectedScheme, selectedYear } = useFilters();
+    const [selectedClass, setSelectedClass] = useState("");
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,7 +21,8 @@ const Codash = () => {
                     params: {
                         dept_id: selectedDept,
                         scheme_id: selectedScheme,
-                        academic_year: selectedYear
+                        academic_year: selectedYear,
+                        class_name: selectedClass
                     }
                 });
                 setData(response.data);
@@ -34,7 +36,7 @@ const Codash = () => {
         };
 
         fetchCoordinatorData();
-    }, [selectedDept, selectedScheme, selectedYear]);
+    }, [selectedDept, selectedScheme, selectedYear, selectedClass]);
 
     if (loading) {
         return (
@@ -62,7 +64,8 @@ const Codash = () => {
         academic = {},
         health = [],
         coverage = [],
-        dac_reports = []
+        last_dac_upload_date = "Not uploaded",
+        po_pso_attainment = []
     } = data;
 
     const pieOptions = {
@@ -71,6 +74,17 @@ const Codash = () => {
         pieSliceText: "none",
         chartArea: { width: '80%', height: '80%' },
         backgroundColor: "transparent",
+    };
+
+    const barOptions = {
+        chartArea: { width: "80%", height: "70%" },
+        legend: { position: "none" },
+        vAxis: {
+            title: "Attainment %",
+            minValue: 0,
+            maxValue: 100
+        },
+        hAxis: { title: "PO / PSO" },
     };
 
     return (
@@ -82,43 +96,14 @@ const Codash = () => {
                             <GlobalFilterBar visibleFilters={['dept', 'scheme', 'year']} />
                         </div>
                         {/* Top Summary Cards */}
-                        <div className="row mb-5 g-4">
-                            <div className="col-12 col-md-4 col-lg-2">
-                                <div className="info-card">
-                                    <h6>Academic year</h6>
-                                    <p>{academic.academic_year}</p>
-                                    <p className="status-active">Status : Active</p>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4 col-lg-2">
-                                <div className="info-card">
-                                    <h6>Department</h6>
-                                    <p>{academic.department}</p>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4 col-lg-2">
-                                <div className="info-card">
-                                    <h6>Semester type</h6>
-                                    <p>{academic.semester_type}</p>
-                                    <p className="small">Eff: {academic.effective_from}</p>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4 col-lg-2">
-                                <div className="info-card">
-                                    <h6>Scheme</h6>
-                                    <p>{academic.scheme}</p>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4 col-lg-2">
-                                <div className="info-card text-muted">
-                                    <h6>Stress survey</h6>
-                                    <p><b>Pending</b></p>
-                                </div>
-                            </div>
-                            <div className="col-12 col-md-4 col-lg-2">
-                                <div className="info-card">
-                                    <h6>DAC reports</h6>
-                                    <p>Tracking Active</p>
+                        <div className="row mb-5 g-4 align-items-center">
+                            <div className="col-md-3">
+                                <div className="stat-card-box h-100 p-3">
+                                    <div className="stat-card-label mb-1">Last DAC Report Upload</div>
+                                    <div className="small text-secondary mb-1">AY: {academic.academic_year}</div>
+                                    <div className="fw-bold fs-5 text-primary">
+                                        {last_dac_upload_date}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -152,7 +137,23 @@ const Codash = () => {
 
                         {/* Assessment Coverage Status Section */}
                         <div className="assessment-coverage-section mb-5">
-                            <h4 className="section-title">Assessment coverage status</h4>
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h4 className="section-title mb-0">Assessment coverage status</h4>
+                                <div className="d-flex align-items-center gap-2">
+                                    <label className="fw-medium text-secondary mb-0">Class:</label>
+                                    <select
+                                        className="form-select form-select-sm shadow-sm"
+                                        value={selectedClass}
+                                        onChange={(e) => setSelectedClass(e.target.value)}
+                                        style={{ width: '120px', borderRadius: '8px', border: '1px solid #dee2e6' }}
+                                    >
+                                        <option value="">All</option>
+                                        <option value="FY">FY</option>
+                                        <option value="SY">SY</option>
+                                        <option value="TY">TY</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div className="row g-4">
                                 {coverage.map((subj, idx) => (
                                     <div className="col-12 col-md-6 col-lg-4" key={idx}>
@@ -174,22 +175,17 @@ const Codash = () => {
                             </div>
                         </div>
 
-                        {/* DAC Report Submission Status Section */}
-                        <div className="dac-report-section mb-4">
-                            <h4 className="section-title">DAC report submission status (Approved Reports)</h4>
-                            <div className="dac-status-card-v2 p-4 rounded shadow-sm bg-light" style={{ width: '100%', maxWidth: '600px' }}>
-                                <h5 className="fw-bold mb-3 dac-card-title-v2" style={{ color: '#1e3a8a' }}>Monthly Tracker</h5>
-                                <div className="row">
-                                    {dac_reports.map((item, idx) => (
-                                        <div key={idx} className="col-4 col-md-3 d-flex align-items-center justify-content-between mb-3 px-3">
-                                            <span className="month-name fw-semibold text-secondary">{item.month}</span>
-                                            {item.status === "ok" ?
-                                                <FaCheck className="text-success" /> :
-                                                <FaTimes className="text-danger" />
-                                            }
-                                        </div>
-                                    ))}
-                                </div>
+                        {/* PO & PSO Attainment Section */}
+                        <div className="po-attainment-section mb-4">
+                            <h4 className="section-title">PO & PSO Attainment</h4>
+                            <div className="po-chart-container p-4 rounded shadow-sm bg-white" style={{ minHeight: '350px' }}>
+                                <Chart
+                                    chartType="ColumnChart"
+                                    width="100%"
+                                    height="300px"
+                                    data={po_pso_attainment}
+                                    options={barOptions}
+                                />
                             </div>
                         </div>
 

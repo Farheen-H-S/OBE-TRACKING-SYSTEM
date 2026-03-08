@@ -6,8 +6,9 @@ from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from .models import User, FacultyCourseAssignment, Student
 from academics.models import AcademicSetup, Course, COTarget
-from reports.models import Report
-from attainment.models import COAttainment
+from reports.models import Report, DACReport
+from attainment.models import COAttainment, POAttainment, PSOAttainment
+from assessments.models import Assessment, MarksEntry, CisEvidence
 
 class CoordinatorDashboardAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -19,6 +20,7 @@ class CoordinatorDashboardAPIView(APIView):
         dept_id = request.query_params.get('dept_id')
         scheme_id = request.query_params.get('scheme_id')
         academic_year = request.query_params.get('academic_year')
+        class_name = request.query_params.get('class_name')
 
         # Default Department
         if dept_id:
@@ -50,6 +52,8 @@ class CoordinatorDashboardAPIView(APIView):
         courses = Course.objects.filter(program_id=dept, is_active=True)
         if scheme_id:
             courses = courses.filter(scheme_id=scheme_id)
+        if class_name and class_name in ['FY', 'SY', 'TY']:
+            courses = courses.filter(class_year=class_name).distinct()    
             
         total_course_count = courses.count() or 1
         
@@ -102,33 +106,68 @@ class CoordinatorDashboardAPIView(APIView):
             course_att = COAttainment.objects.filter(course_id=course, academic_year=year_str).aggregate(Avg('overall_attainment'))['overall_attainment__avg'] or 0
             course_att_perc = round((course_att / 3.0) * 100)
             
+            # Determine tool status
+            tools_json = course.assessment_tools or {}
+            details = []
+            
+            # Helper to check if marks/evidence exist
+            def check_tool_status(tool_name):
+                # Using CisEvidence as the source of truth for if a tool is uploaded
+                exists = CisEvidence.objects.filter(course_id=course, academic_year=year_str, assessment_tool=tool_name).exists()
+                if not exists:
+                    # Fallback check marks entry
+                    assessments = Assessment.objects.filter(course_id=course, academic_year=year_str, assessment_type=tool_name)
+                    if assessments.exists():
+                        exists = MarksEntry.objects.filter(assessment_id__in=assessments).exists()
+                return "uploaded" if exists else "pending"
+
+            # Parse JSON to find enabled tools e.g., {"FA-TH": true, "SA-TH": true}
+            for tool_name, is_enabled in tools_json.items():
+                if is_enabled:
+                    status_str = check_tool_status(tool_name)
+                    details.append({"label": tool_name, "status": status_str})
+                    
+            if not details:
+                # Fallback if tools aren't configured
+                details = [{"label": "Configuration", "status": "pending"}]
+            
             subject_coverage.append({
                 "subject": course.course_name,
                 "co_attainment": f"{course_att_perc}%",
-                # Mocking status detail items for now as coverage models might be complex
-                "details": [
-                    {"label": "FA-TH", "status": "uploaded"},
-                    {"label": "FA-PR", "status": "uploaded"},
-                    {"label": "SA-TH", "status": "uploaded"}
-                ]
+                "details": details
             })
 
-        # 4. DAC Report Submission Status (Months ok/no)
-        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-        now = timezone.now()
-        dac_status = []
-        for i, m in enumerate(months, 1):
-            # Check if any report was approved in this month
-            has_report = Report.objects.filter(
-                course_id__program_id=dept, 
-                updated_at__month=i,
-                status='Approved'
-            ).exists()
-            dac_status.append({"month": m, "status": "ok" if has_report else "no"})
+        # 4. DAC Report Upload Date
+        last_dac = DACReport.objects.filter(program_id=dept, academic_year=year_str).order_by('-uploaded_at').first()
+        last_dac_upload_date = last_dac.uploaded_at.strftime('%d/%m/%Y') if last_dac else "Not uploaded"
+
+        # 5. PO & PSO Attainment Chart (Same as HOD Dashboard)
+        dept_po_stats = POAttainment.objects.filter(academic_year=year_str, course_id__in=courses).values('po_id__po_number').annotate(avg_att=Avg('normalized_value')).order_by('po_id__po_number')
+        attainment_bar_data = [["Outcome", "Percentage", { "role": "style" }]]
+        colors = ["#4285f4", "#ea4335", "#fbbc05", "#34a853", "#ff6d01", "#46bdc6"]
+        idx = 0
+        
+        if dept_po_stats.exists():
+            for stat in dept_po_stats:
+                label = stat['po_id__po_number'].upper()
+                avg_val = round((stat['avg_att'] / 3.0) * 100, 1)
+                attainment_bar_data.append([label, avg_val, colors[idx % len(colors)]])
+                idx += 1
+        else:
+            attainment_bar_data.extend([["PO 1", 0, "#4285f4"], ["PO 2", 0, "#ea4335"], ["PO 3", 0, "#fbbc05"]])
+            
+        dept_pso_stats = PSOAttainment.objects.filter(academic_year=year_str, course_id__in=courses).values('pso_id__pso_number').annotate(avg_att=Avg('normalized_value')).order_by('pso_id__pso_number')
+        if dept_pso_stats.exists():
+            for stat in dept_pso_stats:
+                label = stat['pso_id__pso_number'].upper()
+                avg_val = round((stat['avg_att'] / 3.0) * 100, 1)
+                attainment_bar_data.append([label, avg_val, colors[idx % len(colors)]])
+                idx += 1 
 
         return Response({
             "academic": academic_data,
             "health": [mapping_health, verification_health, target_health, achieved_health],
             "coverage": subject_coverage,
-            "dac_reports": dac_status
+            "last_dac_upload_date": last_dac_upload_date,
+            "po_pso_attainment": attainment_bar_data
         }, status=status.HTTP_200_OK)
