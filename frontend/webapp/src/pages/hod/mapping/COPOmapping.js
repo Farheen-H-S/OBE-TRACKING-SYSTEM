@@ -137,6 +137,7 @@ const COPOmapping = () => {
     };
 
     const handleInputChange = (index, field, value) => {
+        if (!canEditMapping) return;
         // Validation: Only allow 0, 1, 2, 3 or empty string
         if (value !== '' && !['0', '1', '2', '3'].includes(value)) {
             alert("Please enter a value between 0 and 3.");
@@ -370,7 +371,7 @@ const COPOmapping = () => {
                                                             <input
                                                                 type="text"
                                                                 value={row[`po${p.po_id}`]}
-                                                                readOnly={selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing}
+                                                                readOnly={!canEditMapping || (selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing)}
                                                                 onChange={(e) => handleInputChange(index, `po${p.po_id}`, e.target.value)}
                                                                 onKeyDown={(e) => handleKeyDown(e, index, pIdx)}
                                                                 data-row={index}
@@ -428,44 +429,46 @@ const COPOmapping = () => {
                                 </div>
 
                                 <div className="d-flex justify-content-end gap-3 mt-4 pb-3">
-                                    {selectedCourse?.co_status !== 'COMPLETED' ? (
-                                        <Button
-                                            variant="outline-secondary"
-                                            className="px-4 fw-bold shadow-sm"
-                                            disabled
-                                            title="CO Status must be COMPLETED before mapping can be edited."
-                                        >
-                                            <i className="bi bi-lock me-2"></i>Mapping Locked (CO Pending)
-                                        </Button>
-                                    ) : selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing ? (
-                                        <Button
-                                            variant="primary"
-                                            className="px-4 fw-bold shadow-sm"
-                                            onClick={() => setIsEditing(true)}
-                                            style={{ fontFamily: 'Inter, sans-serif' }}
-                                        >
-                                            <i className="bi bi-pencil-square me-2"></i> Edit Mapping
-                                        </Button>
-                                    ) : (
-                                        <>
-                                            {selectedCourse?.mapping_status?.toLowerCase() === 'completed' && (
-                                                <Button
-                                                    variant="outline-secondary"
-                                                    className="px-4 fw-bold shadow-sm"
-                                                    onClick={() => setIsEditing(false)}
-                                                    style={{ fontFamily: 'Inter, sans-serif' }}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                            )}
+                                    {canEditMapping && (
+                                        selectedCourse?.co_status !== 'COMPLETED' ? (
                                             <Button
-                                                className="save-btn text-white px-4 fw-bold shadow-sm"
-                                                onClick={handleSave}
+                                                variant="outline-secondary"
+                                                className="px-4 fw-bold shadow-sm"
+                                                disabled
+                                                title="CO Status must be COMPLETED before mapping can be edited."
+                                            >
+                                                <i className="bi bi-lock me-2"></i>Mapping Locked (CO Pending)
+                                            </Button>
+                                        ) : selectedCourse?.mapping_status?.toLowerCase() === 'completed' && !isEditing ? (
+                                            <Button
+                                                variant="primary"
+                                                className="px-4 fw-bold shadow-sm"
+                                                onClick={() => setIsEditing(true)}
                                                 style={{ fontFamily: 'Inter, sans-serif' }}
                                             >
-                                                <i className="bi bi-check-circle me-2"></i> Save & Complete Mapping
+                                                <i className="bi bi-pencil-square me-2"></i> Edit Mapping
                                             </Button>
-                                        </>
+                                        ) : (
+                                            <>
+                                                {selectedCourse?.mapping_status?.toLowerCase() === 'completed' && (
+                                                    <Button
+                                                        variant="outline-secondary"
+                                                        className="px-4 fw-bold shadow-sm"
+                                                        onClick={() => setIsEditing(false)}
+                                                        style={{ fontFamily: 'Inter, sans-serif' }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    className="save-btn text-white px-4 fw-bold shadow-sm"
+                                                    onClick={handleSave}
+                                                    style={{ fontFamily: 'Inter, sans-serif' }}
+                                                >
+                                                    <i className="bi bi-check-circle me-2"></i> Save & Complete Mapping
+                                                </Button>
+                                            </>
+                                        )
                                     )}
                                 </div>
                             </div>
