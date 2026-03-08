@@ -227,7 +227,6 @@ class CourseListCreateAPIView(APIView):
             courses = Course.objects.filter(is_active=True).distinct()
 
         if is_valid_filter(program_id): courses = courses.filter(program_id=program_id)
-        if is_valid_filter(program_id): courses = courses.filter(program_id=program_id)
         if is_valid_filter(semester): courses = courses.filter(semester=semester)
         if is_valid_filter(class_year): courses = courses.filter(class_year=class_year)
         if is_valid_filter(scheme_id): courses = courses.filter(scheme_id=scheme_id)
