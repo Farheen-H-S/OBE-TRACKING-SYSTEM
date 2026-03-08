@@ -9,6 +9,7 @@ from .dashboard_views import AdminDashboardAPIView
 from .hod_dashboard_views import HODDashboardAPIView
 from .faculty_dashboard_views import FacultyDashboardAPIView
 from .coordinator_dashboard_views import CoordinatorDashboardAPIView
+from .auditor_dashboard_views import AuditorDashboardAPIView
 
 urlpatterns = [
     path('auth/forgot-password/', ForgotPasswordAPIView.as_view(), name='forgot-password'),
@@ -21,6 +22,7 @@ urlpatterns = [
     path('hod-dashboard/', HODDashboardAPIView.as_view(), name='hod-dashboard'),
     path('faculty-dashboard/', FacultyDashboardAPIView.as_view(), name='faculty-dashboard'),
     path('coordinator-dashboard/', CoordinatorDashboardAPIView.as_view(), name='coordinator-dashboard'),
+    path('auditor-dashboard/', AuditorDashboardAPIView.as_view(), name='auditor-dashboard'),
     path('<int:pk>/', UserDetailAPIView.as_view(), name='user-detail'),
     path('roles/', RoleListAPIView.as_view(), name='role-list'),
     path('students/', StudentListCreateAPIView.as_view(), name='student-list-create'),

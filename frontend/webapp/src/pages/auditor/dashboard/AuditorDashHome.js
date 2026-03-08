@@ -1,128 +1,178 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './AuditorDashHome.css';
+import api from '../../../utils/axios';
 
 function AuditorDashHome() {
+    const navigate = useNavigate();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const response = await api.get('/users/auditor-dashboard/');
+                setData(response.data);
+                setError(null);
+            } catch (err) {
+                console.error('Failed to load auditor dashboard:', err);
+                setError('Failed to load dashboard data.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !data) {
+        return (
+            <div className="p-4" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+                <div className="alert alert-warning mt-4">{error || 'No data available.'}</div>
+            </div>
+        );
+    }
+
+    const { top_stats = {}, activity_log = [] } = data;
+    const reportPct = top_stats.report_verification_pct ?? 0;
+    const dacPct = top_stats.dac_verification_pct ?? 0;
+
     return (
-        <div className="p-4" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
-            <div className="container-fluid auditor-dashboard-container">
+        <div className="p-4 auditor-dash" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+            <div className="container-fluid">
 
-                {/* Top Row: Academic Info */}
-                <div className="row mb-4">
-                    {/* Academic Year */}
-                    <div className="col-md-3 mb-3">
-                        <div className="heading-title">Acedemic year</div>
-                        <div className="info-card active-status d-flex flex-column justify-content-center">
-                            <div className="fw-bold fs-5">2025-26</div>
-                            <div className="text-secondary small">Status : Active</div>
+                {/* Header */}
+                <div className="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h4 className="mb-0 fw-bold text-dark">Auditor Dashboard</h4>
+                        <span className="text-secondary small">Academic Year: <strong>{top_stats.academic_year}</strong></span>
+                    </div>
+                    <div className="d-flex gap-2">
+                        <button className="btn btn-outline-primary btn-sm" onClick={() => navigate('/view-reports')}>
+                            View Reports
+                        </button>
+                        <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate('/activity-log')}>
+                            Full Activity Log
+                        </button>
+                    </div>
+                </div>
+
+                {/* Top Stat Cards */}
+                <div className="row g-3 mb-4">
+                    {/* CIS Reports */}
+                    <div className="col-6 col-md-3">
+                        <div className="auditor-stat-card">
+                            <div className="auditor-stat-label">CIS Reports</div>
+                            <div className="auditor-stat-value text-primary">{top_stats.total_reports || 0}</div>
+                            <div className="d-flex justify-content-between mt-2 small">
+                                <span className="text-success">✓ Verified: {top_stats.verified_reports || 0}</span>
+                                <span className="text-warning">● Pending: {top_stats.pending_reports || 0}</span>
+                            </div>
+                            <div className="progress mt-2" style={{ height: '5px' }}>
+                                <div className="progress-bar bg-success" style={{ width: `${reportPct}%` }}></div>
+                            </div>
+                            <div className="text-secondary" style={{ fontSize: '0.7rem' }}>{reportPct}% verified</div>
                         </div>
                     </div>
 
-                    {/* Current Working */}
-                    <div className="col-md-5 mb-3">
-                        <div className="heading-title">Current working</div>
-                        <div className="info-card">
-                            <ul className="mb-0">
-                                <li><strong>• Dept:</strong> Computer engineering(CO)</li>
-                                <li><strong>• Scheme:</strong> MSBTE K</li>
-                                <li><strong>• Class:</strong> FYCO-A</li>
-                                <li><strong>• Semester:</strong> II(even)</li>
-                            </ul>
+                    {/* DAC Reports */}
+                    <div className="col-6 col-md-3">
+                        <div className="auditor-stat-card">
+                            <div className="auditor-stat-label">DAC Reports</div>
+                            <div className="auditor-stat-value text-info">{top_stats.total_dac || 0}</div>
+                            <div className="d-flex justify-content-between mt-2 small">
+                                <span className="text-success">✓ Verified: {top_stats.verified_dac || 0}</span>
+                                <span className="text-warning">● Pending: {top_stats.pending_dac || 0}</span>
+                            </div>
+                            <div className="progress mt-2" style={{ height: '5px' }}>
+                                <div className="progress-bar bg-info" style={{ width: `${dacPct}%` }}></div>
+                            </div>
+                            <div className="text-secondary" style={{ fontSize: '0.7rem' }}>{dacPct}% verified</div>
                         </div>
                     </div>
 
-                    {/* Audit Duration */}
-                    <div className="col-md-4 mb-3">
-                        <div className="heading-title">Audit duration</div>
-                        <div className="info-card d-flex flex-column justify-content-center">
-                            <div className="mb-1"><strong>Start:</strong> <span className="badge bg-secondary">01/Aug/2025</span></div>
-                            <div><strong>End:</strong> <span className="badge bg-secondary">03/Aug/2025</span></div>
+                    {/* Pending Approval */}
+                    <div className="col-6 col-md-3">
+                        <div className={`auditor-stat-card ${top_stats.approved_reports > 0 ? 'auditor-stat-card--highlight' : ''}`}>
+                            <div className="auditor-stat-label">Approved (Awaiting Verification)</div>
+                            <div className={`auditor-stat-value ${top_stats.approved_reports > 0 ? 'text-warning' : 'text-success'}`}>
+                                {top_stats.approved_reports || 0}
+                            </div>
+                            <div className="small text-secondary mt-2">Reports approved by HOD / Coordinator awaiting your verification</div>
+                        </div>
+                    </div>
+
+                    {/* Recent Activity Count */}
+                    <div className="col-6 col-md-3">
+                        <div className="auditor-stat-card">
+                            <div className="auditor-stat-label">Recent Activity</div>
+                            <div className="auditor-stat-value text-secondary">{activity_log.length}</div>
+                            <div className="small text-secondary mt-2">Log entries (last 20 actions across all users)</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Middle Row: Reports & Status */}
-                <div className="row mb-4">
-                    {/* Available Reports */}
-                    <div className="col-md-4 mb-3">
-                        <div className="heading-title">Available reports</div>
-                        <div className="info-card">
-                            <ul className="mb-2">
-                                <li>• DAC 11/12</li>
-                                <li>• CIS : <br /> &nbsp;&nbsp; Direct-8/8 <br /> &nbsp;&nbsp; Indirect-4/5</li>
-                            </ul>
-                            <button className="btn btn-outline-primary btn-sm mt-2 shadow-sm fw-bold">View Reports →</button>
-                        </div>
+                {/* Activity Log Table */}
+                <div className="auditor-section-card">
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                        <h5 className="fw-bold mb-0">User Activity Log</h5>
+                        <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate('/activity-log')}>
+                            View All →
+                        </button>
                     </div>
-
-                    {/* Verification Status */}
-                    <div className="col-md-2 mb-3">
-                        <div className="heading-title">Verification status</div>
-                        <div className="info-card d-flex flex-column justify-content-center align-items-center">
-                            <div className="mb-1">Verifyed : <strong>22</strong></div>
-                            <div>Pending : <strong>7</strong></div>
-                        </div>
-                    </div>
-
-                    {/* Total Remarks Added */}
-                    <div className="col-md-2 mb-3">
-                        <div className="heading-title">Total remarks added</div>
-                        <div className="info-card d-flex align-items-center justify-content-center">
-                            <h2 className="fw-bold mb-0">12</h2>
-                        </div>
-                    </div>
-
-                    {/* Latest Remark Status */}
-                    <div className="col-md-4 mb-3">
-                        <div className="heading-title">latest remark staus</div>
-                        <div className="info-card d-flex flex-column justify-content-between">
-                            <div className="d-flex justify-content-between mb-2">
-                                <span>Date: <strong>02/Aug/2025</strong></span>
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <span>Time: <strong>12:56 pm</strong></span>
-                                <button className="btn btn-outline-primary btn-sm shadow-sm fw-bold">View Remark</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Bottom Section: User Activities */}
-                <div className="row">
-                    <div className="col-12">
-                        <h4 className="user-activities-title">User Activities</h4>
-                        <div className="table-responsive">
-                            <table className="table table-bordered custom-table">
-                                <thead>
+                    <div className="table-responsive">
+                        <table className="table table-sm table-hover auditor-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Action</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activity_log.length > 0 ? (
+                                    activity_log.map((log) => (
+                                        <tr key={log.log_id}>
+                                            <td className="text-secondary">{log.log_id}</td>
+                                            <td>{log.date}</td>
+                                            <td className="text-secondary">{log.time}</td>
+                                            <td className="fw-medium">{log.username}</td>
+                                            <td><span className="badge bg-secondary fw-normal">{log.role}</span></td>
+                                            <td>
+                                                <span className={`badge ${log.action === 'APPROVE' ? 'bg-success' :
+                                                        log.action === 'VERIFY' ? 'bg-primary' :
+                                                            log.action === 'CREATE' ? 'bg-info text-dark' :
+                                                                log.action === 'UPDATE' ? 'bg-warning text-dark' :
+                                                                    'bg-secondary'
+                                                    }`}>{log.action}</span>
+                                            </td>
+                                            <td className="text-secondary small">{log.description}</td>
+                                        </tr>
+                                    ))
+                                ) : (
                                     <tr>
-                                        <th>Record ID</th>
-                                        <th>Date & time</th>
-                                        <th>Username</th>
-                                        <th>Role</th>
-                                        <th>Action</th>
-                                        <th>Short Description</th>
+                                        <td colSpan="7" className="text-center text-muted py-4">
+                                            No activity recorded yet.
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {/* Empty Rows as placeholders or empty state from image */}
-                                    <tr>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td className="text-end"><button className="btn btn-primary btn-sm">View details</button></td>
-                                    </tr>
-                                    <tr>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td className="text-end"><button className="btn btn-primary btn-sm">View details</button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
