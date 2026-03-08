@@ -54,24 +54,48 @@
 
 /* Specific column widths if needed */
 .col-lecture {
-    width: 10%;
+    width: 8%;
     text-align: center;
 }
 
 .col-date {
-    width: 15%;
+    width: 12%;
     text-align: center;
 }
 
 .col-topics {
-    width: 60%;
+    width: 45%;
 }
 
-.col-completed {
+.col-status {
     width: 15%;
     text-align: center;
-    font-weight: bold;
-    font-size: 1.2rem;
+}
+
+.col-remark {
+    width: 20%;
+}
+
+.status-select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-select[value="COMPLETED"] {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-select[value="INCOMPLETE"] {
+    background-color: #f8dbdb;
+    color: #842029;
+}
+
+.status-select[value="POSTPONED"] {
+    background-color: #fff3cd;
+    color: #664d03;
 }
 
 /* Editable Inputs */

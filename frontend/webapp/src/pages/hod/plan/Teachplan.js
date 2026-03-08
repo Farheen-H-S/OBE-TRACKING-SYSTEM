@@ -149,7 +149,7 @@ const Teachplan = () => {
                 lecture_no: lectures.length + 1,
                 lecture_date: new Date().toISOString().split('T')[0],
                 topic_planned: "",
-                is_completed: false,
+                status: "INCOMPLETE",
                 remark: ""
             }
         ]);
@@ -247,7 +247,7 @@ const Teachplan = () => {
                                         <th className="col-lecture">Lec No.</th>
                                         <th className="col-date">Planned Date</th>
                                         <th className="col-topics">Topics Planned</th>
-                                        <th className="col-completed">Status</th>
+                                        <th className="col-status">Status</th>
                                         <th className="col-remark">Remark</th>
                                     </tr>
                                 </thead>
@@ -271,16 +271,17 @@ const Teachplan = () => {
                                                     placeholder="Enter topics..."
                                                 />
                                             </td>
-                                            <td className="col-completed text-center">
-                                                <div className="form-check form-check-inline">
-                                                    <input
-                                                        className="form-check-input"
-                                                        type="checkbox"
-                                                        checked={row.is_completed}
-                                                        onChange={(e) => handleInputChange(index, 'is_completed', e.target.checked)}
-                                                    />
-                                                    <label className="form-check-label small">{row.is_completed ? 'Completed' : 'Pending'}</label>
-                                                </div>
+                                            <td className="col-status text-center">
+                                                <Form.Select
+                                                    size="sm"
+                                                    value={row.status || 'INCOMPLETE'}
+                                                    onChange={(e) => handleInputChange(index, 'status', e.target.value)}
+                                                    className="status-select"
+                                                >
+                                                    <option value="COMPLETED">Completed</option>
+                                                    <option value="INCOMPLETE">Incomplete</option>
+                                                    <option value="POSTPONED">Postponed</option>
+                                                </Form.Select>
                                             </td>
                                             <td className="col-remark">
                                                 <input

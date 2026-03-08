@@ -14,7 +14,7 @@ urlpatterns = [
     path('api/reports/', include('reports.urls')),
     path('api/stress/', include('stress.urls')),
     path('api/surveys/', include('surveys.urls')),
-    path('api/teaching_plan/', include('teaching_plan.urls')),
+    path('api/teaching-plan/', include('teaching_plan.urls')),
     path('api/audit/', include('audit.urls')),
     path('api/bulk_upload/', include('bulk_upload.urls')),
     path('api/notifications/', include('notifications.urls')),

@@ -23,14 +23,32 @@ class TeachingPlanListCreateView(generics.ListCreateAPIView):
         scheme_id = self.request.query_params.get('scheme_id')
         batch_id = self.request.query_params.get('batch_id')
         
-        if academic_year:
+        # Robust filtering helper
+        def is_valid_filter(val):
+            return val and val not in ["All", "0", "", "null", "undefined", "None"]
+
+        if is_valid_filter(academic_year):
+            from django.db.models import Q
             ay_clean = academic_year.replace(" ", "")
-            queryset = queryset.filter(academic_year=ay_clean)
+            ay_parts = ay_clean.split('-') if '-' in ay_clean else [ay_clean, ""]
+            ay_standard = f"{ay_parts[0]} - {ay_parts[1]}" if len(ay_parts) > 1 else ay_clean
+            queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_standard))
         
-        if course_id: queryset = queryset.filter(course_id=course_id)
-        if semester: queryset = queryset.filter(semester=semester)
-        if scheme_id: queryset = queryset.filter(scheme_id=scheme_id)
-        if batch_id: queryset = queryset.filter(batch_id=batch_id)
+        if is_valid_filter(course_id): queryset = queryset.filter(course_id=course_id)
+        if is_valid_filter(semester): queryset = queryset.filter(semester=semester)
+        if is_valid_filter(scheme_id): queryset = queryset.filter(scheme_id=scheme_id)
+        
+        if is_valid_filter(batch_id):
+            try:
+                if str(batch_id).isdigit():
+                    queryset = queryset.filter(batch_id=batch_id)
+                else:
+                    # Treat as batch year format "2025-26"
+                    batch_start = str(batch_id).split('-')[0].replace(" ", "")
+                    if batch_start.isdigit():
+                        queryset = queryset.filter(batch_id__batch_year=int(batch_start))
+            except:
+                pass
             
         return queryset
 
