@@ -308,6 +308,8 @@ const Stresscreate = () => {
                                             variant="outline-primary"
                                             className="px-4"
                                             onClick={() => handleEdit(set.question_set_id)}
+                                            disabled={isActive}
+                                            title={isActive ? "Cannot edit an active survey" : ""}
                                         >
                                             Edit
                                         </Button>
@@ -344,7 +346,6 @@ const Stresscreate = () => {
                                                         <option value={3}>3 Days</option>
                                                         <option value={7}>7 Days</option>
                                                         <option value={15}>15 Days</option>
-                                                        <option value={30}>30 Days</option>
                                                     </Form.Select>
                                                 </Form.Group>
                                                 <Button

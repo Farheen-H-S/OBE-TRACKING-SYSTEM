@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Question from './Question';
 import { getSurveyDetail, submitFeedbackResponse } from '../../../../services/feedbackService';
+import api from '../../../../utils/axios';
 
 const QuestionPage = () => {
     const navigate = useNavigate();
@@ -11,14 +12,6 @@ const QuestionPage = () => {
     const surveyId = location.state?.surveyId;
     const [questions, setQuestions] = useState([]);
     const [surveyInfo, setSurveyInfo] = useState(null);
-
-    const OPTION_SET = [
-        { id: 1, value: 1, label: 'Never', emoji: '😐' },
-        { id: 2, value: 2, label: 'Rarely', emoji: '🙂' },
-        { id: 3, value: 3, label: 'Sometimes', emoji: '😊' },
-        { id: 4, value: 4, label: 'Often', emoji: '😃' },
-        { id: 5, value: 5, label: 'Always', emoji: '🤩' }
-    ];
 
     const initSurvey = useCallback(async () => {
         try {
@@ -30,13 +23,46 @@ const QuestionPage = () => {
             const res = await getSurveyDetail(surveyId);
             setSurveyInfo(res.data);
 
-            const normalizedQuestions = (res.data.questions || []).map(q => ({
-                id: q.question_id,
-                text: q.question_text,
-                options: OPTION_SET
+            const rawQuestions = res.data.questions || [];
+
+            // Group by Statement
+            // Format: "Teacher Name | Statement"
+            const groupedMap = {};
+
+            rawQuestions.forEach(q => {
+                const parts = q.question_text.split('|');
+                if (parts.length >= 2) {
+                    const teacherName = parts[0].trim();
+                    const statement = parts.slice(1).join('|').trim();
+
+                    if (!groupedMap[statement]) {
+                        groupedMap[statement] = [];
+                    }
+                    groupedMap[statement].push({
+                        id: q.question_id,
+                        teacherName: teacherName
+                    });
+                }
+            });
+
+            // Convert to format for Question component
+            const matrixQuestions = Object.entries(groupedMap).map(([stmt, teachers], index) => ({
+                id: `stmt_${index}`,
+                text: stmt,
+                teachers: teachers, // array of {id, teacherName}
+                options: [1, 2, 3, 4, 5]
             }));
 
-            setQuestions(normalizedQuestions);
+            // Fallback for non-matrix surveys
+            const finalQuestions = matrixQuestions.length > 0
+                ? matrixQuestions
+                : rawQuestions.map(q => ({
+                    id: q.question_id,
+                    text: q.question_text,
+                    options: [1, 2, 3, 4, 5]
+                }));
+
+            setQuestions(finalQuestions);
         } catch (err) {
             console.error('Error initializing survey:', err);
             setQuestions([]);

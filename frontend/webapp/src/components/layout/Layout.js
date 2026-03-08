@@ -154,7 +154,10 @@ const Layout = ({ children, role }) => {
                 )}
 
                 <div className="dashboard-content flex-grow-1" style={{ minWidth: 0, padding: '1rem' }}>
-                    <GlobalFilterBar visibleFilters={visibleFilters} />
+                    <GlobalFilterBar
+                        visibleFilters={visibleFilters}
+                        disableYearFiltering={['/stress-create', '/stress-report', '/teacher-feedback-create', '/teacher-feedback-report'].includes(location.pathname)}
+                    />
                     {children}
                 </div>
             </div>
