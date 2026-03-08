@@ -148,15 +148,17 @@ class SurveyStatsView(APIView):
             answers_map = {}
             if res:
                 for ans in res.answers.all().select_related('question_id', 'question_id__co_id'):
-                    key = None
+                    keys = []
                     if ans.question_id:
+                        keys.append(str(ans.question_id.question_id)) # Always include raw ID
                         if ans.question_id.co_id:
-                            key = ans.question_id.co_id.co_id
+                            keys.append(str(ans.question_id.co_id.co_id))
                         elif ans.question_id.po_id:
-                            key = ans.question_id.po_id.po_number
+                            keys.append(str(ans.question_id.po_id.po_number))
                         elif ans.question_id.pso_id:
-                            key = ans.question_id.pso_id.pso_number
-                    if key:
+                            keys.append(str(ans.question_id.pso_id.pso_number))
+                    
+                    for key in keys:
                         answers_map[key] = ans.answer_value
             
             student_data.append({

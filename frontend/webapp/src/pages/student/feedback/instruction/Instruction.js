@@ -38,7 +38,7 @@ const Instruction = () => {
             <div className="steps-container mb-5 mx-auto">
                 <ol className="steps-list">
                     <li>Read each statement about the teacher carefully.</li>
-                    <li>Select the rating (Never to Always) that matches your observation.</li>
+                    <li>Select a rating (1 to 5 stars) for each teacher mentioned.</li>
                     <li>Your identity remains completely anonymous.</li>
                     <li>Click the button below to start the feedback session.</li>
                 </ol>

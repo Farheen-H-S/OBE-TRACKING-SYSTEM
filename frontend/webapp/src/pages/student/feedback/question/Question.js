@@ -69,9 +69,11 @@ const Question = ({ questions, onSubmit, title = "Teacher Feedback" }) => {
                             />
                             <FaStar
                                 className="star-icon"
-                                size={28}
+                                size={32}
                                 color={isSelected ? "#ffc107" : "#e4e5e9"}
-                                style={{ cursor: 'pointer', transition: 'color 200ms' }}
+                                style={{ cursor: 'pointer', transition: 'all 200ms ease' }}
+                                onMouseEnter={() => setHover(ratingValue)}
+                                onMouseLeave={() => setHover(0)}
                             />
                         </label>
                     );
@@ -113,8 +115,8 @@ const Question = ({ questions, onSubmit, title = "Teacher Feedback" }) => {
                                 <span className="teacher-name fw-semibold flex-grow-1 text-start">{teacher.teacherName}</span>
                                 <div className="d-flex align-items-center gap-3">
                                     {renderStars(teacher.id, answers[teacher.id])}
-                                    <span className="rating-value text-muted small fw-bold" style={{ minWidth: '35px' }}>
-                                        {answers[teacher.id] ? `${answers[teacher.id]}/5` : '-/5'}
+                                    <span className="rating-value text-primary fw-bold" style={{ minWidth: '45px', fontSize: '1.1rem' }}>
+                                        {answers[teacher.id] ? `${answers[teacher.id]}` : '-'}
                                     </span>
                                 </div>
                             </div>

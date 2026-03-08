@@ -319,12 +319,27 @@ const Teacherfeedbackcreate = () => {
                                 <div className="p-4">
                                     <div className="ps-3 border-start">
                                         <ul className="list-unstyled">
-                                            {(survey.questions?.length > 0 ? survey.questions : defaultQuestions).map((q, idx) => (
-                                                <li key={idx} className="mb-2 text-dark d-flex align-items-baseline">
-                                                    <span className="me-2 text-muted small fw-bold" style={{ minWidth: '20px' }}>{idx + 1}.</span>
-                                                    <span>{typeof q === 'string' ? q : q.question_text}</span>
-                                                </li>
-                                            ))}
+                                            {(() => {
+                                                const rawQuestions = survey.questions?.length > 0 ? survey.questions : defaultQuestions.map(q => ({ question_text: q }));
+                                                const uniqueStatements = [];
+                                                const seen = new Set();
+
+                                                rawQuestions.forEach(q => {
+                                                    const text = typeof q === 'string' ? q : q.question_text;
+                                                    const statement = text.includes('|') ? text.split('|')[1].trim() : text;
+                                                    if (!seen.has(statement)) {
+                                                        uniqueStatements.push(statement);
+                                                        seen.add(statement);
+                                                    }
+                                                });
+
+                                                return uniqueStatements.map((stmt, idx) => (
+                                                    <li key={idx} className="mb-2 text-dark d-flex align-items-baseline">
+                                                        <span className="me-2 text-muted small fw-bold" style={{ minWidth: '20px' }}>{idx + 1}.</span>
+                                                        <span>{stmt}</span>
+                                                    </li>
+                                                ));
+                                            })()}
                                         </ul>
                                     </div>
 

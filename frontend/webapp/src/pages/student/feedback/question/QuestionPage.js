@@ -21,17 +21,19 @@ const QuestionPage = () => {
             }
 
             const res = await getSurveyDetail(surveyId);
-            setSurveyInfo(res.data);
+            const surveyData = res.data;
+            setSurveyInfo(surveyData);
 
-            const rawQuestions = res.data.questions || [];
+            const rawQuestions = surveyData.questions || [];
 
-            // Group by Statement
-            // Format: "Teacher Name | Statement"
-            const groupedMap = {};
+            // 1. Try grouping by existing "Teacher | Statement" format
+            let groupedMap = {};
+            let isMatrixified = false;
 
             rawQuestions.forEach(q => {
                 const parts = q.question_text.split('|');
                 if (parts.length >= 2) {
+                    isMatrixified = true;
                     const teacherName = parts[0].trim();
                     const statement = parts.slice(1).join('|').trim();
 
@@ -45,6 +47,27 @@ const QuestionPage = () => {
                 }
             });
 
+            // 2. If not matrixified, fetch teachers and force matrix for EVERYTHING
+            // This handles older surveys or surveys approved before matrix fix
+            if (!isMatrixified && rawQuestions.length > 0) {
+                const programId = surveyData.program_id;
+                // Fetch faculty for this department
+                const usersRes = await api.get(`/users/?role=Faculty&department=${programId}`);
+                const teachersList = usersRes.data.results || usersRes.data || [];
+
+                if (teachersList.length > 0) {
+                    rawQuestions.forEach(q => {
+                        const statement = q.question_text.trim();
+                        // Special handling: We use a composite key for localized answer state in Question.js
+                        groupedMap[statement] = teachersList.map(t => ({
+                            id: `${q.question_id}_t${t.user_id || t.id}`, // Virtual unique ID for frontend
+                            realQuestionId: q.question_id,
+                            teacherName: t.name
+                        }));
+                    });
+                }
+            }
+
             // Convert to format for Question component
             const matrixQuestions = Object.entries(groupedMap).map(([stmt, teachers], index) => ({
                 id: `stmt_${index}`,
@@ -53,7 +76,7 @@ const QuestionPage = () => {
                 options: [1, 2, 3, 4, 5]
             }));
 
-            // Fallback for non-matrix surveys
+            // Final fallback
             const finalQuestions = matrixQuestions.length > 0
                 ? matrixQuestions
                 : rawQuestions.map(q => ({
@@ -75,22 +98,25 @@ const QuestionPage = () => {
 
     const handleSubmitAnswers = async (answers) => {
         try {
+            const responses = Object.entries(answers).map(([qId, val]) => {
+                // Handle virtual IDs like "123_t456" from on-the-fly matrix
+                const realId = qId.includes('_t') ? qId.split('_t')[0] : qId;
+                return {
+                    question_id: Number(realId),
+                    answer_value: Number(val)
+                };
+            });
+
             const payload = {
                 survey_id: surveyId,
-                // Generic survey module does not use anonymous tokens in the same way 
-                // but requires student_id if logged in or handle as guest.
-                // Assuming students are logged in based on other CIS modules.
-                responses: Object.entries(answers).map(([qId, val]) => ({
-                    question_id: Number(qId),
-                    answer_value: Number(val)
-                }))
+                answers: responses // Backend SubmitSurveyResponseView expects 'answers'
             };
 
             await submitFeedbackResponse(payload);
             navigate('/student/feedback/exit', { state: { surveyId, surveyName: surveyInfo?.survey_name } });
         } catch (err) {
             console.error('Error submitting answers:', err);
-            alert('Submission failed. Please ensure you are logged in.');
+            alert('Submission failed. Please check your connection.');
         }
     };
 

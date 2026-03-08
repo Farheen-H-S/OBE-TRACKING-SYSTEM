@@ -57,7 +57,7 @@ const Techfeedreport = () => {
             // Simple aggregation
             const questionStats = statements.map(stmt => {
                 const values = responses
-                    .map(r => r.answers[stmt.id] || r.answers[stmt.question_id])
+                    .map(r => r.answers[stmt.id] || r.answers[String(stmt.question_id)])
                     .filter(v => v !== undefined && v !== null);
 
                 const avg = values.length > 0
@@ -76,10 +76,12 @@ const Techfeedreport = () => {
                 .reduce((acc, q, _, arr) => acc + (parseFloat(q.avg) / arr.length), 0)
                 .toFixed(2);
 
+            const actualResponders = responses.filter(r => Object.keys(r.answers || {}).length > 0);
+
             setAggregatedData({
                 questionStats,
                 overallAvg,
-                totalResponses: responses.length
+                totalResponses: actualResponders.length
             });
         } catch (err) {
             console.error("Error fetching report data:", err);
