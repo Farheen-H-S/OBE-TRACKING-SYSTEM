@@ -76,7 +76,8 @@ const Facdash = () => {
     ct2 = [],
     comparison = [],
     comparison_table = [],
-    co_attainment = []
+    co_attainment_per_course = [],
+    po_pso_attainment = []
   } = data;
 
   // Chart Options
@@ -108,6 +109,17 @@ const Facdash = () => {
       alwaysOutside: true,
       textStyle: { fontSize: 12, color: '#444' }
     }
+  };
+
+  const barOptions = {
+    chartArea: { width: "80%", height: "70%" },
+    legend: { position: "none" },
+    vAxis: {
+      title: "Attainment %",
+      minValue: 0,
+      maxValue: 100
+    },
+    hAxis: { title: "PO / PSO" },
   };
 
   return (
@@ -218,13 +230,53 @@ const Facdash = () => {
               </div>
             </div>
 
-            {/* Overall CO Attainment */}
+            {/* Per-Course CO Attainment */}
             <div className="row mb-5">
               <div className="col-12">
                 <div className="chart-card p-3">
-                  <h5 className="chart-heading mb-3">Overall CO Attainment Overview</h5>
+                  <h5 className="chart-heading mb-3">Course Outcome Attainment — Per Course</h5>
+                  {co_attainment_per_course.length > 0 ? (
+                    <div className="row g-4">
+                      {co_attainment_per_course.map((item, idx) => (
+                        <div key={idx} className="col-12 col-md-6">
+                          <div className="chart-card p-3 h-100">
+                            <div className="fw-semibold text-secondary mb-1" style={{ fontSize: '0.85rem' }}>
+                              {item.course_name || item.course}
+                            </div>
+                            <div className="fw-bold mb-2 text-primary">{item.course}</div>
+                            <div className="chart-wrapper border rounded">
+                              <Chart
+                                chartType="ColumnChart"
+                                width="100%"
+                                height="240px"
+                                data={item.chart_data}
+                                options={coAttainmentOptions}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted text-center py-4">No CO attainment data available yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* PO & PSO Attainment */}
+            <div className="row mb-5">
+              <div className="col-12">
+                <div className="chart-card p-3">
+                  <h5 className="chart-heading mb-3">PO & PSO Attainment</h5>
                   <div className="chart-wrapper p-4 border rounded">
-                    <Chart chartType="ColumnChart" width="100%" height="380px" data={co_attainment} options={coAttainmentOptions} />
+                    <Chart
+                      chartType="ColumnChart"
+                      width="100%"
+                      height="340px"
+                      data={po_pso_attainment}
+                      options={barOptions}
+                    />
                   </div>
                 </div>
               </div>

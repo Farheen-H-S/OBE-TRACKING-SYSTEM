@@ -6,7 +6,7 @@ from django.db.models import Avg
 from .models import FacultyCourseAssignment
 from academics.models import Course, AcademicSetup
 from assessments.models import Assessment, MarksEntry
-from attainment.models import COAttainment
+from attainment.models import COAttainment, POAttainment, PSOAttainment
 from reports.models import Report
 
 class FacultyDashboardAPIView(APIView):
@@ -80,22 +80,58 @@ class FacultyDashboardAPIView(APIView):
                 "type": "positive" if diff > 0 else ("negative" if diff < 0 else "neutral")
             })
 
-        # 2. Overall CO Attainment for assigned subjects
-        co_attainment_data = [["Course outcome", "Attainment achieved in %", { "role": "annotation" }]]
-        
-        # Get average attainment for each CO number (CO1, CO2, etc) across all assigned courses
-        co_stats = COAttainment.objects.filter(
-            course_id__in=courses, 
-            academic_year=final_academic_year
-        ).values('co_id__co_number').annotate(avg_att=Avg('overall_attainment')).order_by('co_id__co_number')
-        
-        for stat in co_stats:
-            co_label = stat['co_id__co_number'].upper()
-            avg_perc = round((stat['avg_att'] / 3.0) * 100, 1)
-            co_attainment_data.append([co_label, avg_perc, str(avg_perc)])
+        # 2. Per-course CO Attainment breakdown
+        co_attainment_per_course = []
+        for course in courses:
+            subj_label = course.course_abbr or course.course_code
+            course_co_stats = COAttainment.objects.filter(
+                course_id=course,
+                academic_year=final_academic_year
+            ).values('co_id__co_number').annotate(avg_att=Avg('overall_attainment')).order_by('co_id__co_number')
 
-        if len(co_attainment_data) == 1:
-            co_attainment_data.extend([["CO 1", 0, "0"], ["CO 2", 0, "0"], ["CO 3", 0, "0"]])
+            chart_data = [["CO", "Attainment %", {"role": "annotation"}]]
+            for stat in course_co_stats:
+                co_label = stat['co_id__co_number'].upper()
+                avg_perc = round((stat['avg_att'] / 3.0) * 100, 1)
+                chart_data.append([co_label, avg_perc, str(avg_perc)])
+
+            if len(chart_data) == 1:
+                chart_data.extend([["CO 1", 0, "0"], ["CO 2", 0, "0"], ["CO 3", 0, "0"]])
+
+            co_attainment_per_course.append({
+                "course": subj_label,
+                "course_name": course.course_name,
+                "chart_data": chart_data
+            })
+
+        # 3. PO & PSO Attainment (across assigned courses)
+        colors = ["#4285f4", "#ea4335", "#fbbc05", "#34a853", "#ff6d01", "#46bdc6"]
+        attainment_bar_data = [["Outcome", "Attainment %", {"role": "style"}]]
+        idx = 0
+
+        dept_po_stats = POAttainment.objects.filter(
+            academic_year=final_academic_year, course_id__in=courses
+        ).values('po_id__po_number').annotate(avg_att=Avg('normalized_value')).order_by('po_id__po_number')
+
+        if dept_po_stats.exists():
+            for stat in dept_po_stats:
+                label = stat['po_id__po_number'].upper()
+                avg_val = round((stat['avg_att'] / 3.0) * 100, 1)
+                attainment_bar_data.append([label, avg_val, colors[idx % len(colors)]])
+                idx += 1
+        else:
+            attainment_bar_data.extend([["PO 1", 0, "#4285f4"], ["PO 2", 0, "#ea4335"], ["PO 3", 0, "#fbbc05"]])
+
+        dept_pso_stats = PSOAttainment.objects.filter(
+            academic_year=final_academic_year, course_id__in=courses
+        ).values('pso_id__pso_number').annotate(avg_att=Avg('normalized_value')).order_by('pso_id__pso_number')
+
+        if dept_pso_stats.exists():
+            for stat in dept_pso_stats:
+                label = stat['pso_id__pso_number'].upper()
+                avg_val = round((stat['avg_att'] / 3.0) * 100, 1)
+                attainment_bar_data.append([label, avg_val, colors[idx % len(colors)]])
+                idx += 1
 
         # 3. Top Stats
         pending_reports = Report.objects.filter(
@@ -121,5 +157,6 @@ class FacultyDashboardAPIView(APIView):
             "ct2": ct2_data,
             "comparison": comparison_data,
             "comparison_table": comparison_table,
-            "co_attainment": co_attainment_data
+            "co_attainment_per_course": co_attainment_per_course,
+            "po_pso_attainment": attainment_bar_data
         }, status=status.HTTP_200_OK)
