@@ -87,10 +87,13 @@ function AuditorDashHome() {
                     </div>
                 </div>
 
-                {/* Row 2: CO-PO mapping button */}
+                {/* Row 2: Action Buttons */}
                 <div className="row mb-3">
-                    <div className="col-12">
-                        <button className="co-po-mapping-btn" onClick={() => navigate('/co-po-pso-mapping')}>View CO-PO mapping &rarr;</button>
+                    <div className="col-6">
+                        <button className="dash-action-btn w-100" onClick={() => navigate('/co-po-pso-mapping')}>View CO-PO-PSO Mapping →</button>
+                    </div>
+                    <div className="col-6">
+                        <button className="dash-action-btn w-100" onClick={() => navigate('/auditor/view-my-remarks')}>View My Remarks →</button>
                     </div>
                 </div>
 
