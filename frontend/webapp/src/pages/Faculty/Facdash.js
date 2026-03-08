@@ -44,12 +44,26 @@ const Facdash = () => {
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#f0f4f8' }}>
         <div className="d-flex flex-grow-1">
           <div className="flex-grow-1 p-4 text-center">
-            <div className="alert alert-warning mt-5">{error || "No dashboard data available."}</div>
+            <div className="alert alert-warning mt-5">{error}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case where faculty has no courses assigned
+  if (!data || data.message) {
+    return (
+      <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#f0f4f8' }}>
+        <div className="flex-grow-1 p-4 text-center">
+          <div className="alert alert-info mt-5">
+            <h5>No Courses Assigned</h5>
+            <p>{data?.message || "No courses are assigned to you for the selected academic year."}</p>
           </div>
         </div>
       </div>
@@ -57,6 +71,7 @@ const Facdash = () => {
   }
 
   const {
+    top_stats = {},
     ct1 = [],
     ct2 = [],
     comparison = [],
@@ -67,122 +82,150 @@ const Facdash = () => {
   // Chart Options
   const chartOptions = {
     legend: { position: "none" },
-    vAxis: { title: "Average", minValue: 0, maxValue: 30 },
+    vAxis: { title: "Average Marks", minValue: 0, maxValue: 30 },
     hAxis: { title: "Subject" },
-    colors: ["#3b82f6"],
+    colors: ["#4a90e2"],
     bar: { groupWidth: "50%" },
+    chartArea: { width: '80%', height: '70%' }
   };
 
   const comparisonOptions = {
-    vAxis: { title: "Average", minValue: 0, maxValue: 30 },
+    vAxis: { title: "Average Marks", minValue: 0, maxValue: 30 },
     hAxis: { title: "Subject" },
     legend: { position: "bottom" },
-    colors: ["#3b82f6", "#f59e0b"],
+    colors: ["#4a90e2", "#f59e0b"],
+    chartArea: { width: '75%', height: '65%' }
   };
 
   const coAttainmentOptions = {
     legend: { position: "none" },
-    vAxis: { title: "Attainment achieved in %", minValue: 0, maxValue: 100 },
-    hAxis: { title: "Course outcome" },
+    vAxis: { title: "Attainment %", minValue: 0, maxValue: 100 },
+    hAxis: { title: "Course Outcome" },
     bar: { groupWidth: "40%" },
-    colors: ["#4472c4"],
+    colors: ["#34a853"],
+    chartArea: { width: '80%', height: '70%' },
     annotations: {
       alwaysOutside: true,
       textStyle: { fontSize: 12, color: '#444' }
     }
   };
 
-  // Mock Histogram Data (restored)
-  const histogramData = [
-    ["Marks range", "Number of students"],
-    ["0-10", 5], ["11-20", 12], ["21-30", 15], ["31-40", 18], ["41-50", 23], ["51-60", 10], ["61-70", 5],
-  ];
-
   return (
-    <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#f0f4f8' }}>
+    <div className="d-flex flex-column min-vh-100 fac-dash-wrapper" style={{ backgroundColor: '#f0f4f8' }}>
       <div className="d-flex flex-grow-1 overflow-hidden" style={{ height: 'calc(100vh - 70px)' }}>
         <div className="flex-grow-1 p-4 overflow-auto scrollable-content">
-          <div className="bg-white rounded shadow-sm p-4 main-paper-container">
+          <div className="main-paper-container p-4">
+            {/* Global Filters */}
             <div className="mb-4">
               <GlobalFilterBar visibleFilters={['scheme', 'year']} />
             </div>
 
-            {/* Top Row: CT-1 and CT-2 Charts */}
-            <div className="row mb-5">
-              <div className="col-md-6 border-end">
-                <h5 className="chart-heading mb-4 px-2">
-                  Subject wise average marks of <span className="text-secondary">Class test 1</span>
-                </h5>
-                <div className="chart-wrapper p-2 border rounded">
-                  <Chart chartType="ColumnChart" width="100%" height="300px" data={ct1} options={chartOptions} />
+            {/* Top Summary Cards */}
+            <div className="row mb-5 g-3">
+              <div className="col-6 col-md-4 col-lg-3">
+                <div className="stat-card-box h-100 text-center">
+                  <div className="stat-card-label mb-1">Assigned Courses</div>
+                  <div className="fw-bold fs-3 text-primary">{top_stats.assigned_courses || 0}</div>
+                  <div className="small text-secondary">For AY {top_stats.academic_year}</div>
                 </div>
               </div>
-              <div className="col-md-6">
-                <h5 className="chart-heading mb-4 px-2">
-                  Subject wise average marks of <span className="text-secondary">Class test 2</span>
-                </h5>
-                <div className="chart-wrapper p-2 border rounded">
-                  <Chart chartType="ColumnChart" width="100%" height="300px" data={ct2} options={chartOptions} />
+              <div className="col-6 col-md-4 col-lg-3">
+                <div className={`stat-card-box h-100 text-center ${top_stats.pending_reports > 0 ? 'border-warning bg-warning bg-opacity-10' : ''}`}>
+                  <div className={`stat-card-label mb-1 ${top_stats.pending_reports > 0 ? 'text-warning' : ''}`}>Pending Reports</div>
+                  <div className={`fw-bold fs-3 ${top_stats.pending_reports > 0 ? 'text-warning' : 'text-success'}`}>
+                    {top_stats.pending_reports || 0}
+                  </div>
+                  <div className="small text-secondary">Draft / Under Review</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-4 col-lg-3">
+                <div className="stat-card-box h-100 text-center">
+                  <div className="stat-card-label mb-1">Assessments Configured</div>
+                  <div className="fw-bold fs-3 text-info">{top_stats.assessments_configured || 0}</div>
+                  <div className="small text-secondary">Tools set up this year</div>
                 </div>
               </div>
             </div>
 
-            {/* Middle Row: Comparison Chart & Table */}
-            <div className="row mb-5 justify-content-center">
-              <div className="col-md-11 text-center">
-                <h5 className="chart-heading mb-4">
-                  Comparison between average marks of <span className="text-secondary">class test 1 & 2</span>
-                </h5>
-                <div className="row align-items-center">
-                  <div className="col-md-7">
-                    <div className="chart-wrapper p-3 border rounded">
-                      <Chart chartType="ColumnChart" width="100%" height="350px" data={comparison} options={comparisonOptions} />
-                    </div>
+            {/* CT-1 and CT-2 Charts */}
+            <div className="row mb-5 g-4">
+              <div className="col-md-6">
+                <div className="chart-card p-3">
+                  <h5 className="chart-heading mb-3">
+                    Avg Marks — <span>Class Test 1</span>
+                  </h5>
+                  <div className="chart-wrapper p-2 border rounded">
+                    <Chart chartType="ColumnChart" width="100%" height="280px" data={ct1} options={chartOptions} />
                   </div>
-                  <div className="col-md-5">
-                    <div className="comparison-table-wrapper mb-4">
-                      <table className="table table-bordered table-sm custom-comp-table">
-                        <thead>
-                          <tr>
-                            <th>Subject</th>
-                            <th>CT 1</th>
-                            <th>CT 2</th>
-                            <th>Diff</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {comparison_table.map((row) => (
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="chart-card p-3">
+                  <h5 className="chart-heading mb-3">
+                    Avg Marks — <span>Class Test 2</span>
+                  </h5>
+                  <div className="chart-wrapper p-2 border rounded">
+                    <Chart chartType="ColumnChart" width="100%" height="280px" data={ct2} options={chartOptions} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Comparison Chart + Table */}
+            <div className="row mb-5 g-4 align-items-stretch">
+              <div className="col-md-7">
+                <div className="chart-card p-3 h-100">
+                  <h5 className="chart-heading mb-3">
+                    CT1 vs CT2 — <span>Comparison</span>
+                  </h5>
+                  <div className="chart-wrapper p-3 border rounded">
+                    <Chart chartType="ColumnChart" width="100%" height="320px" data={comparison} options={comparisonOptions} />
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-5 d-flex align-items-center">
+                <div className="chart-card p-3 w-100">
+                  <h5 className="chart-heading mb-3">Score Summary</h5>
+                  <div className="comparison-table-wrapper">
+                    <table className="table table-bordered table-sm custom-comp-table">
+                      <thead>
+                        <tr>
+                          <th>Subject</th>
+                          <th>CT 1</th>
+                          <th>CT 2</th>
+                          <th>Diff</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {comparison_table.length > 0 ? (
+                          comparison_table.map((row) => (
                             <tr key={row.subject}>
                               <td>{row.subject}</td>
                               <td>{row.ct1}</td>
                               <td>{row.ct2}</td>
-                              <td className={`diff-val ${row.type}`}>{row.diff}</td>
+                              <td className={`diff-val ${row.type}`}>{row.diff > 0 ? `+${row.diff}` : row.diff}</td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="text-center text-muted py-3">No marks data yet</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Histograms (Restored with mock data for now) */}
-            <div className="row mb-5">
-              <div className="col-12 px-4">
-                <h6 className="histogram-title mb-1">End semester marks distribution : batch <span className="text-secondary">2023-24</span></h6>
-                <div className="chart-wrapper p-2 border rounded">
-                  <Chart chartType="ColumnChart" width="100%" height="300px" data={histogramData} options={{ ...chartOptions, colors: ["#b9cee5"] }} />
                 </div>
               </div>
             </div>
 
             {/* Overall CO Attainment */}
             <div className="row mb-5">
-              <div className="col-12 px-4">
-                <h5 className="chart-heading mb-4 px-2">Overall CO attainment overview</h5>
-                <div className="chart-wrapper p-4 border rounded">
-                  <Chart chartType="ColumnChart" width="100%" height="400px" data={co_attainment} options={coAttainmentOptions} />
+              <div className="col-12">
+                <div className="chart-card p-3">
+                  <h5 className="chart-heading mb-3">Overall CO Attainment Overview</h5>
+                  <div className="chart-wrapper p-4 border rounded">
+                    <Chart chartType="ColumnChart" width="100%" height="380px" data={co_attainment} options={coAttainmentOptions} />
+                  </div>
                 </div>
               </div>
             </div>

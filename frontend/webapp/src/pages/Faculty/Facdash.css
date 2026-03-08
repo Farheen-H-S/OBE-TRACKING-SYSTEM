@@ -1,3 +1,7 @@
+.fac-dash-wrapper {
+    background-color: #f0f4f8;
+}
+
 .scrollable-content {
     background-color: #f0f4f8;
 }
@@ -6,13 +10,42 @@
     background-color: #ffffff;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    /* Soft shadow as requested */
     min-height: auto;
     width: 100%;
 }
 
+/* Top Stat Cards (matching HOD/Coord dashboards) */
+.stat-card-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    border: 1px solid #e9ecef;
+    transition: box-shadow 0.2s;
+}
+
+.stat-card-box:hover {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+}
+
+/* Chart Card Wrapper */
+.chart-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e9ecef;
+}
+
 .chart-heading {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #4a4a4a;
     font-family: 'Inter', sans-serif;
@@ -26,26 +59,21 @@
 .chart-wrapper {
     background-color: #fff;
     border: 1px solid #eef2f7 !important;
+    border-radius: 8px;
 }
 
-.border-end {
-    border-right: 1px solid #f0f2f5 !important;
-}
-
-/* --- New Styles --- */
-
+/* Comparison Table */
 .custom-comp-table {
     font-size: 0.85rem;
     border: 1px solid #ced4da;
 }
 
 .custom-comp-table thead th {
-    background-color: #3b82f6;
-    /* Matching the blue in the image */
+    background-color: #4a90e2;
     color: white;
     font-weight: 500;
-    padding: 6px;
-    border: 1px solid #2563eb;
+    padding: 8px;
+    border: 1px solid #3578d4;
 }
 
 .custom-comp-table td {
@@ -55,42 +83,18 @@
 }
 
 .diff-val.positive {
-    background-color: #3b82f6;
-    color: white;
+    background-color: #d1fae5;
+    color: #065f46;
 }
 
 .diff-val.negative {
-    background-color: #1e3a8a;
-    color: white;
+    background-color: #fee2e2;
+    color: #991b1b;
 }
 
 .diff-val.neutral {
-    background-color: #fff;
-}
-
-/* Attainment Progress Bar */
-.attainment-progress-bar {
-    height: 35px;
-    background-color: #e5edf5;
-    border-radius: 10px t;
-}
-
-.attainment-progress-bar .progress-bar {
-    background-color: #1e3a8a;
-    /* Dark blue from image */
-    border-radius: 10px !;
-}
-
-.attainment-text {
-    font-size: 1rem;
-    color: #1e3a8a;
-}
-
-/* Histogram Styling */
-.histogram-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1e3a8a;
+    background-color: #f3f4f6;
+    color: #374151;
 }
 
 @media (max-width: 991px) {

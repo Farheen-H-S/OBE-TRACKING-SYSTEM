@@ -7,7 +7,7 @@ from .models import FacultyCourseAssignment
 from academics.models import Course, AcademicSetup
 from assessments.models import Assessment, MarksEntry
 from attainment.models import COAttainment
-from .permissions import IsFaculty # Assuming this exists or using general check
+from reports.models import Report
 
 class FacultyDashboardAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -95,10 +95,28 @@ class FacultyDashboardAPIView(APIView):
             co_attainment_data.append([co_label, avg_perc, str(avg_perc)])
 
         if len(co_attainment_data) == 1:
-            # Fallback if no data
             co_attainment_data.extend([["CO 1", 0, "0"], ["CO 2", 0, "0"], ["CO 3", 0, "0"]])
 
+        # 3. Top Stats
+        pending_reports = Report.objects.filter(
+            user_id_created=user,
+            status__in=['Draft', 'Pending']
+        ).count()
+
+        assessments_configured = Assessment.objects.filter(
+            course_id__in=courses,
+            academic_year__icontains=academic_year_query
+        ).count()
+
+        top_stats = {
+            "assigned_courses": len(courses),
+            "pending_reports": pending_reports,
+            "assessments_configured": assessments_configured,
+            "academic_year": final_academic_year,
+        }
+
         return Response({
+            "top_stats": top_stats,
             "ct1": ct1_data,
             "ct2": ct2_data,
             "comparison": comparison_data,
