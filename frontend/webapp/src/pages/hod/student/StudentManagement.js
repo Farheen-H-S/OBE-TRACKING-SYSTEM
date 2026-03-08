@@ -9,6 +9,7 @@ import { useFilters } from '../../../context/FilterContext';
 const StudentManagement = () => {
     const {
         selectedDept: selectedProgram,
+        selectedScheme,
         selectedBatch,
         selectedClass,
         selectedDivision,
@@ -17,7 +18,7 @@ const StudentManagement = () => {
         validateContext
     } = useFilters();
 
-    const requiredFields = ['dept', 'batch', 'year', 'class', 'semester', 'division'];
+    const requiredFields = ['dept', 'scheme', 'batch', 'year', 'class', 'semester', 'division'];
     const { isValid, missingFields } = validateContext(requiredFields);
 
     const [students, setStudents] = useState([]);
@@ -230,6 +231,7 @@ const StudentManagement = () => {
                                         formData.append('class_year', selectedClass);
                                         formData.append('division', selectedDivision);
                                         formData.append('program_id', selectedProgram);
+                                        formData.append('scheme_id', selectedScheme);
 
                                         setLoading(true);
                                         try {

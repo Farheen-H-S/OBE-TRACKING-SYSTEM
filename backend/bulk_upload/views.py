@@ -6,7 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 import csv
 import io
 from users.models import Student, User, UserRole
-from academics.models import Program, Batch, Course, CO
+from academics.models import Program, Batch, Course, CO, Scheme
 from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
 from attainment.attainment_service import AttainmentService
 from teaching_plan.models import TeachingPlan, TeachingPlanLecture
@@ -293,14 +293,26 @@ class BulkStudentUploadView(APIView):
             
             # Resolve Default Batch
             def_batch = None
+            scheme_id = request.data.get('scheme_id')
             if default_batch_id:
+                b_year = None
                 if str(default_batch_id).isdigit():
                     def_batch = Batch.objects.filter(pk=default_batch_id).first()
                 elif '-' in str(default_batch_id):
-                    try:
-                        b_year = int(str(default_batch_id).split('-')[0])
-                        def_batch = Batch.objects.filter(batch_year=b_year).first()
+                    try: b_year = int(str(default_batch_id).split('-')[0])
                     except: pass
+                
+                if not def_batch and b_year:
+                    def_batch = Batch.objects.filter(batch_year=b_year).first()
+                    if not def_batch and scheme_id:
+                        scheme = Scheme.objects.filter(pk=scheme_id).first()
+                        if scheme:
+                            def_batch = Batch.objects.create(
+                                batch_year=b_year,
+                                scheme_id=scheme,
+                                start_year=b_year,
+                                end_year=b_year + 3
+                            )
             
             def_prog = Program.objects.filter(pk=default_program_id).first() if default_program_id and str(default_program_id).isdigit() else None
 
@@ -428,16 +440,30 @@ class BulkStudentUploadView(APIView):
                             
                             batch = None
                             batch_year_input = get_val('batch_year')
+                            scheme_id = request.data.get('scheme_id')
+
                             if batch_year_input:
                                 try:
                                     y = int(batch_year_input.split('-')[0]) if '-' in batch_year_input else int(float(batch_year_input))
                                     batch = Batch.objects.filter(batch_year=y).first()
-                                except: pass
+                                    
+                                    # Auto-create batch if year and scheme are known
+                                    if not batch and scheme_id:
+                                        scheme = Scheme.objects.filter(pk=scheme_id).first()
+                                        if scheme:
+                                            batch = Batch.objects.create(
+                                                batch_year=y,
+                                                scheme_id=scheme,
+                                                start_year=y,
+                                                end_year=y + (scheme.end_year - scheme.start_year if scheme.end_year and scheme.start_year else 3)
+                                            )
+                                except Exception as e:
+                                    print(f"DEBUG: Batch creation failed: {e}")
                             
                             if not batch: batch = def_batch
 
                             if not program or not batch:
-                                results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Missing Program or Batch mapping.")
+                                results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Missing Program or Batch mapping (Prog: {program}, Batch: {batch}).")
                                 results["skipped"] += 1
                                 continue
 
