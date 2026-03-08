@@ -338,12 +338,14 @@ const Teachplan = () => {
                                             {isEditing && (
                                                 <td className="col-action text-center">
                                                     <Button
-                                                        variant="link"
-                                                        className="p-0 text-decoration-none"
+                                                        variant="outline-danger"
+                                                        size="sm"
+                                                        className="border-0 p-1"
                                                         onClick={() => handleDeleteRow(index)}
                                                         title="Remove Row"
                                                     >
-                                                        <i className="bi bi-dash-circle-fill text-danger fs-4"></i>
+                                                        <i className="bi bi-dash-circle-fill fs-5 me-1"></i>
+                                                        <span style={{ fontSize: '12px', fontWeight: 'bold' }}>(-)</span>
                                                     </Button>
                                                 </td>
                                             )}
