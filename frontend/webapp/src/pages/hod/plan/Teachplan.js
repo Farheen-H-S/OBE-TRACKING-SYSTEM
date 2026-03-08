@@ -6,7 +6,10 @@ import { Button, Spinner, Alert, Form } from 'react-bootstrap';
 import './Teachplan.css';
 
 const Teachplan = () => {
-    const { selectedDept, selectedScheme, selectedYear, selectedSemester, selectedBatch } = useFilters();
+    const {
+        selectedDept, selectedScheme, selectedYear, selectedSemester,
+        selectedBatch, selectedClass, selectedDivision
+    } = useFilters();
     const user = getLoggedInUser();
 
     const [courses, setCourses] = useState([]);
@@ -17,6 +20,7 @@ const Teachplan = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState('');
+    const fileInputRef = React.useRef(null);
 
     const fetchCourses = useCallback(async () => {
         const role = (user?.role_name || user?.role || '').toLowerCase();
@@ -24,20 +28,22 @@ const Teachplan = () => {
 
         if (!selectedYear) return;
 
-        // HOD/Coord must select Dept. Faculty can proceed without Dept if they want to see all assigned courses,
-        // but typically they'll have Dept pre-selected or can select it.
-        // If isFaculty is true, we allow fetching without selectedDept.
+        const normalizedYear = selectedYear.replace(/\s/g, '');
         if (!isFaculty && !selectedDept) return;
 
         try {
             const params = {
-                academic_year: selectedYear,
+                academic_year: normalizedYear,
             };
 
-            // Only add these if they have values to avoid backend "null"/"undefined" string issues
+            // For Faculty, we rely primarily on their assignments. 
+            // We only apply additional filters if THEY are explicitly selected and not just defaults.
+            // Simplified: For now, let's just send academic_year and let backend handle the rest for faculty.
             if (selectedDept) params.program_id = selectedDept;
             if (selectedSemester) params.semester = selectedSemester;
             if (selectedScheme) params.scheme_id = selectedScheme;
+            if (selectedClass) params.class_year = selectedClass;
+            if (selectedBatch) params.batch_id = selectedBatch;
 
             const res = await api.get('/academics/courses/', { params });
             setCourses(res.data);
@@ -54,22 +60,27 @@ const Teachplan = () => {
             console.error("Error fetching courses:", err);
             setCourses([]);
         }
-    }, [selectedDept, selectedYear, selectedSemester, selectedScheme, user, selectedCourseId]);
+    }, [selectedDept, selectedYear, selectedSemester, selectedScheme, selectedClass, selectedBatch, user, selectedCourseId]);
 
     const fetchPlan = useCallback(async () => {
         if (!selectedCourseId) return;
 
+        const normalizedYear = selectedYear ? selectedYear.replace(/\s/g, '') : '';
+        const role = (user?.role_name || user?.role || '').toLowerCase();
+        const isFaculty = role === 'faculty';
+
         setLoading(true);
         setError(null);
         try {
-            const response = await api.get('/teaching-plan/', {
-                params: {
-                    course_id: selectedCourseId,
-                    academic_year: selectedYear,
-                    semester: selectedSemester,
-                    scheme_id: selectedScheme
-                }
-            });
+            const params = {
+                course_id: selectedCourseId,
+                academic_year: normalizedYear,
+                semester: selectedSemester,
+                scheme_id: selectedScheme,
+                batch_id: selectedBatch
+            };
+
+            const response = await api.get('/teaching-plan/', { params });
 
             if (response.data.length > 0) {
                 const planObj = response.data[0];
@@ -85,7 +96,7 @@ const Teachplan = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedCourseId, selectedYear, selectedSemester, selectedScheme]);
+    }, [selectedCourseId, selectedYear, selectedSemester, selectedScheme, selectedBatch]);
 
     useEffect(() => {
         fetchCourses();
@@ -95,28 +106,33 @@ const Teachplan = () => {
         fetchPlan();
     }, [fetchPlan]);
 
-    const handleCreatePlan = async () => {
-        if (!selectedCourseId) return;
+    const handleUploadPlan = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !selectedCourseId) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('course_id', selectedCourseId);
+        formData.append('academic_year', selectedYear);
+        formData.append('semester', selectedSemester);
+        formData.append('scheme_id', selectedScheme);
+        formData.append('batch_id', selectedBatch || '');
 
         setSaving(true);
+        setError(null);
         try {
-            const payload = {
-                course_id: selectedCourseId,
-                user_id: user.user_id,
-                batch_id: selectedBatch || null,
-                scheme_id: selectedScheme,
-                academic_year: selectedYear,
-                semester: selectedSemester,
-                is_active: true
-            };
-            const res = await api.post('/teaching-plan/', payload);
-            setPlan(res.data);
-            setLectures([]);
-            setSuccessMsg("Plan initialized!");
+            const res = await api.post('/bulk_upload/teaching-plan/upload/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setSuccessMsg(res.data.message || "Teaching plan uploaded successfully!");
+            setTimeout(() => setSuccessMsg(''), 3000);
+            fetchPlan();
         } catch (err) {
-            setError("Failed to create plan.");
+            console.error("Upload error:", err);
+            setError(err.response?.data?.error || "Failed to upload teaching plan.");
         } finally {
             setSaving(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -192,9 +208,26 @@ const Teachplan = () => {
                                     {saving ? 'Saving...' : 'Save Plan'}
                                 </Button>
                             ) : (
-                                <Button variant="outline-primary" size="sm" onClick={handleCreatePlan} disabled={!selectedCourseId || saving}>
-                                    {saving ? 'Creating...' : 'Initialize Plan'}
-                                </Button>
+                                <div className="d-flex flex-column align-items-end">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        style={{ display: 'none' }}
+                                        accept=".xlsx, .xls"
+                                        onChange={handleUploadPlan}
+                                    />
+                                    <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={!selectedCourseId || saving}
+                                    >
+                                        {saving ? 'Uploading...' : 'Upload Plan'}
+                                    </Button>
+                                    <div className="text-muted mt-1" style={{ fontSize: '11px', textAlign: 'right' }}>
+                                        Note: Download template from Downloads section in header
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -271,7 +304,7 @@ const Teachplan = () => {
                     ) : (
                         <div className="text-center py-5 text-muted">
                             <i className="bi bi-calendar-x fs-1 opacity-25"></i>
-                            <p className="mt-2">{selectedCourseId ? "No teaching plan found for this course. Click 'Initialize Plan' to start." : "Please select a course to view its teaching plan."}</p>
+                            <p className="mt-2">{selectedCourseId ? "No teaching plan found for this course. Click 'Upload Plan' to start." : "Please select a course to view its teaching plan."}</p>
                         </div>
                     )}
                 </div>

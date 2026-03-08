@@ -213,14 +213,20 @@ class CourseListCreateAPIView(APIView):
             from django.db.models import Q
             q_assign = Q(faculty_id=user, is_active=True)
             if is_valid_filter(academic_year):
-                q_assign &= Q(academic_year=academic_year)
+                # Handle both "2025-26" and "2025 - 26" formats
+                ay_clean = academic_year.replace(" ", "")
+                ay_parts = ay_clean.split('-') if '-' in ay_clean else [ay_clean, ""]
+                ay_standard = f"{ay_parts[0]} - {ay_parts[1]}" if len(ay_parts) > 1 else ay_clean
+                
+                q_assign &= (Q(academic_year=ay_clean) | Q(academic_year=ay_standard))
             
             assignments = FacultyCourseAssignment.objects.filter(q_assign)
-            course_ids = assignments.values_list('course_id', flat=True)
+            course_ids = assignments.values_list('course_id', flat=True).distinct()
             courses = Course.objects.filter(course_id__in=course_ids, is_active=True).distinct()
         else:
             courses = Course.objects.filter(is_active=True).distinct()
 
+        if is_valid_filter(program_id): courses = courses.filter(program_id=program_id)
         if is_valid_filter(program_id): courses = courses.filter(program_id=program_id)
         if is_valid_filter(semester): courses = courses.filter(semester=semester)
         if is_valid_filter(class_year): courses = courses.filter(class_year=class_year)
@@ -230,13 +236,17 @@ class CourseListCreateAPIView(APIView):
         # Batch filtering
         if is_valid_filter(batch_id):
             try:
-                batch_start_year = str(batch_id).split('-')[0].strip()
+                batch_str = str(batch_id).strip()
+                # Try format "2025-26" or "2025 - 26"
+                batch_start_year = batch_str.split('-')[0].replace(" ", "")
                 if batch_start_year.isdigit():
-                    courses = courses.filter(batches__batch_year=int(batch_start_year)).distinct()
-                else:
-                    courses = courses.filter(batches__batch_id=int(batch_id)).distinct()
+                    courses = courses.filter(batches__batch_year=int(batch_start_year))
+                elif batch_str.isdigit():
+                    courses = courses.filter(batches__batch_id=int(batch_str))
             except (ValueError, IndexError):
                 pass
+        
+        courses = courses.distinct()
         
         print(f"DEBUG: Resulting course count: {courses.count()}")
         serializer = CourseSerializer(courses, many=True)

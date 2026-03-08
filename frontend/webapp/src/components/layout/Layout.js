@@ -57,7 +57,7 @@ const Layout = ({ children, role }) => {
         }
 
         // Stress & Feedback Group
-        const feedbackPages = ['/stress-create', '/stress-report', '/stress-survey-report', '/teacher-feedback-create', '/teacher-feedback-report', '/teaching-plan'];
+        const feedbackPages = ['/stress-create', '/stress-report', '/stress-survey-report', '/teacher-feedback-create', '/teacher-feedback-report'];
         if (feedbackPages.includes(path)) {
             return ['dept', 'scheme', 'year'];
         }
@@ -73,7 +73,7 @@ const Layout = ({ children, role }) => {
             '/student-management', '/marks-entry', '/course-exit-survey',
             '/other-indirect-tools', '/direct-attainment', '/indirect-attainment',
             '/po-pso-attainment', '/report-verification',
-            '/view-reports', '/view-cis-entries'
+            '/view-reports', '/view-cis-entries', '/teaching-plan'
         ];
 
         if (fullContextPages.includes(path)) {

@@ -9,6 +9,7 @@ from users.models import Student, User, UserRole
 from academics.models import Program, Batch, Course, CO
 from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
 from attainment.attainment_service import AttainmentService
+from teaching_plan.models import TeachingPlan, TeachingPlanLecture
 from django.db import transaction
 import re
 import openpyxl
@@ -157,6 +158,95 @@ class DownloadTeachingPlanTemplateView(APIView):
         response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename=Teaching_Plan_Template.xlsx'
         return response
+
+class UploadTeachingPlanExcelView(APIView):
+    """
+    Processes an Excel file to populate a Teaching Plan.
+    Headers: Date, Unit, Topic, Description
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        course_id = request.data.get('course_id')
+        academic_year = request.data.get('academic_year')
+        semester = request.data.get('semester')
+        scheme_id = request.data.get('scheme_id')
+        batch_id = request.data.get('batch_id')
+
+        if not all([file_obj, course_id, academic_year, semester, scheme_id]):
+            return Response({"error": "Missing required fields (file, course_id, academic_year, semester, scheme_id)"}, status=400)
+
+        try:
+            course = get_object_or_404(Course, pk=course_id)
+            academic_year = str(academic_year).replace(" ", "")
+
+            with transaction.atomic():
+                # Resolve Batch
+                res_batch = None
+                if batch_id and str(batch_id).isdigit():
+                    res_batch = Batch.objects.filter(pk=batch_id).first()
+                
+                if not res_batch:
+                    res_batch = Batch.objects.filter(scheme_id_id=scheme_id).first()
+                
+                if not res_batch:
+                    return Response({"error": "No valid batch found for this scheme. Please select a batch."}, status=400)
+
+                plan, created = TeachingPlan.objects.get_or_create(
+                    course_id=course,
+                    academic_year=academic_year,
+                    semester=int(semester),
+                    scheme_id_id=scheme_id,
+                    defaults={
+                        'user_id': request.user if request.user.is_authenticated else User.objects.first(),
+                        'batch_id': res_batch,
+                        'is_active': True
+                    }
+                )
+
+                df = pd.read_excel(file_obj)
+                df.columns = [str(c).strip().lower() for c in df.columns]
+                
+                required_cols = ['date', 'unit', 'topic', 'description']
+                missing_cols = [c for c in required_cols if c not in df.columns]
+                if missing_cols:
+                    return Response({"error": f"Missing columns in Excel: {', '.join(missing_cols)}"}, status=400)
+
+                plan.lectures.all().delete()
+
+                lectures_to_create = []
+                for index, row in df.iterrows():
+                    if pd.isnull(row['topic']) and pd.isnull(row['date']):
+                        continue
+                    
+                    l_date = row['date']
+                    if isinstance(l_date, str):
+                        try:
+                            l_date = pd.to_datetime(l_date).date()
+                        except:
+                            l_date = None
+                    elif hasattr(l_date, 'date'):
+                        l_date = l_date.date()
+                    
+                    if pd.isnull(l_date):
+                        continue
+
+                    lectures_to_create.append(TeachingPlanLecture(
+                        teaching_plan_id=plan,
+                        lecture_no=index + 1,
+                        lecture_date=l_date,
+                        unit_no=int(row['unit']) if pd.notnull(row['unit']) and str(row['unit']).isdigit() else 1,
+                        topic_planned=str(row['topic']) if pd.notnull(row['topic']) else "",
+                        remark=str(row['description']) if pd.notnull(row['description']) else ""
+                    ))
+                
+                TeachingPlanLecture.objects.bulk_create(lectures_to_create)
+
+            return Response({"message": f"Successfully uploaded {len(lectures_to_create)} lectures."}, status=201)
+
+        except Exception as e:
+            return Response({"error": f"Upload Failed: {str(e)}"}, status=500)
 
 def apply_header_style(cell, fill_color="2F5597", font_color="FFFFFF"):
     """Helper for template styling"""

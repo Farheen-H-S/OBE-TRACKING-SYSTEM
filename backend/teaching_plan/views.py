@@ -15,6 +15,25 @@ class TeachingPlanListCreateView(generics.ListCreateAPIView):
     queryset = TeachingPlan.objects.all()
     serializer_class = TeachingPlanSerializer
 
+    def get_queryset(self):
+        queryset = TeachingPlan.objects.all()
+        course_id = self.request.query_params.get('course_id')
+        academic_year = self.request.query_params.get('academic_year')
+        semester = self.request.query_params.get('semester')
+        scheme_id = self.request.query_params.get('scheme_id')
+        batch_id = self.request.query_params.get('batch_id')
+        
+        if academic_year:
+            ay_clean = academic_year.replace(" ", "")
+            queryset = queryset.filter(academic_year=ay_clean)
+        
+        if course_id: queryset = queryset.filter(course_id=course_id)
+        if semester: queryset = queryset.filter(semester=semester)
+        if scheme_id: queryset = queryset.filter(scheme_id=scheme_id)
+        if batch_id: queryset = queryset.filter(batch_id=batch_id)
+            
+        return queryset
+
     def perform_create(self, serializer):
         instance = serializer.save()
         log_action(self.request.user, 'CREATE', 'TeachingPlan', instance.id, new_value=serializer.data)
