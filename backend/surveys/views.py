@@ -12,7 +12,7 @@ class SurveyMasterListCreateView(generics.ListCreateAPIView):
     serializer_class = SurveyMasterSerializer
 
     def get_queryset(self):
-        queryset = SurveyMaster.objects.filter(is_active=True).order_by('-survey_id')
+        queryset = SurveyMaster.objects.all().order_by('-survey_id')
         category = self.request.query_params.get('survey_category')
         program_id = self.request.query_params.get('program_id')
         academic_year = self.request.query_params.get('academic_year')
@@ -123,82 +123,73 @@ class SurveyStatsView(APIView):
             if semester: responses = responses.filter(student_id__semester=semester)
             if division: responses = responses.filter(student_id__division=division)
 
-        responder_ids = responses.values_list('student_id', flat=True)
+        # 3. Process Matrix Data (Teachers x Statements)
+        questions = SurveyQuestion.objects.filter(survey_id=survey_id)
         
-        # 3. Get expected students
-        expected_students = Student.objects.filter(program_id=survey.program_id, is_active=True)
-        if batch_id: expected_students = expected_students.filter(batch_id=batch_id)
-        if academic_year: expected_students = expected_students.filter(academic_year=academic_year)
-        if class_year: expected_students = expected_students.filter(class_year=class_year)
-        if semester: expected_students = expected_students.filter(semester=semester)
-        if division: expected_students = expected_students.filter(division=division)
+        # Identify unique statements and teacher names
+        unique_statements = []
+        teacher_names = set()
         
-        expected_students_ids = expected_students.values_list('student_id', flat=True)
-        all_student_ids = list(set(responder_ids) | set(expected_students_ids))
-
-        # Fetch full student objects and sort naturally
-        students = list(Student.objects.filter(student_id__in=all_student_ids))
-        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
-        
-        response_map = {r.student_id_id: r for r in responses if r.student_id_id}
-        
-        student_data = []
-        for student in students:
-            res = response_map.get(student.student_id)
-            answers_map = {}
-            if res:
-                for ans in res.answers.all().select_related('question_id', 'question_id__co_id'):
-                    keys = []
-                    if ans.question_id:
-                        keys.append(str(ans.question_id.question_id)) # Always include raw ID
-                        if ans.question_id.co_id:
-                            keys.append(str(ans.question_id.co_id.co_id))
-                        elif ans.question_id.po_id:
-                            keys.append(str(ans.question_id.po_id.po_number))
-                        elif ans.question_id.pso_id:
-                            keys.append(str(ans.question_id.pso_id.pso_number))
-                    
-                    for key in keys:
-                        answers_map[key] = ans.answer_value
-            
-            student_data.append({
-                'enrollment': student.enrollment_no,
-                'roll_no': student.roll_no,
-                'name': student.name,
-                'respondent_name': res.respondent_name if res else None,
-                'answers': answers_map
-            })
-
-        # 4. Fetch Question Statements
-        # Instead of just default statements, fetch the actual SurveyQuestions which might have been customized
-        questions = SurveyQuestion.objects.filter(survey_id=survey_id).select_related('co_id', 'po_id', 'pso_id')
-        
-        statements = []
+        q_map = {} # question_id -> {statement, teacher}
         for q in questions:
-            stmt = {
-                'question_id': q.question_id,
-                'question_text': q.question_text
-            }
-            if q.co_id:
-                stmt['id'] = q.co_id.co_id
-                stmt['number'] = q.co_id.co_number
-                stmt['type'] = 'CO'
-            elif q.po_id:
-                stmt['id'] = q.po_id.po_number
-                stmt['number'] = q.po_id.po_number
-                stmt['type'] = 'PO'
-            elif q.pso_id:
-                stmt['id'] = q.pso_id.pso_number
-                stmt['number'] = q.pso_id.pso_number
-                stmt['type'] = 'PSO'
+            parts = q.question_text.split('|')
+            if len(parts) >= 2:
+                t_name = parts[0].strip()
+                stmt = parts[1].strip()
+                teacher_names.add(t_name)
+                if stmt not in unique_statements:
+                    unique_statements.append(stmt)
+                q_map[q.question_id] = {'statement': stmt, 'teacher': t_name}
             else:
-                continue # Skip if no relation
-            statements.append(stmt)
+                # Handle non-matrix questions if any
+                stmt = q.question_text.strip()
+                if stmt not in unique_statements:
+                    unique_statements.append(stmt)
+                q_map[q.question_id] = {'statement': stmt, 'teacher': 'General'}
+                teacher_names.add('General')
+
+        # Aggregate scores
+        from collections import defaultdict
+        # teacher_scores[teacher][statement] = [scores...]
+        teacher_scores = defaultdict(lambda: defaultdict(list))
+        
+        for res in responses.prefetch_related('answers'):
+            for ans in res.answers.all():
+                q_info = q_map.get(ans.question_id_id)
+                if q_info:
+                    teacher_scores[q_info['teacher']][q_info['statement']].append(ans.answer_value)
+
+        # Build Teacher Matrix
+        teacher_data = []
+        for t_name in teacher_names:
+            row = {'teacher': t_name, 'scores': {}, 'achieved_score': 0}
+            total_sum = 0
+            count = 0
+            for stmt in unique_statements:
+                scores = teacher_scores[t_name].get(stmt, [])
+                if scores:
+                    avg = round(sum(scores) / len(scores), 2)
+                    row['scores'][stmt] = avg
+                    total_sum += avg
+                    count += 1
+                else:
+                    row['scores'][stmt] = "N/A"
+            
+            if count > 0:
+                row['achieved_score'] = round(total_sum / count, 2)
+            else:
+                row['achieved_score'] = 0
+            
+            teacher_data.append(row)
+
+        # Sort teachers descending by achieved score
+        teacher_data.sort(key=lambda x: x['achieved_score'], reverse=True)
 
         return Response({
             'survey': SurveyMasterSerializer(survey).data,
-            'statements': statements,
-            'responses': student_data
+            'statements': unique_statements,
+            'teachers': teacher_data,
+            'total_responses': responses.count()
         }, status=status.HTTP_200_OK)
 
 
@@ -251,54 +242,62 @@ class SurveyExportView(APIView):
         if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
         if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
 
-        from users.models import Student
-        responder_ids = responses.values_list('student_id', flat=True)
-        expected_students = Student.objects.filter(program_id=survey.program_id, is_active=True)
-        if batch_id: expected_students = expected_students.filter(batch_id=batch_id)
+        # 3. Process Matrix Data (Teachers x Statements)
+        questions = SurveyQuestion.objects.filter(survey_id=pk)
         
-        expected_students_ids = expected_students.values_list('student_id', flat=True)
-        all_student_ids = list(set(responder_ids) | set(expected_students_ids))
-
-        students = list(Student.objects.filter(student_id__in=all_student_ids))
-        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
+        unique_statements = []
+        teacher_names = set()
+        q_map = {}
         
-        response_map = {r.student_id_id: r for r in responses if r.student_id_id}
-        
-        student_data = []
-        for student in students:
-            res = response_map.get(student.student_id)
-            answers_map = {}
-            if res:
-                for ans in res.answers.all().select_related('question_id'):
-                    key = None
-                    if ans.question_id:
-                        if ans.question_id.co_id: key = ans.question_id.co_id.co_id
-                        elif ans.question_id.po_id: key = ans.question_id.po_id.po_number
-                        elif ans.question_id.pso_id: key = ans.question_id.pso_id.pso_number
-                        else: key = ans.question_id.question_id
-                    if key:
-                        answers_map[key] = ans.answer_value
-            
-            student_data.append({
-                'enrollment': student.enrollment_no,
-                'roll_no': student.roll_no,
-                'name': student.name,
-                'answers': answers_map
-            })
-
-        questions = SurveyQuestion.objects.filter(survey_id=pk).select_related('co_id', 'po_id', 'pso_id')
-        statements = []
         for q in questions:
-            stmt = {'id': q.question_id, 'question_text': q.question_text}
-            if q.co_id: stmt['id'] = q.co_id.co_id
-            elif q.po_id: stmt['id'] = q.po_id.po_number
-            elif q.pso_id: stmt['id'] = q.pso_id.pso_number
-            statements.append(stmt)
+            parts = q.question_text.split('|')
+            if len(parts) >= 2:
+                t_name = parts[0].strip()
+                stmt = parts[1].strip()
+                teacher_names.add(t_name)
+                if stmt not in unique_statements:
+                    unique_statements.append(stmt)
+                q_map[q.question_id] = {'statement': stmt, 'teacher': t_name}
+            else:
+                stmt = q.question_text.strip()
+                if stmt not in unique_statements:
+                    unique_statements.append(stmt)
+                q_map[q.question_id] = {'statement': stmt, 'teacher': 'General'}
+                teacher_names.add('General')
+
+        from collections import defaultdict
+        teacher_scores = defaultdict(lambda: defaultdict(list))
+        for res in responses.prefetch_related('answers'):
+            for ans in res.answers.all():
+                q_info = q_map.get(ans.question_id_id)
+                if q_info:
+                    teacher_scores[q_info['teacher']][q_info['statement']].append(ans.answer_value)
+
+        teacher_data = []
+        for t_name in teacher_names:
+            row = {'teacher': t_name, 'scores': {}, 'achieved_score': 0}
+            total_sum = 0
+            count = 0
+            for stmt in unique_statements:
+                scores = teacher_scores[t_name].get(stmt, [])
+                if scores:
+                    avg = round(sum(scores) / len(scores), 2)
+                    row['scores'][stmt] = avg
+                    total_sum += avg
+                    count += 1
+                else:
+                    row['scores'][stmt] = "-"
+            
+            row['achieved_score'] = round(total_sum / count, 2) if count > 0 else 0
+            teacher_data.append(row)
+
+        teacher_data.sort(key=lambda x: x['achieved_score'], reverse=True)
 
         data = {
             'survey': SurveyMasterSerializer(survey).data,
-            'statements': statements,
-            'responses': student_data
+            'statements': unique_statements,
+            'teachers': teacher_data,
+            'total_responses': responses.count()
         }
 
         excel_buffer = SurveyExcelReportGenerator.generate(data)

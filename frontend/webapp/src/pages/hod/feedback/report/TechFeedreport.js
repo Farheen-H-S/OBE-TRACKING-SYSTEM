@@ -1,11 +1,13 @@
+import { Chart as GoogleChart } from "react-google-charts";
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useFilters } from '../../../../context/FilterContext';
 import { getFeedbackSurveys, getFeedbackResponses } from '../../../../services/feedbackService';
 import { Button, Spinner, Table, Badge, Modal, Card } from 'react-bootstrap';
 import { FaEye, FaDownload, FaSyncAlt } from 'react-icons/fa';
+import api from '../../../../utils/axios';
 
-const Techfeedreport = () => {
+const TechFeedreport = () => {
     const { selectedDept, selectedYear } = useFilters();
 
     const [surveys, setSurveys] = useState([]);
@@ -52,36 +54,12 @@ const Techfeedreport = () => {
         setShowPreview(true);
         try {
             const res = await getFeedbackResponses(survey.survey_id);
-            const { statements, responses } = res.data;
-
-            // Simple aggregation
-            const questionStats = statements.map(stmt => {
-                const values = responses
-                    .map(r => r.answers[stmt.id] || r.answers[String(stmt.question_id)])
-                    .filter(v => v !== undefined && v !== null);
-
-                const avg = values.length > 0
-                    ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
-                    : "N/A";
-
-                return {
-                    text: stmt.question_text,
-                    avg: avg,
-                    count: values.length
-                };
-            });
-
-            const overallAvg = questionStats
-                .filter(q => q.avg !== "N/A")
-                .reduce((acc, q, _, arr) => acc + (parseFloat(q.avg) / arr.length), 0)
-                .toFixed(2);
-
-            const actualResponders = responses.filter(r => Object.keys(r.answers || {}).length > 0);
+            const { statements, teachers, total_responses } = res.data;
 
             setAggregatedData({
-                questionStats,
-                overallAvg,
-                totalResponses: actualResponders.length
+                statements,
+                teachers,
+                total_responses
             });
         } catch (err) {
             console.error("Error fetching report data:", err);
@@ -93,26 +71,27 @@ const Techfeedreport = () => {
 
     const handleExport = async (survey) => {
         try {
-            const response = await axios.get(`/surveys/${survey.survey_id}/export/`, {
+            const response = await api.get(`/surveys/${survey.survey_id}/export/`, {
                 responseType: 'blob'
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Feedback_Report_${survey.survey_id}.xlsx`);
+            link.setAttribute('download', `Feedback_Report_${survey.survey_name.replace(/\s+/g, '_')}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
         } catch (err) {
             console.error("Export failed", err);
+            alert("Export failed. Falling back to CSV.");
             handleCSVExport(survey); // Fallback
         }
     };
 
     const handleCSVExport = (survey) => {
         if (!aggregatedData) return;
-        const headers = ["Question", "Average Rating", "Response Count"];
-        const rows = aggregatedData.questionStats.map(q => [`"${q.text}"`, q.avg, q.count]);
+        const headers = ["Teacher Name", "Achieved Score"];
+        const rows = aggregatedData.teachers.map(t => [`"${t.teacher}"`, t.achieved_score]);
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -126,7 +105,7 @@ const Techfeedreport = () => {
     return (
         <div className="flex-grow-1 p-3 bg-light overflow-y-auto">
             <div className="bg-white p-4 rounded shadow-sm" style={{ minHeight: '780px' }}>
-                <h2 className="text-center fw-bold mb-4" style={{ fontFamily: 'Inter, sans-serif', color: '#1f2f5c', fontSize: '32px' }}>
+                <h2 className="text-center fw-bold mb-4" style={{ fontFamily: 'Inter, sans-serif', color: '#445D99', fontSize: '32px' }}>
                     Teacher Feedback Analysis Reports
                 </h2>
                 <hr />
@@ -175,7 +154,7 @@ const Techfeedreport = () => {
                                         <td className="fw-medium">{s.survey_name}</td>
                                         <td>{s.academic_year}</td>
                                         <td>
-                                            <Badge bg={s.status === 'APPROVED' ? 'success' : 'secondary'} className="px-3">
+                                            <Badge bg={s.status === 'APPROVED' ? 'success' : (s.status === 'CLOSED' ? 'danger' : 'secondary')} className="px-3">
                                                 {s.status}
                                             </Badge>
                                         </td>
@@ -187,7 +166,7 @@ const Techfeedreport = () => {
                                                 onClick={() => handlePreview(s)}
                                                 style={{ borderRadius: '20px' }}
                                             >
-                                                <FaEye className="me-1" /> View & Export
+                                                <FaEye className="me-1" /> View Analysis
                                             </Button>
                                         </td>
                                     </tr>
@@ -199,69 +178,99 @@ const Techfeedreport = () => {
             </div>
 
             {/* Preview Modal */}
-            <Modal show={showPreview} onHide={() => setShowPreview(false)} size="xl" centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>
-                        Feedback Report Preview: {selectedSurvey?.survey_name}
+            <Modal show={showPreview} onHide={() => setShowPreview(false)} size="xl" centered scrollable>
+                <Modal.Header closeButton className="bg-light">
+                    <Modal.Title className="fw-bold">
+                        Feedback Analysis Preview: {selectedSurvey?.survey_name}
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body style={{ minHeight: '400px' }}>
+                <Modal.Body style={{ minHeight: '600px', backgroundColor: '#f8f9fa' }}>
                     {previewLoading ? (
                         <div className="text-center py-5">
                             <Spinner animation="grow" variant="primary" />
-                            <p className="mt-2 text-muted">Analyzing responses...</p>
+                            <p className="mt-2 text-muted">Generating matrix analysis...</p>
                         </div>
                     ) : aggregatedData ? (
                         <div className="p-2">
-                            <div className="row mb-4">
+                            <div className="row g-4 mb-4">
                                 <div className="col-md-4">
-                                    <Card className="bg-light border-0 text-center">
-                                        <Card.Body>
-                                            <small className="text-muted text-uppercase fw-bold">Overall Average Rating</small>
-                                            <h2 className="mb-0 text-primary display-4 fw-bold">{aggregatedData.overallAvg}</h2>
-                                            <Badge bg={parseFloat(aggregatedData.overallAvg) >= 4 ? 'success' : 'warning'}>
-                                                {parseFloat(aggregatedData.overallAvg) >= 4 ? 'EXCELLENT' : 'GOOD'}
-                                            </Badge>
+                                    <Card className="border-0 shadow-sm text-center h-100">
+                                        <Card.Body className="d-flex flex-column justify-content-center">
+                                            <small className="text-muted text-uppercase fw-bold mb-2 d-block">Total Responses</small>
+                                            <h1 className="mb-0 text-primary display-3 fw-bold">{aggregatedData.total_responses}</h1>
+                                            <p className="text-muted mt-2 mb-0">Total students participated</p>
                                         </Card.Body>
                                     </Card>
                                 </div>
                                 <div className="col-md-8">
-                                    <div className="d-flex justify-content-around h-100 align-items-center">
-                                        <div className="text-center">
-                                            <div className="h2 mb-0 fw-bold">{aggregatedData.totalResponses}</div>
-                                            <small className="text-muted">Total Responses</small>
+                                    <Card className="border-0 shadow-sm h-100 p-3">
+                                        <div style={{ height: '300px' }}>
+                                            <GoogleChart
+                                                chartType="BarChart"
+                                                width="100%"
+                                                height="300px"
+                                                data={[
+                                                    ["Teacher", "Achieved Score"],
+                                                    ...aggregatedData.teachers.map(t => [t.teacher, t.achieved_score])
+                                                ]}
+                                                options={{
+                                                    title: "Teacher Feedback Performance",
+                                                    chartArea: { width: "60%" },
+                                                    hAxis: {
+                                                        title: "Achieved Score (1-5)",
+                                                        minValue: 0,
+                                                        maxValue: 5
+                                                    },
+                                                    vAxis: {
+                                                        title: "Teachers",
+                                                    },
+                                                    colors: ['#445D99'],
+                                                    legend: { position: 'none' }
+                                                }}
+                                            />
                                         </div>
-                                        <div className="text-center">
-                                            <div className="h2 mb-0 fw-bold">{aggregatedData.questionStats.length}</div>
-                                            <small className="text-muted">Questions Analyzed</small>
-                                        </div>
-                                    </div>
+                                    </Card>
                                 </div>
                             </div>
 
-                            <h6 className="fw-bold mb-3 border-bottom pb-2">Question Wise Rating Analysis</h6>
-                            <Table responsive bordered hover size="sm">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th style={{ width: '40px' }}>#</th>
-                                        <th>Feedback Statement</th>
-                                        <th className="text-center">Avg Rating (1-5)</th>
-                                        <th className="text-center">Responses</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {aggregatedData.questionStats.map((q, i) => (
-                                        <tr key={i}>
-                                            <td className="text-center">{i + 1}</td>
-                                            <td>{q.text}</td>
-                                            <td className="text-center fw-bold text-primary">{q.avg}</td>
-                                            <td className="text-center">{q.count}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                            <div className="alert alert-info py-2">
-                                <small>* Note: This is an aggregated preview based on 1-5 scale responses.</small>
+                            <Card className="border-0 shadow-sm mt-4">
+                                <Card.Header className="bg-white border-bottom py-3">
+                                    <h5 className="mb-0 fw-bold">Teacher-wise Performance Summary</h5>
+                                </Card.Header>
+                                <Card.Body className="p-0">
+                                    <div className="table-responsive">
+                                        <Table hover className="mb-0">
+                                            <thead className="bg-light">
+                                                <tr>
+                                                    <th className="ps-4" style={{ width: '80px' }}>Rank</th>
+                                                    <th>Teacher Name</th>
+                                                    <th className="text-center">Achieved Score (1-5)</th>
+                                                    <th className="text-center" style={{ width: '200px' }}>Performance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {aggregatedData.teachers.map((t, i) => (
+                                                    <tr key={i}>
+                                                        <td className="ps-4 fw-bold text-muted">#{i + 1}</td>
+                                                        <td className="fw-semibold">{t.teacher}</td>
+                                                        <td className="text-center fw-bold text-primary fs-5">{t.achieved_score}</td>
+                                                        <td className="text-center">
+                                                            <Badge bg={t.achieved_score >= 4.5 ? 'success' : (t.achieved_score >= 3.5 ? 'primary' : 'warning')}>
+                                                                {t.achieved_score >= 4.5 ? 'EXCELLENT' : (t.achieved_score >= 3.5 ? 'VERY GOOD' : 'GOOD')}
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+
+                            <div className="alert alert-light border mt-4 small text-muted">
+                                <i className="bi bi-info-circle me-2"></i>
+                                Analysis is calculated by aggregating responses for each teacher across all survey statements.
+                                Teachers are sorted by their average performance score.
                             </div>
                         </div>
                     ) : (
@@ -269,9 +278,14 @@ const Techfeedreport = () => {
                     )}
                 </Modal.Body>
                 <Modal.Footer className="bg-light">
-                    <Button variant="secondary" onClick={() => setShowPreview(false)}>Close</Button>
-                    <Button variant="primary" onClick={() => handleExport(selectedSurvey)} disabled={!aggregatedData}>
-                        <FaDownload className="me-1" /> Next
+                    <Button variant="outline-secondary" onClick={() => setShowPreview(false)}>Close</Button>
+                    <Button
+                        variant="primary"
+                        onClick={() => handleExport(selectedSurvey)}
+                        disabled={!aggregatedData || aggregatedData.total_responses === 0}
+                        className="px-4 fw-bold"
+                    >
+                        <FaDownload className="me-2" /> Download Detailed Excel (.xlsx)
                     </Button>
                 </Modal.Footer>
             </Modal>
@@ -279,4 +293,4 @@ const Techfeedreport = () => {
     );
 };
 
-export default Techfeedreport;
+export default TechFeedreport;

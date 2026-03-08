@@ -6,54 +6,76 @@ class SurveyExcelReportGenerator:
     @staticmethod
     def generate(data):
         wb = Workbook()
-        ws = wb.active
-        ws.title = "Survey Responses"
+        # Sheet 1: Matrix Data
+        ws1 = wb.active
+        ws1.title = "Analysis Report"
 
         survey = data.get('survey', {})
         statements = data.get('statements', [])
-        responses = data.get('responses', [])
+        teachers = data.get('teachers', [])
 
         # 1. Header Information
-        ws.append(["Survey Name", survey.get('survey_name')])
-        ws.append(["Category", survey.get('survey_category')])
-        ws.append(["Academic Year", survey.get('academic_year')])
-        ws.append(["Program", survey.get('program_id')])
-        ws.append(["Total Responses", len(responses)])
-        ws.append([]) # Empty row
+        ws1.append(["Teacher Feedback Analysis Report"])
+        ws1.append(["Survey Name", survey.get('survey_name')])
+        ws1.append(["Academic Year", survey.get('academic_year')])
+        ws1.append(["Total Responses", data.get('total_responses', 0)])
+        ws1.append([]) # Empty row
 
         # 2. Table Headers
-        headers = ["#", "Student Name", "Roll No / Enrollment"]
+        headers = ["#", "Teacher Name"]
         for stmt in statements:
-            headers.append(stmt.get('question_text', f"Q{stmt.get('id', '')}"))
+            headers.append(stmt)
+        headers.append("Achieved Score")
         
-        ws.append(headers)
+        ws1.append(headers)
         
-        # Apply header style
-        header_row = ws.max_row
-        for cell in ws[header_row]:
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-            cell.alignment = Alignment(horizontal="center", vertical="center")
+        # Style Headers
+        header_row = ws1.max_row
+        header_fill = PatternFill(start_color="445D99", end_color="445D99", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        for cell in ws1[header_row]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             SurveyExcelReportGenerator._apply_border(cell)
 
         # 3. Data Rows
-        for i, res in enumerate(responses, 1):
-            row = [i, res.get('name'), res.get('roll_no') or res.get('enrollment')]
-            answers = res.get('answers', {})
+        for i, t in enumerate(teachers, 1):
+            row = [i, t['teacher']]
             for stmt in statements:
-                # Use key (id, co_id, or po_number depending on how it was mapped in stats view)
-                key = stmt.get('id')
-                val = answers.get(key)
-                if val is None:
-                    # Try other possible keys if needed
-                    val = answers.get(str(key))
-                row.append(val if val is not None else "-")
+                row.append(t['scores'].get(stmt, "-"))
+            row.append(t['achieved_score'])
             
-            ws.append(row)
-            for cell in ws[ws.max_row]:
+            ws1.append(row)
+            for cell in ws1[ws1.max_row]:
                 SurveyExcelReportGenerator._apply_border(cell)
+                cell.alignment = Alignment(horizontal="center")
 
-        SurveyExcelReportGenerator._auto_adjust_columns(ws)
+        SurveyExcelReportGenerator._auto_adjust_columns(ws1)
+
+        # Sheet 2: Chart Data & Visualization
+        from openpyxl.chart import BarChart, Reference
+        ws2 = wb.create_sheet(title="Graphical Analysis")
+        
+        ws2.append(["Teacher Name", "Achieved Score"])
+        for t in teachers:
+            ws2.append([t['teacher'], t['achieved_score']])
+        
+        # Create Bar Chart
+        chart = BarChart()
+        chart.type = "col"
+        chart.style = 10
+        chart.title = "Teacher Feedback Performance Analysis"
+        chart.y_axis.title = 'Score (1-5)'
+        chart.x_axis.title = 'Teachers'
+        
+        data_ref = Reference(ws2, min_col=2, min_row=1, max_row=len(teachers) + 1)
+        cats_ref = Reference(ws2, min_col=1, min_row=2, max_row=len(teachers) + 1)
+        chart.add_data(data_ref, titles_from_data=True)
+        chart.set_categories(cats_ref)
+        chart.shape = 4
+        
+        ws2.add_chart(chart, "D2")
 
         buffer = io.BytesIO()
         wb.save(buffer)
