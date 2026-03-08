@@ -4,14 +4,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './AuditorDashHome.css';
 import api from '../../../utils/axios';
 import Backtracking from '../../hod/backtracking/Backtracking';
-import GlobalFilterBar from '../../../components/filters/GlobalFilterBar';
-import { useFilters } from '../../../context/FilterContext';
 
 function AuditorDashHome() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
-    const { selectedDept, selectedYear, selectedClass, selectedSemester, programs } = useFilters();
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -29,96 +26,78 @@ function AuditorDashHome() {
         fetchDashboardData();
     }, []);
 
-    const selectedProgramName = programs?.find(p => String(p.program_id) === String(selectedDept))?.program_name || 'Computer engineering(CO)';
     const stats = data?.top_stats || {};
+    const activityLog = data?.activity_log || [];
+    const latestActivity = activityLog[0] || null;
 
     if (loading) {
         return <div className="p-4 text-center">Loading Data...</div>;
     }
 
     return (
-        <div className="p-4" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+        <div className="p-3" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
             <div className="container-fluid auditor-dashboard-container">
 
-                {/* Top Row: Audit Info */}
-                <div className="row mb-4">
-                    {/* Audit Duration */}
-                    <div className="col-md-5 mb-3">
-                        <div className="heading-title">Audit duration</div>
-                        <div className="info-card d-flex flex-column justify-content-center">
-                            <div className="mb-1"><strong>Start:</strong> <span className="badge bg-secondary">01/Aug/2025</span></div>
-                            <div><strong>End:</strong> <span className="badge bg-secondary">03/Aug/2025</span></div>
-                        </div>
-                    </div>
-
-                    {/* Available Reports */}
-                    <div className="col-md-7 mb-3">
-                        <div className="heading-title">Available reports</div>
-                        <div className="info-card d-flex flex-row justify-content-between align-items-center">
-                            <ul className="mb-0">
-                                <li>• DAC {stats.verified_dac || 0}/{stats.total_dac || 12}</li>
-                                <li>• CIS : Direct-8/8 | Indirect-4/5</li>
-                            </ul>
-                            <button className="btn btn-primary btn-sm" onClick={() => navigate('/auditor/view-reports')}>View reports →</button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Middle Row: Reports & Status */}
-                <div className="row mb-4">
-
+                {/* Row 1: Audit Info — full width split across 3 cols */}
+                <div className="row mb-3">
                     {/* Verification Status */}
-                    <div className="col-md-2 mb-3">
+                    <div className="col-md-3 mb-3">
                         <div className="heading-title">Verification status</div>
-                        <div className="info-card d-flex flex-column justify-content-center align-items-center">
-                            <div className="mb-1">Verifyed : <strong>{stats.verified_reports || 0}</strong></div>
+                        <div className="info-card d-flex flex-column justify-content-center">
+                            <div className="mb-1">Verified : <strong>{stats.verified_reports || 0}</strong></div>
                             <div>Pending : <strong>{stats.pending_reports || 0}</strong></div>
                         </div>
                     </div>
 
-                    {/* Total Remarks Added */}
-                    <div className="col-md-2 mb-3">
-                        <div className="heading-title">Total remarks added</div>
-                        <div className="info-card d-flex align-items-center justify-content-center">
-                            <h2 className="fw-bold mb-0">12</h2>
+                    {/* DAC Reports */}
+                    <div className="col-md-3 mb-3">
+                        <div className="heading-title">DAC reports</div>
+                        <div className="info-card d-flex flex-column justify-content-center">
+                            <div className="mb-1">Verified : <strong>{stats.verified_dac || 0}</strong></div>
+                            <div>Total : <strong>{stats.total_dac || 0}</strong></div>
                         </div>
                     </div>
 
-                    {/* Latest Remark Status */}
-                    <div className="col-md-6 mb-3">
-                        <div className="heading-title">latest remark staus</div>
+                    {/* Available Reports */}
+                    <div className="col-md-3 mb-3">
+                        <div className="heading-title">Available reports</div>
+                        <div className="info-card">
+                            <ul className="mb-2">
+                                <li>• DAC {stats.verified_dac || 0}/{stats.total_dac || 0}</li>
+                                <li>• CIS : <br /> &nbsp;&nbsp; Direct-8/8 <br /> &nbsp;&nbsp; Indirect-4/5</li>
+                            </ul>
+                            <button className="btn btn-primary btn-sm mt-1" onClick={() => navigate('/auditor/view-reports')}>View reports →</button>
+                        </div>
+                    </div>
+
+                    {/* Latest Activity */}
+                    <div className="col-md-3 mb-3">
+                        <div className="heading-title">Latest activity</div>
                         <div className="info-card d-flex flex-column justify-content-between">
-                            <div className="d-flex justify-content-between mb-2">
-                                <span>Date: <strong>02/Aug/2025</strong></span>
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <span>Time: <strong>12:56 pm</strong></span>
-                                <button className="btn btn-primary btn-sm">View remark</button>
-                            </div>
+                            {latestActivity ? (
+                                <>
+                                    <div className="mb-1">Date: <strong>{latestActivity.date}</strong></div>
+                                    <div className="mb-1">Time: <strong>{latestActivity.time}</strong></div>
+                                    <div className="text-muted small text-truncate">{latestActivity.action}</div>
+                                </>
+                            ) : (
+                                <div className="text-muted small">No recent activity.</div>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* View CO-PO Mapping Button */}
-                <div className="row mb-4">
-                    <div className="col-12 align-items-left">
+                {/* Row 2: CO-PO mapping button */}
+                <div className="row mb-3">
+                    <div className="col-12">
                         <button className="co-po-mapping-btn" onClick={() => navigate('/co-po-pso-mapping')}>View CO-PO mapping &rarr;</button>
                     </div>
                 </div>
 
-                {/* Attainment Backtracking */}
+                {/* Row 3: Attainment Backtracking (full width) */}
                 <div className="row">
                     <div className="col-12">
-                        <div className="d-flex justify-content-between align-items-end mb-3">
-                            <h5 className="attainment-section-title mb-0">Attainment Backtracking</h5>
-                            <div style={{ maxWidth: '600px', transform: 'scale(0.9)', transformOrigin: 'right center' }}>
-                                <GlobalFilterBar visibleFilters={['batch', 'class', 'semester']} />
-                            </div>
-                        </div>
-
-                        <div className="mt-3">
-                            <Backtracking />
-                        </div>
+                        <Backtracking isDashboard={true} />
                     </div>
                 </div>
 

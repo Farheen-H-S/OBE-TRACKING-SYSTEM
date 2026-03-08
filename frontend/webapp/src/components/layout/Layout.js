@@ -36,7 +36,7 @@ const Layout = ({ children, role }) => {
         }
 
         // Dashboard Visibility Logic - Hide only for ADMIN
-        if (path.includes('dashboard')) {
+        if (path.includes('dashboard') && path !== '/auditor-dashboard') {
             if (effectiveRole === 'ADMIN') return [];
             return ['dept', 'scheme', 'year'];
         }
@@ -63,7 +63,7 @@ const Layout = ({ children, role }) => {
         }
 
         // Backtracking Group (No Division)
-        const backtrackingPages = ['/attainment-backtracking'];
+        const backtrackingPages = ['/attainment-backtracking', '/auditor-dashboard'];
         if (backtrackingPages.includes(path)) {
             return ['dept', 'scheme', 'batch', 'year', 'class', 'semester'];
         }
