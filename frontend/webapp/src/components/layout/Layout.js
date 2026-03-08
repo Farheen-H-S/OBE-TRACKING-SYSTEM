@@ -36,7 +36,7 @@ const Layout = ({ children, role }) => {
         }
 
         // Dashboard Visibility Logic - Hide only for ADMIN
-        if (path.includes('/dashboard')) {
+        if (path.includes('dashboard')) {
             if (effectiveRole === 'ADMIN') return [];
             return ['dept', 'scheme', 'year'];
         }

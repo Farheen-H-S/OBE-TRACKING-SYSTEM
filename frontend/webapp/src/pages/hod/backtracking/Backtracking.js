@@ -20,7 +20,7 @@ const TOOL_NAMES = {
   oit: 'OIT (Indirect)',
 };
 
-const Backtracking = () => {
+const Backtracking = ({ isDashboard = false }) => {
   const { selectedDept, selectedYear, selectedBatch, selectedClass, selectedSemester: selectedSem } = useFilters();
 
   const [tableData, setTableData] = useState([]);
@@ -44,6 +44,9 @@ const Backtracking = () => {
     try {
       const academic_year = selectedYear.replace(/\s/g, '');
       const params = { program_id: selectedDept, academic_year };
+      if (selectedBatch) params.batch_id = selectedBatch;
+      if (selectedClass) params.course_class = selectedClass;
+      if (selectedSem) params.semester = selectedSem;
 
       const [poRes, psoRes, targetsRes] = await Promise.all([
         api.get('/attainment/po/', { params }),
@@ -109,9 +112,12 @@ const Backtracking = () => {
     try {
       const academic_year = selectedYear.replace(/\s/g, '');
       // Fetch courses contributing to this PO/PSO
-      const endpoint = row.type === 'po'
+      let endpoint = row.type === 'po'
         ? `/attainment/po/${row.id}/courses/?academic_year=${academic_year}`
         : `/attainment/pso/${row.id}/courses/?academic_year=${academic_year}`;
+      if (selectedBatch) endpoint += `&batch_id=${selectedBatch}`;
+      if (selectedClass) endpoint += `&course_class=${selectedClass}`;
+      if (selectedSem) endpoint += `&semester=${selectedSem}`;
 
       const res = await api.get(endpoint);
       const coursesData = res.data?.courses || res.data || [];
@@ -133,6 +139,9 @@ const Backtracking = () => {
       const academic_year = selectedYear.replace(/\s/g, '');
       const parentRow = drillData?.row;
       let endpoint = `/attainment/course/${course.course_id}/cos/?academic_year=${academic_year}`;
+      if (selectedBatch) endpoint += `&batch_id=${selectedBatch}`;
+      if (selectedClass) endpoint += `&course_class=${selectedClass}`;
+      if (selectedSem) endpoint += `&semester=${selectedSem}`;
 
       if (parentRow) {
         if (parentRow.type === 'po') endpoint += `&po_id=${parentRow.id}`;
@@ -189,14 +198,18 @@ const Backtracking = () => {
   };
 
   return (
-    <div className="d-flex flex-column vh-100 overflow-hidden">
-      <div className="flex-grow-1 p-3 bg-light overflow-y-auto">
-        <Container fluid className="bg-white p-4 shadow-sm rounded border-0 h-100">
+    <div className={isDashboard ? "" : "d-flex flex-column vh-100 overflow-hidden"}>
+      <div className={isDashboard ? "" : "flex-grow-1 p-3 bg-light overflow-y-auto"}>
+        <Container fluid className={isDashboard ? "p-0" : "bg-white p-4 shadow-sm rounded border-0 h-100"}>
 
-          <h4 className="fw-bold mb-1" style={{ color: '#1a237e' }}>Attainment Backtracking</h4>
-          <p className="text-muted small mb-4">
-            Drill-down from PO / PSO → contributing COs → tool scores to trace how attainment was computed.
-          </p>
+          {!isDashboard && (
+            <>
+              <h4 className="fw-bold mb-1" style={{ color: '#1a237e' }}>Attainment Backtracking</h4>
+              <p className="text-muted small mb-4">
+                Drill-down from PO / PSO → contributing COs → tool scores to trace how attainment was computed.
+              </p>
+            </>
+          )}
 
 
           {/* ── Summary cards ── */}
