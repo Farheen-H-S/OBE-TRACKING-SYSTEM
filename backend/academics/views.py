@@ -612,12 +612,15 @@ class POListCreateAPIView(APIView):
         try:
             data = request.data if isinstance(request.data, list) else [request.data]
             results = []
-            for item in data:
-                p_id, p_num, desc = item.get('program_id'), item.get('po_number'), item.get('description')
-                obj, _ = PO.objects.update_or_create(program_id_id=p_id, po_number=p_num, defaults={'description': desc, 'is_active': True})
-                results.append(POSerializer(obj).data)
+            with transaction.atomic():
+                for item in data:
+                    p_id, p_num, desc = item.get('program_id'), item.get('po_number'), item.get('description')
+                    obj, _ = PO.objects.update_or_create(program_id_id=p_id, po_number=p_num, defaults={'description': desc, 'is_active': True})
+                    results.append(POSerializer(obj).data)
             return Response(results, status=201)
-        except Exception as e: return Response({"error": str(e)}, status=500)
+        except Exception as e:
+            print(f"DEBUG: PO post error: {e}")
+            return Response({"error": str(e)}, status=500)
 
 class PODetailAPIView(APIView):
     def put(self, request, pk):
@@ -641,12 +644,15 @@ class PSOListCreateAPIView(APIView):
         try:
             data = request.data if isinstance(request.data, list) else [request.data]
             results = []
-            for item in data:
-                p_id, p_num, desc = item.get('program_id'), item.get('pso_number'), item.get('description')
-                obj, _ = PSO.objects.update_or_create(program_id_id=p_id, pso_number=p_num, defaults={'description': desc, 'is_active': True})
-                results.append(PSOSerializer(obj).data)
+            with transaction.atomic():
+                for item in data:
+                    p_id, p_num, desc = item.get('program_id'), item.get('pso_number'), item.get('description')
+                    obj, _ = PSO.objects.update_or_create(program_id_id=p_id, pso_number=p_num, defaults={'description': desc, 'is_active': True})
+                    results.append(PSOSerializer(obj).data)
             return Response(results, status=201)
-        except Exception as e: return Response({"error": str(e)}, status=500)
+        except Exception as e:
+            print(f"DEBUG: PSO post error: {e}")
+            return Response({"error": str(e)}, status=500)
 
 class PSODetailAPIView(APIView):
     def put(self, request, pk):
@@ -799,15 +805,18 @@ class ProgramStatementListCreateAPIView(APIView):
         try:
             data = request.data if isinstance(request.data, list) else [request.data]
             results = []
-            for item in data:
-                p_id, s_type, s_num, desc = item.get('program_id'), item.get('statement_type'), item.get('statement_number'), item.get('description')
-                kwargs = {'program_id_id': p_id, 'statement_type': s_type}
-                if s_num: kwargs['statement_number'] = s_num
-                else: kwargs['statement_number__isnull'] = True
-                obj, _ = ProgramStatement.objects.update_or_create(**kwargs, defaults={'description': desc, 'is_active': True})
-                results.append(ProgramStatementSerializer(obj).data)
+            with transaction.atomic():
+                for item in data:
+                    p_id, s_type, s_num, desc = item.get('program_id'), item.get('statement_type'), item.get('statement_number'), item.get('description')
+                    # Fixed: Django's update_or_create lookup handles None correctly for NULL values.
+                    # __isnull is not a valid field for initial object creation if the lookup fails.
+                    kwargs = {'program_id_id': p_id, 'statement_type': s_type, 'statement_number': s_num}
+                    obj, _ = ProgramStatement.objects.update_or_create(**kwargs, defaults={'description': desc, 'is_active': True})
+                    results.append(ProgramStatementSerializer(obj).data)
             return Response(results, status=201)
-        except Exception as e: return Response({"error": str(e)}, status=500)
+        except Exception as e:
+            print(f"DEBUG: ProgramStatement post error: {e}")
+            return Response({"error": str(e)}, status=500)
 
 class PEOListCreateAPIView(APIView):
     def get(self, request):
@@ -820,9 +829,12 @@ class PEOListCreateAPIView(APIView):
         try:
             data = request.data if isinstance(request.data, list) else [request.data]
             results = []
-            for item in data:
-                p_id, p_num, desc = item.get('program_id'), item.get('peo_number'), item.get('description')
-                obj, _ = PEO.objects.update_or_create(program_id_id=p_id, peo_number=p_num, defaults={'description': desc, 'is_active': True})
-                results.append(PEOSerializer(obj).data)
+            with transaction.atomic():
+                for item in data:
+                    p_id, p_num, desc = item.get('program_id'), item.get('peo_number'), item.get('description')
+                    obj, _ = PEO.objects.update_or_create(program_id_id=p_id, peo_number=p_num, defaults={'description': desc, 'is_active': True})
+                    results.append(PEOSerializer(obj).data)
             return Response(results, status=201)
-        except Exception as e: return Response({"error": str(e)}, status=500)
+        except Exception as e:
+            print(f"DEBUG: PEO post error: {e}")
+            return Response({"error": str(e)}, status=500)

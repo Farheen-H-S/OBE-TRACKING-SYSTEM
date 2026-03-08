@@ -207,17 +207,19 @@ const Statement1 = () => {
         }));
 
         try {
-            await Promise.all([
-                api.post('/academics/program-statements/', statements),
-                api.post('/academics/peos/', peoData),
-                api.post('/academics/pos/', poData),
-                api.post('/academics/psos/', psoData)
-            ]);
+            setLoading(true);
+            await api.post('/academics/program-statements/', statements);
+            await api.post('/academics/peos/', peoData);
+            await api.post('/academics/pos/', poData);
+            await api.post('/academics/psos/', psoData);
+
             alert("Statements saved successfully!");
             navigate('/statement2');
         } catch (err) {
             console.error("Error saving data:", err);
-            alert("Failed to save statements.");
+            alert("Failed to save statements. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
