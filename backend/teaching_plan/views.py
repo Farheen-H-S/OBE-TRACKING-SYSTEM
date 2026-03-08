@@ -54,7 +54,7 @@ class TeachingPlanListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        log_action(self.request.user, 'CREATE', 'TeachingPlan', instance.id, new_value=serializer.data)
+        log_action(self.request.user, 'CREATE', 'TeachingPlan', instance.teaching_plan_id, new_value=serializer.data)
 
 class TeachingPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = TeachingPlan.objects.all()
@@ -62,10 +62,10 @@ class TeachingPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        log_action(self.request.user, 'UPDATE', 'TeachingPlan', instance.id, new_value=serializer.data)
+        log_action(self.request.user, 'UPDATE', 'TeachingPlan', instance.teaching_plan_id, new_value=serializer.data)
     
     def perform_destroy(self, instance):
-        log_id = instance.id
+        log_id = instance.teaching_plan_id
         instance.delete()
         log_action(self.request.user, 'DELETE', 'TeachingPlan', log_id)
 

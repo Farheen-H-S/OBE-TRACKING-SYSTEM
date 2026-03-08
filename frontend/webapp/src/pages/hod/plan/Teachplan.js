@@ -20,6 +20,7 @@ const Teachplan = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
     const fileInputRef = React.useRef(null);
 
     const fetchCourses = useCallback(async () => {
@@ -86,6 +87,7 @@ const Teachplan = () => {
                 const planObj = response.data[0];
                 setPlan(planObj);
                 setLectures(planObj.lectures || []);
+                setIsEditing(false);
             } else {
                 setPlan(null);
                 setLectures([]);
@@ -140,6 +142,7 @@ const Teachplan = () => {
         const newLectures = [...lectures];
         newLectures[index][field] = value;
         setLectures(newLectures);
+        setIsEditing(true);
     };
 
     const handleAddRow = () => {
@@ -150,10 +153,12 @@ const Teachplan = () => {
                 lecture_date: new Date().toISOString().split('T')[0],
                 topic_planned: "",
                 actual_topic: "",
+                unit_no: 1,
                 status: "INCOMPLETE",
                 remark: ""
             }
         ]);
+        setIsEditing(true);
     };
 
     const handleDeleteRow = (index) => {
@@ -165,6 +170,7 @@ const Teachplan = () => {
             lecture_no: i + 1
         }));
         setLectures(updatedLectures);
+        setIsEditing(true);
     };
 
     const handleSave = async () => {
@@ -176,8 +182,11 @@ const Teachplan = () => {
             });
             setSuccessMsg("Plan saved successfully!");
             setTimeout(() => setSuccessMsg(''), 3000);
+            fetchPlan();
         } catch (err) {
-            setError("Failed to save changes.");
+            console.error("Save error:", err);
+            const detail = err.response?.data ? JSON.stringify(err.response.data) : "";
+            setError(`Failed to save changes. ${detail}`);
         } finally {
             setSaving(false);
         }
@@ -204,7 +213,15 @@ const Teachplan = () => {
                                 size="sm"
                                 style={{ width: '250px' }}
                                 value={selectedCourseId}
-                                onChange={(e) => setSelectedCourseId(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSelectedCourseId(val);
+                                    if (!val) {
+                                        setPlan(null);
+                                        setLectures([]);
+                                        setIsEditing(false);
+                                    }
+                                }}
                             >
                                 <option value="">Select Course...</option>
                                 {courses.map(c => (
@@ -215,29 +232,36 @@ const Teachplan = () => {
                             </Form.Select>
                         </div>
                         <div className="d-flex gap-2">
-                            {plan ? (
-                                <Button variant="success" size="sm" onClick={handleSave} disabled={saving}>
-                                    {saving ? 'Saving...' : 'Save Plan'}
-                                </Button>
-                            ) : (
-                                <div className="d-flex flex-column align-items-end">
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        style={{ display: 'none' }}
-                                        accept=".xlsx, .xls"
-                                        onChange={handleUploadPlan}
-                                    />
-                                    <Button
-                                        variant="outline-primary"
-                                        size="sm"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={!selectedCourseId || saving}
-                                    >
-                                        {saving ? 'Uploading...' : 'Upload Plan'}
-                                    </Button>
-                                    <div className="text-muted mt-1" style={{ fontSize: '11px', textAlign: 'right' }}>
-                                        Note: Download template from Downloads section in header
+                            {selectedCourseId && (
+                                <div className="d-flex align-items-center gap-2">
+                                    {plan ? (
+                                        !isEditing ? (
+                                            <Button variant="outline-primary" size="sm" onClick={() => setIsEditing(true)}>
+                                                Edit Plan
+                                            </Button>
+                                        ) : (
+                                            <Button variant="success" size="sm" onClick={handleSave} disabled={saving}>
+                                                {saving ? 'Saving...' : 'Save Plan'}
+                                            </Button>
+                                        )
+                                    ) : null}
+
+                                    <div className="d-flex flex-column align-items-end">
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            style={{ display: 'none' }}
+                                            accept=".xlsx, .xls"
+                                            onChange={handleUploadPlan}
+                                        />
+                                        <Button
+                                            variant="outline-secondary"
+                                            size="sm"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={saving}
+                                        >
+                                            {saving ? 'Uploading...' : 'Upload Plan'}
+                                        </Button>
                                     </div>
                                 </div>
                             )}
@@ -261,7 +285,7 @@ const Teachplan = () => {
                                         <th className="col-topics">Topic</th>
                                         <th className="col-description">Description</th>
                                         <th className="col-status">Status</th>
-                                        <th className="col-action">Action</th>
+                                        {isEditing && <th className="col-action">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -269,67 +293,85 @@ const Teachplan = () => {
                                         <tr key={index}>
                                             <td className="col-lecture text-center">{row.lecture_no}</td>
                                             <td className="col-date">
-                                                <input
-                                                    type="date"
-                                                    className="editable-input"
-                                                    value={row.lecture_date}
-                                                    onChange={(e) => handleInputChange(index, 'lecture_date', e.target.value)}
-                                                />
+                                                {isEditing ? (
+                                                    <input
+                                                        type="date"
+                                                        className="editable-input"
+                                                        value={row.lecture_date}
+                                                        onChange={(e) => handleInputChange(index, 'lecture_date', e.target.value)}
+                                                    />
+                                                ) : row.lecture_date}
                                             </td>
                                             <td className="col-topics">
-                                                <textarea
-                                                    className="editable-textarea"
-                                                    value={row.topic_planned}
-                                                    onChange={(e) => handleInputChange(index, 'topic_planned', e.target.value)}
-                                                    placeholder="Enter topics..."
-                                                />
+                                                {isEditing ? (
+                                                    <textarea
+                                                        className="editable-textarea"
+                                                        value={row.topic_planned}
+                                                        onChange={(e) => handleInputChange(index, 'topic_planned', e.target.value)}
+                                                        placeholder="Enter topics..."
+                                                    />
+                                                ) : row.topic_planned}
                                             </td>
                                             <td className="col-description">
-                                                <textarea
-                                                    className="editable-textarea"
-                                                    value={row.actual_topic || ''}
-                                                    onChange={(e) => handleInputChange(index, 'actual_topic', e.target.value)}
-                                                    placeholder="Enter description..."
-                                                    style={{ minHeight: '40px' }}
-                                                />
+                                                {isEditing ? (
+                                                    <textarea
+                                                        className="editable-textarea"
+                                                        value={row.actual_topic || ''}
+                                                        onChange={(e) => handleInputChange(index, 'actual_topic', e.target.value)}
+                                                        placeholder="Enter description..."
+                                                        style={{ minHeight: '40px' }}
+                                                    />
+                                                ) : row.actual_topic}
                                             </td>
                                             <td className="col-status text-center">
-                                                <Form.Select
-                                                    size="sm"
-                                                    value={row.status || 'INCOMPLETE'}
-                                                    onChange={(e) => handleInputChange(index, 'status', e.target.value)}
-                                                    className="status-select"
-                                                >
-                                                    <option value="COMPLETED">Completed</option>
-                                                    <option value="INCOMPLETE">Incomplete</option>
-                                                    <option value="POSTPONED">Postponed</option>
-                                                </Form.Select>
+                                                {isEditing ? (
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={row.status || 'INCOMPLETE'}
+                                                        onChange={(e) => handleInputChange(index, 'status', e.target.value)}
+                                                        className="status-select"
+                                                    >
+                                                        <option value="COMPLETED">Completed</option>
+                                                        <option value="INCOMPLETE">Incomplete</option>
+                                                        <option value="POSTPONED">Postponed</option>
+                                                    </Form.Select>
+                                                ) : (
+                                                    <span className={`status-badge status-${(row.status || 'INCOMPLETE').toLowerCase()}`}>
+                                                        {row.status || 'INCOMPLETE'}
+                                                    </span>
+                                                )}
                                             </td>
-                                            <td className="col-action text-center">
-                                                <Button
-                                                    variant="link"
-                                                    className="text-danger p-0"
-                                                    onClick={() => handleDeleteRow(index)}
-                                                    title="Delete Row"
-                                                >
-                                                    <i className="bi bi-trash"></i>
-                                                </Button>
-                                            </td>
+                                            {isEditing && (
+                                                <td className="col-action text-center">
+                                                    <Button
+                                                        variant="link"
+                                                        className="p-0 text-decoration-none"
+                                                        onClick={() => handleDeleteRow(index)}
+                                                        title="Remove Row"
+                                                    >
+                                                        <i className="bi bi-dash-circle-fill text-danger fs-4"></i>
+                                                    </Button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                            <div className="text-center mt-3">
-                                <Button variant="link" className="text-decoration-none" onClick={handleAddRow}>
-                                    <i className="bi bi-plus-circle me-1"></i> Add New Row
-                                </Button>
-                            </div>
+                            {isEditing && (
+                                <div className="text-center mt-3">
+                                    <Button variant="link" className="text-decoration-none" onClick={handleAddRow}>
+                                        <i className="bi bi-plus-circle me-1"></i> Add New Row
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     ) : (
-                        <div className="text-center py-5 text-muted">
-                            <i className="bi bi-calendar-x fs-1 opacity-25"></i>
-                            <p className="mt-2">{selectedCourseId ? "No teaching plan found for this course. Click 'Upload Plan' to start." : "Please select a course to view its teaching plan."}</p>
-                        </div>
+                        selectedCourseId && (
+                            <div className="text-center py-5 text-muted">
+                                <i className="bi bi-calendar-x fs-1 opacity-25"></i>
+                                <p className="mt-2">No teaching plan found for this course. Click 'Upload Plan' to start.</p>
+                            </div>
+                        )
                     )}
                 </div>
             </div>

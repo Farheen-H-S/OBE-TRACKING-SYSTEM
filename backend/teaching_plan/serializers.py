@@ -6,7 +6,10 @@ class TeachingPlanLectureSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeachingPlanLecture
         fields = '__all__'
-        read_only_fields = ('lecture_id',)
+        read_only_fields = ('lecture_id', 'teaching_plan_id')
+        extra_kwargs = {
+            'unit_no': {'required': False, 'default': 1},
+        }
 
 
 class TeachingPlanSerializer(serializers.ModelSerializer):
@@ -41,14 +44,17 @@ class TeachingPlanSerializer(serializers.ModelSerializer):
 
             for lecture_data in lectures_data:
                 l_no = lecture_data.get('lecture_no')
+                # Filter out fields that shouldn't be updated via setattr directly
+                filtered_data = {k: v for k, v in lecture_data.items() if k not in ['teaching_plan_id', 'lecture_id']}
+                
                 if l_no in existing_lectures:
                     # Update
                     lec_obj = existing_lectures[l_no]
-                    for attr, value in lecture_data.items():
+                    for attr, value in filtered_data.items():
                         setattr(lec_obj, attr, value)
                     lec_obj.save()
                 else:
                     # Create
-                    TeachingPlanLecture.objects.create(teaching_plan_id=instance, **lecture_data)
+                    TeachingPlanLecture.objects.create(teaching_plan_id=instance, **filtered_data)
         
         return instance
