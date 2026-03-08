@@ -298,12 +298,33 @@ class CourseListCreateAPIView(APIView):
                     if faculty_id:
                         try:
                             from users.models import User, FacultyCourseAssignment
+                            from notifications.utils import send_obe_notification
                             setup = AcademicSetup.objects.first()
                             academic_year = setup.academic_year if setup else "2025-26"
+                            faculty_user = User.objects.get(pk=faculty_id)
+
+                            existing = FacultyCourseAssignment.objects.filter(
+                                course_id=course, academic_year=academic_year, semester=course.semester
+                            ).first()
+                            old_faculty = existing.faculty_id if existing else None
+
                             FacultyCourseAssignment.objects.update_or_create(
                                 course_id=course, academic_year=academic_year, semester=course.semester,
-                                defaults={'faculty_id': User.objects.get(pk=faculty_id), 'is_active': True}
+                                defaults={'faculty_id': faculty_user, 'is_active': True}
                             )
+
+                            if old_faculty != faculty_user:
+                                title = f"Course Assigned: {course.course_code}"
+                                message = f"Dear {faculty_user.name},\n\nYou have been newly assigned to teach {course.course_name} ({course.course_code}) for the academic year {academic_year}."
+                                send_obe_notification(
+                                    recipient=faculty_user,
+                                    title=title,
+                                    message=message,
+                                    notification_type='INFO',
+                                    module='COURSE',
+                                    priority='NORMAL',
+                                    send_email=True
+                                )
                         except Exception as fa_err: print(f"DEBUG: Error saving faculty assignment: {fa_err}")
 
                     cos_data = data.get('cos', [])
@@ -373,12 +394,33 @@ class CourseDetailAPIView(APIView):
                     if faculty_id:
                         try:
                             from users.models import User, FacultyCourseAssignment
+                            from notifications.utils import send_obe_notification
                             setup = AcademicSetup.objects.first()
                             academic_year = setup.academic_year if setup else "2025-26"
+                            faculty_user = User.objects.get(pk=faculty_id)
+
+                            existing = FacultyCourseAssignment.objects.filter(
+                                course_id=course, academic_year=academic_year, semester=course.semester
+                            ).first()
+                            old_faculty = existing.faculty_id if existing else None
+
                             FacultyCourseAssignment.objects.update_or_create(
                                 course_id=course, academic_year=academic_year, semester=course.semester,
-                                defaults={'faculty_id': User.objects.get(pk=faculty_id), 'is_active': True}
+                                defaults={'faculty_id': faculty_user, 'is_active': True}
                             )
+
+                            if old_faculty != faculty_user:
+                                title = f"Course Assigned: {course.course_code}"
+                                message = f"Dear {faculty_user.name},\n\nYou have been assigned to teach {course.course_name} ({course.course_code}) for the academic year {academic_year}."
+                                send_obe_notification(
+                                    recipient=faculty_user,
+                                    title=title,
+                                    message=message,
+                                    notification_type='INFO',
+                                    module='COURSE',
+                                    priority='NORMAL',
+                                    send_email=True
+                                )
                         except Exception as fa_err: print(f"DEBUG: Error updating faculty assignment: {fa_err}")
 
                     if 'cos' in data:
@@ -452,8 +494,49 @@ class CourseAssignmentAPIView(APIView):
     def post(self, request):
         f_id, c_id, ay, sem = request.data.get('faculty_id'), request.data.get('course_id'), request.data.get('academic_year'), request.data.get('semester')
         if not all([f_id, c_id, ay, sem]): return Response({"error": "All fields required"}, status=400)
-        FacultyCourseAssignment.objects.update_or_create(faculty_id_id=f_id, course_id_id=c_id, academic_year=ay, semester=sem, defaults={'is_active': True})
-        return Response({"message": "Assignment successful"}, status=201)
+        
+        try:
+            from users.models import User
+            from .models import Course
+            from notifications.utils import send_obe_notification
+
+            existing = FacultyCourseAssignment.objects.filter(
+                course_id_id=c_id, academic_year=ay, semester=sem
+            ).first()
+            old_faculty_id = existing.faculty_id_id if existing else None
+
+            # To avoid multiple assignment rows with the same course/sem/ay, we can update or create
+            # Note: the original logic grouped faculty_id_id into the lookup. This changed. Wait.
+            # actually we can deactivate old assignments and create new to preserve unique_together
+            if old_faculty_id and str(old_faculty_id) != str(f_id):
+                FacultyCourseAssignment.objects.filter(
+                    course_id_id=c_id, academic_year=ay, semester=sem
+                ).update(is_active=False)
+
+            FacultyCourseAssignment.objects.update_or_create(
+                faculty_id_id=f_id, course_id_id=c_id, academic_year=ay, semester=sem,
+                defaults={'is_active': True}
+            )
+
+            if str(old_faculty_id) != str(f_id):
+                faculty_user = User.objects.get(pk=f_id)
+                course = Course.objects.get(pk=c_id)
+                title = f"Course Assigned: {course.course_code}"
+                message = f"Dear {faculty_user.name},\n\nYou have been assigned to teach {course.course_name} ({course.course_code}) for the academic year {ay}."
+                send_obe_notification(
+                    recipient=faculty_user,
+                    title=title,
+                    message=message,
+                    notification_type='INFO',
+                    module='COURSE',
+                    priority='NORMAL',
+                    send_email=True
+                )
+            return Response({"message": "Assignment successful"}, status=201)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=500)
 
 class MyCoursesAPIView(APIView):
     permission_classes = [IsAuthenticated]
