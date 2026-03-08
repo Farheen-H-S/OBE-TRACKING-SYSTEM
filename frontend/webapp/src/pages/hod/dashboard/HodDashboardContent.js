@@ -8,6 +8,7 @@ import api from '../../../utils/axios';
 
 function HodDashboardContent() {
     const { selectedDept, selectedScheme, selectedYear } = useFilters();
+    const [selectedClass, setSelectedClass] = useState('All');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,7 +21,8 @@ function HodDashboardContent() {
                     params: {
                         dept_id: selectedDept,
                         scheme_id: selectedScheme,
-                        academic_year: selectedYear
+                        academic_year: selectedYear,
+                        class_name: selectedClass === 'All' ? '' : selectedClass
                     }
                 });
                 setData(response.data);
@@ -34,7 +36,7 @@ function HodDashboardContent() {
         };
 
         fetchDashboardData();
-    }, [selectedDept, selectedScheme, selectedYear]);
+    }, [selectedDept, selectedScheme, selectedYear, selectedClass]);
 
     if (loading) {
         return (
@@ -78,7 +80,7 @@ function HodDashboardContent() {
             minValue: 0,
             maxValue: 100
         },
-        hAxis: { title: "Course outcome" },
+        hAxis: { title: "PO / PSO" },
     };
 
     return (
@@ -89,100 +91,124 @@ function HodDashboardContent() {
                         <div className="mb-4">
                             <GlobalFilterBar visibleFilters={['dept', 'scheme', 'year']} disableYearFiltering={true} />
                         </div>
-                        {/* 1. Top Stats Row */}
-                        <div className="row mb-4 text-center">
-                            <div className="col-md-2 mb-2">
-                                <div className="stat-card-label">Academic year</div>
-                                <div className="stat-card-box">
-                                    <div className="fw-bold">{academic.academic_year}</div>
-                                    <div className="text-secondary small">Status : Active</div>
+                        {/* 1. Top Actionable Alerts & Surveys Row */}
+                        <div className="row mb-4 text-center d-flex align-items-stretch">
+
+                            {/* Pending Reports Alert */}
+                            <div className="col-md-3 mb-2">
+                                <div className={`stat-card-box h-100 ${academic.pending_reports_approval > 0 ? 'border-warning bg-warning bg-opacity-10' : ''}`}>
+                                    <div className="stat-card-label text-warning mb-1">Pending Reports</div>
+                                    <div className="fw-bold fs-4 text-warning">{academic.pending_reports_approval || 0}</div>
+                                    <div className="text-secondary small">Awaiting Approval</div>
                                 </div>
                             </div>
-                            <div className="col-md-2 mb-2">
-                                <div className="stat-card-label">Department</div>
-                                <div className="stat-card-box">
-                                    <div className="fw-bold small">{academic.department}</div>
-                                </div>
-                            </div>
-                            <div className="col-md-2 mb-2">
-                                <div className="stat-card-label">Semester type</div>
-                                <div className="stat-card-box">
-                                    <div className="fw-bold small">{academic.semester_type}</div>
-                                    <div className="text-secondary tiny">Effective from : {academic.effective_from}</div>
-                                </div>
-                            </div>
-                            <div className="col-md-2 mb-2">
-                                <div className="stat-card-label">Scheme</div>
-                                <div className="stat-card-box">
-                                    <div className="fw-bold">{academic.scheme}</div>
-                                </div>
-                            </div>
-                            <div className="col-md-2 mb-2">
-                                <div className="stat-card-label">Stress survey status</div>
-                                <div className="stat-card-box">
-                                    <div className="small">Month:{new Date().toLocaleString('default', { month: 'short' })}</div>
-                                    <div className={`fw-bold tiny ${academic.stress_survey_conducted ? 'text-success' : 'text-danger'}`}>
-                                        Status:{academic.stress_survey_conducted ? 'Conducted' : 'Not conducted'}
+
+                            {/* Stress Survey */}
+                            <div className="col-md-3 mb-2">
+                                <div className="stat-card-box h-100">
+                                    <div className="stat-card-label mb-1">Stress Survey</div>
+                                    <div className="small text-secondary mb-1">Month: {new Date().toLocaleString('default', { month: 'short' })}</div>
+                                    <div className={`fw-bold small ${academic.stress_survey_conducted === 'Conducted' ? 'text-success' : 'text-danger'}`}>
+                                        {academic.stress_survey_conducted}
                                     </div>
                                 </div>
                             </div>
-                            <div className="col-md-2 mb-2">
-                                <div className="stat-card-label">DAC report status</div>
-                                <div className="stat-card-box">
-                                    <div className="small">Month:{new Date().toLocaleString('default', { month: 'short' })}</div>
-                                    <div className={`fw-bold tiny ${academic.dac_report_uploaded ? 'text-success' : 'text-danger'}`}>
-                                        Status:{academic.dac_report_uploaded ? 'Uploaded' : 'Pending'}
+
+                            {/* Teacher Feedback Survey */}
+                            <div className="col-md-3 mb-2">
+                                <div className="stat-card-box h-100">
+                                    <div className="stat-card-label mb-1">Teacher Feedback</div>
+                                    <div className="small text-secondary mb-1">AY: {academic.academic_year}</div>
+                                    <div className={`fw-bold small ${academic.teacher_survey_conducted === 'Conducted' ? 'text-success' : 'text-danger'}`}>
+                                        {academic.teacher_survey_conducted}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Class Distribution (FY, SY, TY) */}
+                            <div className="col-md-3 mb-2">
+                                <div className="stat-card-box h-100 py-2">
+                                    <div className="stat-card-label mb-1 border-bottom pb-1">Total Students: {academic.students_distribution?.total || 0}</div>
+                                    <div className="d-flex justify-content-around mt-2">
+                                        <div className="text-center">
+                                            <div className="fw-bold fs-5 text-primary">{academic.students_distribution?.FY || 0}</div>
+                                            <div className="small text-secondary">FY</div>
+                                        </div>
+                                        <div className="text-center border-start border-end px-3">
+                                            <div className="fw-bold fs-5 text-primary">{academic.students_distribution?.SY || 0}</div>
+                                            <div className="small text-secondary">SY</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="fw-bold fs-5 text-primary">{academic.students_distribution?.TY || 0}</div>
+                                            <div className="small text-secondary">TY</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* 2. Course & Faculty Overview */}
-                        <h5 className="section-heading">Course & faculty overview</h5>
-                        <div className="row mb-4">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h5 className="section-heading mb-0">Course & faculty overview</h5>
+                            <div className="d-flex align-items-center">
+                                <label className="me-2 small fw-bold text-secondary">Filter Class:</label>
+                                <select
+                                    className="form-select form-select-sm"
+                                    style={{ width: '120px' }}
+                                    value={selectedClass}
+                                    onChange={(e) => setSelectedClass(e.target.value)}
+                                >
+                                    <option value="All">All Classes</option>
+                                    <option value="FY">FY</option>
+                                    <option value="SY">SY</option>
+                                    <option value="TY">TY</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="row mb-5">
                             <div className="col-12">
                                 <div className="course-scroll-container">
-                                    <div className="course-scroll-item">
-                                        <div className="right-panel-stat h-100 d-flex flex-column justify-content-center">
-                                            <h6 className="section-heading text-secondary text-center mb-2">Total students</h6>
-                                            <div className="total-students-count">{academic.total_students}</div>
-                                        </div>
-                                    </div>
-
-                                    {courses.map((course, idx) => (
-                                        <div className="course-scroll-item" key={course.course_name}>
-                                            <div className="course-card">
-                                                <div className="course-card-header">{course.course_name}</div>
-                                                <div className="course-card-body">
-                                                    <ul>
-                                                        <li>• Faculty assigned: {course.faculty}</li>
-                                                        <li>• Course completed: <strong>{course.completion}%</strong></li>
-                                                        <li>• Attainment status: <strong>{course.attainment_status}</strong></li>
-                                                        <li>• Class: <strong>{course.class_name}</strong></li>
-                                                    </ul>
+                                    {courses.length === 0 ? (
+                                        <div className="w-100 text-center py-4 text-muted border rounded bg-light">No courses found for selected filters</div>
+                                    ) : (
+                                        courses.map((course) => (
+                                            <div className="course-scroll-item" key={course.course_name}>
+                                                <div className="course-card">
+                                                    <div className="course-card-header">{course.course_name}</div>
+                                                    <div className="course-card-body">
+                                                        <ul>
+                                                            <li>• Faculty assigned: <span className={course.faculty === "Not Assigned" ? "text-danger fw-bold" : ""}>{course.faculty}</span></li>
+                                                            <li>• Attainment status: <strong>{course.attainment_status}</strong></li>
+                                                            <li>• Class: <strong>{course.class_name}</strong></li>
+                                                        </ul>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         </div>
 
                         {/* 3. OBE Process Health */}
                         <h5 className="section-heading">OBE process health</h5>
-                        <div className="row mb-4">
+                        <div className="row mb-5 justify-content-between">
                             {health.map((item, idx) => (
-                                <div className="col-md-3 mb-3" key={item.title}>
-                                    <div className="obe-chart-container">
-                                        <div className="chart-title">{item.title}</div>
+                                <div className="col mb-3 d-flex" key={item.title}>
+                                    <div className="obe-chart-container flex-fill shadow-sm border border-light">
+                                        <div className="chart-title text-center">{item.title}</div>
                                         <Chart
                                             chartType="PieChart"
                                             width="100%"
                                             height="120px"
                                             data={item.data}
-                                            options={item.title.toLowerCase().includes('target') ? targetOptions : chartOptions}
+                                            options={item.title.toLowerCase().includes('target') ? { ...targetOptions, chartArea: { width: '80%', height: '80%' } } : { ...chartOptions, chartArea: { width: '80%', height: '80%' } }}
                                         />
-                                        <div className={`small mt-1 ${item.percentage > 50 ? 'text-success' : 'text-warning'}`}>
+                                        <div className={`small mt-2 text-center text-secondary`}>
+                                            <span className={item.percentage >= 50 ? 'text-success fw-bold' : 'text-danger fw-bold'}>{item.percentage}%</span>
+                                        </div>
+                                        <div className="small mt-1 text-center text-muted border-top pt-1 mt-2">
                                             {item.stats.split('\n').map((line, i) => <div key={i}>{line}</div>)}
                                         </div>
                                     </div>
@@ -190,8 +216,8 @@ function HodDashboardContent() {
                             ))}
                         </div>
 
-                        {/* 4. Overall CO Attainment */}
-                        <h5 className="section-heading">Overall CO attainment overview</h5>
+                        {/* 4. Overall PO/PSO Attainment */}
+                        <h5 className="section-heading">Overall PO & PSO attainment overview</h5>
                         <div className="row">
                             <div className="col-12">
                                 <div className="border rounded p-2">

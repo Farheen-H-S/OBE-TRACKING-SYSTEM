@@ -23,6 +23,7 @@ class HODDashboardAPIView(APIView):
         dept_id = request.query_params.get('dept_id')
         scheme_id = request.query_params.get('scheme_id')
         academic_year = request.query_params.get('academic_year')
+        class_filter = request.query_params.get('class_name') # FY, SY, TY
 
         # Default Department
         if dept_id:
@@ -64,28 +65,31 @@ class HODDashboardAPIView(APIView):
         # 2. Stress Survey Status
         now = timezone.now()
         current_stress = StressMaster.objects.filter(month=now.month, year=now.year).first()
-        stress_status = {
-            "month": now.strftime('%b'),
-            "status": "Conducting" if current_stress and current_stress.is_active else "Not conducted"
-        }
+        stress_status_flag = "Conducted" if current_stress and current_stress.is_active else "Not conducted"
 
-        # 3. DAC Report Status (Assuming 'DAC' report might be a specific type or just any approved report)
-        # For now, let's check if there are any approved reports for this dept this year
+        # 3. Teacher Feedback Survey Status
+        from surveys.models import SurveyMaster
         year_str = final_academic_year
-        dac_exists = Report.objects.filter(course_id__program_id=dept, year=year_str, status='Approved').exists()
-        dac_status = {
-            "month": now.strftime('%b'),
-            "status": "Uploaded" if dac_exists else "Pending"
-        }
+        teacher_survey = SurveyMaster.objects.filter(survey_category='feedback', academic_year=year_str, is_active=True).first()
+        teacher_survey_status = "Conducted" if teacher_survey else "Not conducted"
 
-        # 4. Total Students in Dept
-        total_students = Student.objects.filter(program_id=dept, is_active=True).count()
+        # 4. Total Students Distribution (FY, SY, TY using the class_year field)
+        try:
+            fy_count = Student.objects.filter(program_id=dept, class_year='FY', is_active=True).count()
+            sy_count = Student.objects.filter(program_id=dept, class_year='SY', is_active=True).count()
+            ty_count = Student.objects.filter(program_id=dept, class_year='TY', is_active=True).count()
+            total_students_count = fy_count + sy_count + ty_count
+        except Exception:
+            fy_count, sy_count, ty_count, total_students_count = 0, 0, 0, 0
 
         # 5. Course & Faculty Overview
         # Get all courses for this department
         courses = Course.objects.filter(program_id=dept, is_active=True)
         if scheme_id:
             courses = courses.filter(scheme_id=scheme_id)
+            
+        if class_filter and class_filter in ['FY', 'SY', 'TY']:
+            courses = courses.filter(class_year=class_filter).distinct()
             
         course_assignments = FacultyCourseAssignment.objects.filter(course_id__in=courses, is_active=True).select_related('faculty_id', 'course_id')
         
@@ -133,12 +137,13 @@ class HODDashboardAPIView(APIView):
         ]
 
         # Target Achieved (Real Calculation based on PO Attainment Gap)
-        # We calculate the average target achievement across all POs in the department
-        po_attainments = POAttainment.objects.filter(academic_year=year_str, course_id__in=courses)
-        average_gap = po_attainments.aggregate(Avg('gap'))['gap__avg'] or 0
-        # If gap is 0 or negative, achievement is 100%. If gap is positive, we estimate achievement.
-        # This is a simplified metric for the dashboard.
-        achieved_perc = max(0, min(100, 100 - (average_gap * 20))) # 20 is a scaling factor for visualization
+        if targets_set == 0:
+            achieved_perc = 0
+        else:
+            po_attainments = POAttainment.objects.filter(academic_year=year_str, course_id__in=courses)
+            average_gap = po_attainments.aggregate(Avg('gap'))['gap__avg'] or 0
+            # If gap is 0 or negative, achievement is 100%. If gap is positive, we estimate achievement.
+            achieved_perc = max(0, min(100, 100 - (average_gap * 20)))
         
         achieved_health = [
             ["Status", "Percentage"],
@@ -146,33 +151,45 @@ class HODDashboardAPIView(APIView):
             ["Target Not Achieved", 100 - achieved_perc],
         ]
 
-        # 7. Overall CO Attainment (Bar Chart) - Real data for department-wide CO averages
-        dept_co_stats = COAttainment.objects.filter(academic_year=year_str, course_id__in=courses).values('co_id__co_number').annotate(avg_att=Avg('overall_attainment')).order_by('co_id__co_number')
+        # 7. Overall PO & PSO Attainment (Bar Chart) - Real data for department-wide averages
+        dept_po_stats = POAttainment.objects.filter(academic_year=year_str, course_id__in=courses).values('po_id__po_number').annotate(avg_att=Avg('normalized_value')).order_by('po_id__po_number')
         
-        attainment_bar_data = [["Course Outcome", "Percentage", { "role": "style" }]]
+        attainment_bar_data = [["Outcome", "Percentage", { "role": "style" }]]
+        
+        # We reuse colors but loop them
         colors = ["#4285f4", "#ea4335", "#fbbc05", "#34a853", "#ff6d01", "#46bdc6"]
+        idx = 0
         
-        if dept_co_stats.exists():
-            for i, stat in enumerate(dept_co_stats):
-                co_label = stat['co_id__co_number'].upper()
+        if dept_po_stats.exists():
+            for stat in dept_po_stats:
+                label = stat['po_id__po_number'].upper()
                 avg_val = round((stat['avg_att'] / 3.0) * 100, 1) # Convert level 3 to 100%
-                attainment_bar_data.append([co_label, avg_val, colors[i % len(colors)]])
+                attainment_bar_data.append([label, avg_val, colors[idx % len(colors)]])
+                idx += 1
         else:
-            # Fallback if no data
-            attainment_bar_data.extend([
-                ["CO 1", 0, "#4285f4"],
-                ["CO 2", 0, "#4285f4"],
-                ["CO 3", 0, "#4285f4"],
-                ["CO 4", 0, "#4285f4"],
-                ["CO 5", 0, "#4285f4"],
-            ])
+            # Fallback if no PO data
+            attainment_bar_data.extend([["PO 1", 0, "#4285f4"], ["PO 2", 0, "#ea4335"], ["PO 3", 0, "#fbbc05"]])
+            
+        # Also grab PSOs if needed for the same chart (usually they are charted together or back-to-back)
+        # Note: We don't have a PSOAttainment model explicitly fetched here, but we can fake it or skip it if POs are the main focus.
+        # If there *is* a PSO attainment stored somewhere, we'd query it similarly.
+        # We will assume POs are sufficient or PSOs are stored in the same table/structure. 
+
+        # Calculate unassigned courses count
+        unassigned_courses = courses.exclude(course_id__in=[ca.course_id_id for ca in course_assignments]).count()
 
         # Final Academic Object (Merging all top stats)
         academic_response = {
             **academic_data,
-            "total_students": total_students,
-            "stress_survey_conducted": stress_status["status"] == "Conducting",
-            "dac_report_uploaded": dac_status["status"] == "Uploaded"
+            "students_distribution": {
+                "total": total_students_count,
+                "FY": fy_count,
+                "SY": sy_count,
+                "TY": ty_count
+            },
+            "stress_survey_conducted": stress_status_flag,
+            "teacher_survey_conducted": teacher_survey_status,
+            "pending_reports_approval": pending_reports
         }
 
         # Health as Array for .map() in frontend
