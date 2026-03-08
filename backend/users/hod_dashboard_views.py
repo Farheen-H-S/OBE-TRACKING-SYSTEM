@@ -10,7 +10,7 @@ from .models import User, FacultyCourseAssignment, Student
 from academics.models import AcademicSetup, Course, COTarget, PO
 from stress.models import StressMaster
 from reports.models import Report
-from attainment.models import COAttainment, POAttainment
+from attainment.models import COAttainment, POAttainment, PSOAttainment
 from .permissions import IsHOD
 
 class HODDashboardAPIView(APIView):
@@ -170,10 +170,14 @@ class HODDashboardAPIView(APIView):
             # Fallback if no PO data
             attainment_bar_data.extend([["PO 1", 0, "#4285f4"], ["PO 2", 0, "#ea4335"], ["PO 3", 0, "#fbbc05"]])
             
-        # Also grab PSOs if needed for the same chart (usually they are charted together or back-to-back)
-        # Note: We don't have a PSOAttainment model explicitly fetched here, but we can fake it or skip it if POs are the main focus.
-        # If there *is* a PSO attainment stored somewhere, we'd query it similarly.
-        # We will assume POs are sufficient or PSOs are stored in the same table/structure. 
+        # Also grab PSOs for the same chart
+        dept_pso_stats = PSOAttainment.objects.filter(academic_year=year_str, course_id__in=courses).values('pso_id__pso_number').annotate(avg_att=Avg('normalized_value')).order_by('pso_id__pso_number')
+        if dept_pso_stats.exists():
+            for stat in dept_pso_stats:
+                label = stat['pso_id__pso_number'].upper()
+                avg_val = round((stat['avg_att'] / 3.0) * 100, 1) # Convert level 3 to 100%
+                attainment_bar_data.append([label, avg_val, colors[idx % len(colors)]])
+                idx += 1 
 
         # Calculate unassigned courses count
         unassigned_courses = courses.exclude(course_id__in=[ca.course_id_id for ca in course_assignments]).count()
