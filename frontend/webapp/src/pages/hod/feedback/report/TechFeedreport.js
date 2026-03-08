@@ -1,4 +1,3 @@
-import { Chart as GoogleChart } from "react-google-charts";
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useFilters } from '../../../../context/FilterContext';
@@ -6,8 +5,9 @@ import { getFeedbackSurveys, getFeedbackResponses } from '../../../../services/f
 import { Button, Spinner, Table, Badge, Modal, Card } from 'react-bootstrap';
 import { FaEye, FaDownload, FaSyncAlt } from 'react-icons/fa';
 import api from '../../../../utils/axios';
+import { Chart } from "react-google-charts";
 
-const TechFeedreport = () => {
+const Techfeedreport = () => {
     const { selectedDept, selectedYear } = useFilters();
 
     const [surveys, setSurveys] = useState([]);
@@ -179,12 +179,12 @@ const TechFeedreport = () => {
 
             {/* Preview Modal */}
             <Modal show={showPreview} onHide={() => setShowPreview(false)} size="xl" centered scrollable>
-                <Modal.Header closeButton className="bg-light">
-                    <Modal.Title className="fw-bold">
-                        Feedback Analysis Preview: {selectedSurvey?.survey_name}
+                <Modal.Header closeButton className="bg-light border-bottom">
+                    <Modal.Title className="fw-bold d-flex justify-content-between align-items-center w-100 me-4">
+                        <span>Feedback Analysis: {selectedSurvey?.survey_name}</span>
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body style={{ minHeight: '600px', backgroundColor: '#f8f9fa' }}>
+                <Modal.Body style={{ backgroundColor: '#f8f9fa' }}>
                     {previewLoading ? (
                         <div className="text-center py-5">
                             <Spinner animation="grow" variant="primary" />
@@ -205,7 +205,7 @@ const TechFeedreport = () => {
                                 <div className="col-md-8">
                                     <Card className="border-0 shadow-sm h-100 p-3">
                                         <div style={{ height: '300px' }}>
-                                            <GoogleChart
+                                            <Chart
                                                 chartType="BarChart"
                                                 width="100%"
                                                 height="300px"
@@ -277,15 +277,18 @@ const TechFeedreport = () => {
                         <div className="text-center py-5">No response data found for this survey.</div>
                     )}
                 </Modal.Body>
-                <Modal.Footer className="bg-light">
-                    <Button variant="outline-secondary" onClick={() => setShowPreview(false)}>Close</Button>
+                <Modal.Footer className="bg-white border-top shadow-sm">
+                    <Button variant="secondary" className="px-4" onClick={() => setShowPreview(false)}>
+                        Close
+                    </Button>
                     <Button
                         variant="primary"
                         onClick={() => handleExport(selectedSurvey)}
-                        disabled={!aggregatedData || aggregatedData.total_responses === 0}
-                        className="px-4 fw-bold"
+                        disabled={!aggregatedData}
+                        className="px-4 fw-bold shadow-sm"
+                        style={{ minWidth: '220px' }}
                     >
-                        <FaDownload className="me-2" /> Download Detailed Excel (.xlsx)
+                        <FaDownload className="me-2" /> Download Detailed Report
                     </Button>
                 </Modal.Footer>
             </Modal>
@@ -293,4 +296,4 @@ const TechFeedreport = () => {
     );
 };
 
-export default TechFeedreport;
+export default Techfeedreport;
