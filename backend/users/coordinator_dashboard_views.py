@@ -121,7 +121,7 @@ class CoordinatorDashboardAPIView(APIView):
             # Check if any report was approved in this month
             has_report = Report.objects.filter(
                 course_id__program_id=dept, 
-                approved_at__month=i,
+                updated_at__month=i,
                 status='Approved'
             ).exists()
             dac_status.append({"month": m, "status": "ok" if has_report else "no"})

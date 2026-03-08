@@ -20,7 +20,7 @@ const DashboardRedirect = () => {
         } else if (role === 'FACULTY') {
             navigate('/faculty-dashboard');
         } else if (role === 'COORDINATOR') {
-            navigate('/hod-dashboard');
+            navigate('/coordinator-dashboard');
         } else if (role === 'AUDITOR') {
             navigate('/auditor-dashboard');
         } else {

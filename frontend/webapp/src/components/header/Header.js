@@ -110,9 +110,9 @@ const Header = ({ onToggleSidebar }) => {
     const role = (user?.role || user?.role_name || "").toUpperCase();
     if (role === 'ADMIN') navigate("/admin-dashboard");
     else if (role === 'HOD') navigate("/hod-dashboard");
-    else if (role === 'FACULTY') navigate("/hod-dashboard");
-    else if (role === 'COORDINATOR') navigate("/hod-dashboard");
-    else if (role === 'AUDITOR') navigate("/admin-dashboard");
+    else if (role === 'FACULTY') navigate("/faculty-dashboard");
+    else if (role === 'COORDINATOR') navigate("/coordinator-dashboard");
+    else if (role === 'AUDITOR') navigate("/auditor-dashboard");
     else navigate("/dashboard");
   };
 
