@@ -179,11 +179,25 @@ class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class AuditorBoardView(APIView):
     def get(self, request):
-        board, created = AuditorBoard.objects.get_or_create(user=request.user)
+        role_name = request.user.role_id.role_name if request.user.role_id else ''
+        if role_name == 'Auditor':
+            # Auditor fetches their own board
+            board, created = AuditorBoard.objects.get_or_create(user=request.user)
+        else:
+            # HOD / Coordinator / Faculty: find the first Auditor user's board (read-only view)
+            from users.models import User
+            auditor_user = User.objects.filter(role_id__role_name='Auditor').first()
+            if auditor_user:
+                board, created = AuditorBoard.objects.get_or_create(user=auditor_user)
+            else:
+                return Response({'content': None}, status=status.HTTP_200_OK)
         serializer = AuditorBoardSerializer(board)
         return Response(serializer.data)
 
     def patch(self, request):
+        role_name = request.user.role_id.role_name if request.user.role_id else ''
+        if role_name != 'Auditor':
+            return Response({"error": "Only auditors can update remarks."}, status=status.HTTP_403_FORBIDDEN)
         board, created = AuditorBoard.objects.get_or_create(user=request.user)
         if not request.user.is_active:
             return Response({"error": "Account frozen. Cannot save remarks."}, status=status.HTTP_403_FORBIDDEN)

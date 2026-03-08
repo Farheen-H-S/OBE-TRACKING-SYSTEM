@@ -8,6 +8,8 @@ import './ViewRemark.css';
 const ViewRemark = () => {
     const user = getLoggedInUser();
     const isUserDisabled = user?.is_active === false;
+    const isAuditor = (user?.role_name || user?.role || '').toUpperCase() === 'AUDITOR';
+    const isReadOnly = !isAuditor || isUserDisabled;
 
     const [remarksData, setRemarksData] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
     const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ const ViewRemark = () => {
     };
 
     const handleRowChange = (rowIndex, colIndex, val) => {
-        if (isUserDisabled) return;
+        if (isReadOnly) return;
         const newRows = [...remarksData.rows];
         newRows[rowIndex] = [...newRows[rowIndex]];
         newRows[rowIndex][colIndex] = val;
@@ -42,13 +44,13 @@ const ViewRemark = () => {
     };
 
     const addRow = () => {
-        if (isUserDisabled) return;
+        if (isReadOnly) return;
         const newRows = [...remarksData.rows, Array(remarksData.rows[0].length).fill('')];
         setRemarksData({ ...remarksData, rows: newRows });
     };
 
     const addColumn = () => {
-        if (isUserDisabled) return;
+        if (isReadOnly) return;
         const newRows = remarksData.rows.map(row => [...row, '']);
         setRemarksData({ ...remarksData, rows: newRows });
     };
@@ -72,7 +74,7 @@ const ViewRemark = () => {
     };
 
     const handleKeyDown = (e, rIdx, cIdx) => {
-        if (isUserDisabled) return;
+        if (isReadOnly) return;
         const rows = remarksData.rows;
         const maxRows = rows.length;
         const maxCols = rows[0].length;
@@ -115,22 +117,29 @@ const ViewRemark = () => {
                             <FaLock /> Account Frozen
                         </Badge>
                     )}
+                    {!isAuditor && (
+                        <Badge bg="secondary" className="p-2 d-flex align-items-center gap-2">
+                            Read-only view
+                        </Badge>
+                    )}
                 </div>
 
                 <div className="audit-board-card">
                     <div className="excel-panel-header d-flex justify-content-between align-items-center">
                         <h5 className="fw-bold m-0"> Remarks</h5>
-                        <div className="d-flex gap-2">
-                            <button className="btn btn-sm btn-outline-secondary" onClick={addColumn} title="Add Column" disabled={isUserDisabled}>
-                                <FaPlus size={10} className="me-1" /> Col
-                            </button>
-                            <button className="btn btn-sm btn-outline-secondary" onClick={addRow} title="Add Row" disabled={isUserDisabled}>
-                                <FaReply size={10} className="me-1" style={{ transform: 'rotate(-90deg)' }} /> Row
-                            </button>
-                            <button className="btn btn-success btn-sm px-3 fw-bold" onClick={saveChanges} disabled={isUserDisabled}>
-                                <FaSave className="me-2" /> Save
-                            </button>
-                        </div>
+                        {isAuditor && (
+                            <div className="d-flex gap-2">
+                                <button className="btn btn-sm btn-outline-secondary" onClick={addColumn} title="Add Column" disabled={isReadOnly}>
+                                    <FaPlus size={10} className="me-1" /> Col
+                                </button>
+                                <button className="btn btn-sm btn-outline-secondary" onClick={addRow} title="Add Row" disabled={isReadOnly}>
+                                    <FaReply size={10} className="me-1" style={{ transform: 'rotate(-90deg)' }} /> Row
+                                </button>
+                                <button className="btn btn-success btn-sm px-3 fw-bold" onClick={saveChanges} disabled={isReadOnly}>
+                                    <FaSave className="me-2" /> Save
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="excel-grid-container custom-scrollbar p-0">
@@ -155,7 +164,7 @@ const ViewRemark = () => {
                                                     value={cell}
                                                     onChange={(e) => handleRowChange(rIdx, cIdx, e.target.value)}
                                                     onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx)}
-                                                    disabled={isUserDisabled}
+                                                    disabled={isReadOnly}
                                                 />
                                             </td>
                                         ))}
