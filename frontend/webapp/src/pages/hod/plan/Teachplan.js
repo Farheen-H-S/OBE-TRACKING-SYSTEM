@@ -141,8 +141,8 @@ const Teachplan = () => {
     const handleInputChange = (index, field, value) => {
         const newLectures = [...lectures];
         newLectures[index][field] = value;
+        newLectures[index]._dirty = true; // Flag to show Save Plan button if status changed in read mode
         setLectures(newLectures);
-        setIsEditing(true);
     };
 
     const handleAddRow = () => {
@@ -234,17 +234,17 @@ const Teachplan = () => {
                         <div className="d-flex gap-2">
                             {selectedCourseId && (
                                 <div className="d-flex align-items-center gap-2">
-                                    {plan ? (
-                                        !isEditing ? (
+                                    {(isEditing || lectures.some(l => l._dirty)) ? (
+                                        <Button variant="success" size="sm" onClick={handleSave} disabled={saving}>
+                                            {saving ? 'Saving...' : 'Save Plan'}
+                                        </Button>
+                                    ) : (
+                                        plan && (
                                             <Button variant="outline-primary" size="sm" onClick={() => setIsEditing(true)}>
                                                 Edit Plan
                                             </Button>
-                                        ) : (
-                                            <Button variant="success" size="sm" onClick={handleSave} disabled={saving}>
-                                                {saving ? 'Saving...' : 'Save Plan'}
-                                            </Button>
                                         )
-                                    ) : null}
+                                    )}
 
                                     <div className="d-flex flex-column align-items-end">
                                         <input
@@ -324,22 +324,16 @@ const Teachplan = () => {
                                                 ) : row.actual_topic}
                                             </td>
                                             <td className="col-status text-center">
-                                                {isEditing ? (
-                                                    <Form.Select
-                                                        size="sm"
-                                                        value={row.status || 'INCOMPLETE'}
-                                                        onChange={(e) => handleInputChange(index, 'status', e.target.value)}
-                                                        className="status-select"
-                                                    >
-                                                        <option value="COMPLETED">Completed</option>
-                                                        <option value="INCOMPLETE">Incomplete</option>
-                                                        <option value="POSTPONED">Postponed</option>
-                                                    </Form.Select>
-                                                ) : (
-                                                    <span className={`status-badge status-${(row.status || 'INCOMPLETE').toLowerCase()}`}>
-                                                        {row.status || 'INCOMPLETE'}
-                                                    </span>
-                                                )}
+                                                <Form.Select
+                                                    size="sm"
+                                                    value={row.status || 'INCOMPLETE'}
+                                                    onChange={(e) => handleInputChange(index, 'status', e.target.value)}
+                                                    className="status-select"
+                                                >
+                                                    <option value="COMPLETED">Completed</option>
+                                                    <option value="INCOMPLETE">Incomplete</option>
+                                                    <option value="POSTPONED">Postponed</option>
+                                                </Form.Select>
                                             </td>
                                             {isEditing && (
                                                 <td className="col-action text-center">
