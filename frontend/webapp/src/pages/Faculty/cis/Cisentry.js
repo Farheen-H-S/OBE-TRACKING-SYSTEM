@@ -2170,7 +2170,7 @@ const Cisentry = () => {
                 <div className="oit-modal-body">
                   <p className="text-danger fw-bold mb-3">
                     <FaExclamationCircle className="me-2" />
-                    Overall Attainment gaps detected for: {pendingAtrCos.map(c => `CO${c}`).join(', ')}
+                    Overall Attainment gaps detected for: {pendingAtrCos.map(c => String(c).toUpperCase().startsWith('CO') ? c : `CO${c}`).join(', ')}
                   </p>
 
                   <div className="mb-4">

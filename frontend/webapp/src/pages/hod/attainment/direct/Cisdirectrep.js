@@ -281,7 +281,7 @@ export default function Cisdirectrep() {
                                                                 >
                                                                     {courseStatus[c.course_id]?.atr_status === 'submitted' ? 'Submitted' : 'No ATR Submitted'}
                                                                 </span>
-                                                                {courseStatus[c.course_id]?.atr_status === 'pending' && (
+                                                                {courseStatus[c.course_id]?.atr_status !== 'submitted' && (
                                                                     <button
                                                                         className="btn btn-sm btn-link text-decoration-none p-0 fw-bold"
                                                                         onClick={() => handleRequestATR(c.course_id)}

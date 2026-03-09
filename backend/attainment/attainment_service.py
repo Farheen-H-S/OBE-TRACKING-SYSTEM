@@ -385,39 +385,52 @@ class AttainmentService:
                         level = AttainmentService._get_attainment_level(percentage)
                         
                         # Find actual CO object matching this mapping
-                        # Enhanced matching: positional fallback + name match
+                        # Enhanced matching: first look in AssessmentCOMapping for this tool,
+                        # then fall back to all COs for this course (supports per-question CO assignment)
                         target_idx = co_key.replace("CO", "").strip()
                         
                         co_obj = None
-                        # 1. Try exact search in current tool mappings
+                        resolved_co = None  # Will hold a CO model instance
+                        
                         if target_idx:
-                            # Instead of ambiguous icontains (which matches 1 in 201.1), 
-                            # we fetch all mappings for this tool and do strict suffix/exact matching
+                            # First: try matching within the tool's formal AssessmentCOMapping
                             all_mappings = list(mappings)
                             for m in all_mappings:
                                 co_numStr = str(m.co_id.co_number).strip().upper()
-                                # E.g., target_idx="1", co_numStr="CO201.1" -> matches
-                                # E.g., target_idx="1", co_numStr="CO301" -> fails
-                                # E.g., target_idx="CO1", co_numStr="CO1" -> matches
                                 if co_numStr == co_key.upper().strip():
                                     co_obj = m
                                     break
-                                
-                                # Strict numeric suffix matching
-                                match = re.search(r'(\d+)$', co_numStr)
-                                if match and match.group(1) == target_idx:
+                                # Strict numeric suffix matching: "4" matches "CO201.4"
+                                m_match = re.search(r'(\d+)$', co_numStr)
+                                if m_match and m_match.group(1) == target_idx:
                                     co_obj = m
                                     break
+                            
+                            # Second: if not in tool mapping, search all active COs for this course
+                            if not co_obj:
+                                course_co_list = list(CO.objects.filter(course_id=tool.course_id, is_active=True))
+                                for co in course_co_list:
+                                    co_numStr = str(co.co_number).strip().upper()
+                                    if co_numStr == co_key.upper().strip():
+                                        resolved_co = co
+                                        break
+                                    # Strict suffix match: co_key="CO4", co_number="CO201.4" -> last digits = "4"
+                                    c_match = re.search(r'(\d+)$', co_numStr)
+                                    if c_match and c_match.group(1) == target_idx:
+                                        resolved_co = co
+                                        break
                         else:
-                            # If no number (just "CO"), only exact match
                             co_obj = mappings.filter(co_id__co_number__iexact=co_key).first()
                         
-                        # 2. Positional Fallback (if mapping is empty or name doesn't match)
-                        if not co_obj:
-                            # Treat strictly "CO" or any name starting with "CO" without a number as index 0 (CO1)
+                        # Determine the co_id to record results against
+                        if co_obj:
+                            co_id = co_obj.co_id_id
+                        elif resolved_co:
+                            co_id = resolved_co.co_id
+                        else:
+                            # Last resort: positional fallback by index
                             clean_key = co_key.upper().strip()
                             pos = None
-                            
                             if clean_key == "CO":
                                 pos = 0
                             else:
@@ -425,25 +438,26 @@ class AttainmentService:
                                 if match:
                                     pos = int(match.group()) - 1
                                 elif clean_key.startswith("CO"):
-                                    pos = 0 # Default fallback for non-numeric CO names
-                                    
+                                    pos = 0
                             if pos is not None:
                                 course_cos = list(CO.objects.filter(course_id=tool.course_id).order_by('co_id'))
                                 if 0 <= pos < len(course_cos):
-                                    # Check if this CO is in the tool mappings (it should be)
-                                    co_obj = mappings.filter(co_id=course_cos[pos]).first()
-
-                        if co_obj:
-                            co_id = co_obj.co_id_id
-                            if co_id not in tool_co_results: tool_co_results[co_id] = {}
-                            tool_co_results[co_id][tool_key] = {
-                                'level': level,
-                                'appeared': stats['appeared'],
-                                'success': stats['success'],
-                                'percentage': percentage
-                            }
-                        else:
-                            print(f"DEBUG: Failed to match CO key '{co_key}' (idx: {target_idx}) for tool {tool.assessment_name}")
+                                    co_id = course_cos[pos].co_id
+                                else:
+                                    print(f"DEBUG: Positional fallback out of range for '{co_key}' in tool {tool.assessment_name}")
+                                    continue
+                            else:
+                                print(f"DEBUG: Failed to match CO key '{co_key}' (idx: {target_idx}) for tool {tool.assessment_name}")
+                                continue
+                        
+                        # Record the resolved result
+                        if co_id not in tool_co_results: tool_co_results[co_id] = {}
+                        tool_co_results[co_id][tool_key] = {
+                            'level': level,
+                            'appeared': stats['appeared'],
+                            'success': stats['success'],
+                            'percentage': percentage
+                        }
             else:
                 # Fallback to simple whole-tool logic
                 entries = MarksEntry.objects.filter(assessment_id=tool)

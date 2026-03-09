@@ -190,15 +190,15 @@ class ReportService:
         current_row += 1
         
         # Direct Attainment
-        ws.cell(row=current_row, column=len(po_pso_headers)+4, value="Direct Attainment").font = bold_font
-        ws.cell(row=current_row, column=len(po_pso_headers)+4).font = Font(color="FF0000", bold=True)
+        direct_cell = ws.cell(row=current_row, column=len(po_pso_headers)+4, value="Direct Attainment")
+        direct_cell.font = Font(color="FF0000", bold=True)
         for i, h in enumerate(po_pso_headers):
             ws.cell(row=current_row, column=len(po_pso_headers)+5+i, value=avg_row[h]).font = bold_font
         current_row += 1
 
         # 80% of Direct Attainment
-        ws.cell(row=current_row, column=len(po_pso_headers)+4, value="80% of Direct Attainment").font = bold_font
-        ws.cell(row=current_row, column=len(po_pso_headers)+4).font = Font(color="FF0000", bold=True)
+        da80_cell = ws.cell(row=current_row, column=len(po_pso_headers)+4, value="80% of Direct Attainment")
+        da80_cell.font = Font(color="FF0000", bold=True)
         for i, h in enumerate(po_pso_headers):
             ws.cell(row=current_row, column=len(po_pso_headers)+5+i, value=round(avg_row[h] * 0.8, 2)).font = bold_font
         current_row += 1
@@ -207,15 +207,15 @@ class ReportService:
         current_row += 1
 
         # Indirect Attainment
-        ws.cell(row=current_row, column=len(po_pso_headers)+4, value="Indirect Attainment").font = bold_font
-        ws.cell(row=current_row, column=len(po_pso_headers)+4).font = Font(color="FF0000", bold=True)
+        ia_cell = ws.cell(row=current_row, column=len(po_pso_headers)+4, value="Indirect Attainment")
+        ia_cell.font = Font(color="FF0000", bold=True)
         for i, h in enumerate(po_pso_headers):
             ws.cell(row=current_row, column=len(po_pso_headers)+5+i, value=indirect_atts[h]).font = bold_font
         current_row += 1
 
         # 20% of Indirect attainment
-        ws.cell(row=current_row, column=len(po_pso_headers)+4, value="20% of Indirect attainment").font = bold_font
-        ws.cell(row=current_row, column=len(po_pso_headers)+4).font = Font(color="FF0000", bold=True)
+        ia20_cell = ws.cell(row=current_row, column=len(po_pso_headers)+4, value="20% of Indirect attainment")
+        ia20_cell.font = Font(color="FF0000", bold=True)
         for i, h in enumerate(po_pso_headers):
             ws.cell(row=current_row, column=len(po_pso_headers)+5+i, value=round(indirect_atts[h] * 0.2, 2)).font = bold_font
         current_row += 1
@@ -224,8 +224,8 @@ class ReportService:
         current_row += 1
 
         # PO Attainment
-        ws.cell(row=current_row, column=len(po_pso_headers)+4, value="PO Attainment").font = bold_font
-        ws.cell(row=current_row, column=len(po_pso_headers)+4).font = Font(color="0000FF", bold=True)
+        po_cell = ws.cell(row=current_row, column=len(po_pso_headers)+4, value="PO Attainment")
+        po_cell.font = Font(color="0000FF", bold=True)
         for i, h in enumerate(po_pso_headers):
             ws.cell(row=current_row, column=len(po_pso_headers)+5+i, value=final_attainment[h]).font = bold_font
         
