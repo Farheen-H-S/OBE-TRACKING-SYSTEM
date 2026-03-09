@@ -130,14 +130,6 @@ const Addcourse = () => {
         setFormData({ ...formData, [name]: finalValue });
     };
 
-    // Auto-update first CO pattern if course code changes and CO1 is still at default
-    useEffect(() => {
-        if (formData.courseCode && formData.courseOutcomes.length === 1 && (formData.courseOutcomes[0].no === 'CO' || formData.courseOutcomes[0].no === 'CO1')) {
-            const newCOs = [...formData.courseOutcomes];
-            newCOs[0].no = `CO${formData.courseCode.replace(/^CO/i, '')}.1`;
-            setFormData(prev => ({ ...prev, courseOutcomes: newCOs }));
-        }
-    }, [formData.courseCode]);
 
     const handleToolChange = (tool, field, value) => {
         setFormData(prev => {
@@ -166,7 +158,7 @@ const Addcourse = () => {
 
     const addCORow = () => {
         const index = formData.courseOutcomes.length + 1;
-        const nextNo = formData.courseCode ? `CO${formData.courseCode}.${index}` : `CO${index}`;
+        const nextNo = formData.courseCode ? `${formData.courseCode}.${index}` : `CO${index}`;
         setFormData({
             ...formData,
             courseOutcomes: [...formData.courseOutcomes, { no: nextNo, text: '' }]
@@ -198,18 +190,20 @@ const Addcourse = () => {
 
             const generatedCode = `CO${classDigit}${nextId}`;
 
-            // Also update existing CO numbers if they are using the default prefix
-            setFormData(prev => {
-                const newCOs = prev.courseOutcomes.map((co, idx) => ({
-                    ...co,
-                    no: `${generatedCode}.${idx + 1}`
-                }));
-                return { ...prev, courseCode: generatedCode, courseOutcomes: newCOs };
-            });
+            setFormData(prev => ({ ...prev, courseCode: generatedCode }));
         } else if (!formData.courseId && !isViewMode && (!formData.class || !formData.program_id || !formData.scheme)) {
-            setFormData(prev => ({ ...prev, courseCode: '', courseOutcomes: [{ no: 'CO', text: prev.courseOutcomes[0]?.text || '' }] }));
+            setFormData(prev => ({ ...prev, courseCode: '', courseOutcomes: [{ no: 'CO1', text: prev.courseOutcomes[0]?.text || '' }] }));
         }
     }, [formData.class, formData.program_id, formData.scheme, existingCourses, isViewMode, formData.courseId]);
+
+    // Auto-update first CO pattern if course code changes and CO1 is still at default
+    useEffect(() => {
+        if (formData.courseCode && formData.courseOutcomes.length === 1 && (formData.courseOutcomes[0].no === 'CO' || formData.courseOutcomes[0].no === 'CO1')) {
+            const newCOs = [...formData.courseOutcomes];
+            newCOs[0].no = `${formData.courseCode}.1`;
+            setFormData(prev => ({ ...prev, courseOutcomes: newCOs }));
+        }
+    }, [formData.courseCode]);
 
     const getSemesterOptions = () => {
         if (formData.class === 'FY') return [1, 2];

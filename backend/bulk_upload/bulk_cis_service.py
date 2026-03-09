@@ -21,33 +21,55 @@ def natural_sort_key(s):
             for text in re.split('([0-9]+)', str(s))]
 
 def normalize_roll(r):
+    if pd.isna(r): return ""
     s = str(r).strip()
+    if s.lower() == 'nan': return ""
+    if s.endswith('.0'): s = s[:-2]
     if s.endswith('.'): s = s[:-1]
-    try:
-        # Avoid stripping valid zeroes if it's not a true number, but handle 01 == 1
-        if float(s).is_integer():
-            return str(int(float(s)))
-    except:
-        pass
+    
+    # Remove leading zeros if it's purely numeric, but keep it as string
+    if s.isdigit():
+        return str(int(s)).lower()
+    
     return s.lower()
 
 def generate_cis_multi_sheet_template(course_id, academic_year=None, division=None):
     course = get_object_or_404(Course, pk=course_id)
     
-    filters = {
+    def get_students(filt_base, ay):
+        from django.db.models import Q
+        qs = Student.objects.filter(**filt_base)
+        if ay:
+            ay_c = str(ay).replace(" ", "")
+            ay_s = ay_c.replace("-", " - ")
+            qs = qs.filter(Q(academic_year=ay_c) | Q(academic_year=ay_s) | Q(academic_year=ay))
+        return qs.distinct()
+
+    # Stage 1: Strict (Prog + Sem + Class + Batch)
+    base_filters = {
         'program_id': course.program_id,
         'semester': course.semester,
         'class_year': course.class_year,
-        'batch_id__in': course.batches.all(),
         'is_active': True
     }
+    if course.batches.exists():
+        base_filters['batch_id__in'] = course.batches.all()
     
-    if academic_year:
-        filters['academic_year'] = academic_year
-    if division:
-        filters['division'] = division
+    students = get_students(base_filters, academic_year)
 
-    students = Student.objects.filter(**filters).distinct()
+    # Stage 2: Cohort-focused (Prog + Batch) - Ignore Sem/Class
+    if not students.exists() and course.batches.exists():
+        cohort_filters = {'program_id': course.program_id, 'batch_id__in': course.batches.all(), 'is_active': True}
+        students = get_students(cohort_filters, academic_year)
+
+    # Stage 3: Program-focused (Prog + AY)
+    if not students.exists():
+        prog_ay_filters = {'program_id': course.program_id, 'is_active': True}
+        students = get_students(prog_ay_filters, academic_year)
+    
+    # Stage 4: Broadest (Prog only)
+    if not students.exists():
+        students = Student.objects.filter(program_id=course.program_id, is_active=True).distinct()
     
     # Apply natural sort to students by roll_no
     students_list = sorted(list(students), key=lambda x: natural_sort_key(x.roll_no))
@@ -163,20 +185,31 @@ def process_bulk_cis_apply(file, course_id, academic_year, semester, user, divis
         "SA-PR": {"tool_name": "SA-PR", "tool_type": "SA_PR", "parser": "SA"},
     }
     
-    filters = {
-        'program_id': course.program_id,
-        'semester': course.semester,
-        'class_year': course.class_year,
-        'batch_id__in': course.batches.all(),
-        'is_active': True
-    }
-    
-    if academic_year:
-        filters['academic_year'] = academic_year
-    if division:
-        filters['division'] = division
+    def get_student_qs(filt_base, ay):
+        from django.db.models import Q
+        qs = Student.objects.filter(**filt_base)
+        if ay:
+            ay_c = str(ay).replace(" ", "")
+            ay_s = ay_c.replace("-", " - ")
+            qs = qs.filter(Q(academic_year=ay_c) | Q(academic_year=ay_s) | Q(academic_year=ay))
+        return qs
 
-    students_in_context = {normalize_roll(s.roll_no): s for s in Student.objects.filter(**filters)}
+    # Same fallback logic for matching
+    base_f = {'program_id': course.program_id, 'semester': course.semester, 'class_year': course.class_year, 'is_active': True}
+    if course.batches.exists(): base_f['batch_id__in'] = course.batches.all()
+    
+    student_qs = get_student_qs(base_f, academic_year)
+    
+    if not student_qs.exists() and course.batches.exists():
+        student_qs = get_student_qs({'program_id': course.program_id, 'batch_id__in': course.batches.all(), 'is_active': True}, academic_year)
+        
+    if not student_qs.exists():
+        student_qs = get_student_qs({'program_id': course.program_id, 'is_active': True}, academic_year)
+
+    if not student_qs.exists():
+        student_qs = Student.objects.filter(program_id=course.program_id, is_active=True)
+
+    students_in_context = {normalize_roll(s.roll_no): s for s in student_qs}
     
     for sheet_name, df in all_sheets.items():
         if sheet_name not in tool_map:

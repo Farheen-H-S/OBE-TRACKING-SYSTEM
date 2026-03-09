@@ -293,7 +293,7 @@ const Header = ({ onToggleSidebar }) => {
                             <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
                           </button>
                         )}
-                        {['hod', 'coordinator', 'faculty'].includes(userRole) && (
+                        {['faculty'].includes(userRole) && (
                           <button onClick={() => handleDownloadTemplate('teaching-plan')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                             <div className="fw-bold small text-primary">Teaching Plan Template</div>
                             <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for Teaching Plan entry</div>
