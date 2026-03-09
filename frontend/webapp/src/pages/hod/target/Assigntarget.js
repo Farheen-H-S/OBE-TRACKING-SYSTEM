@@ -201,7 +201,7 @@ const Assigntarget = () => {
     // Batch matching: If no batch selected, or course has no batches (allow assignment), or it matches
     const matchesBatch = !selectedBatch || selectedBatch === 'All' ||
       (course.batch_list && course.batch_list.length === 0) ||
-      (course.batch_list && course.batch_list.includes(selectedBatch));
+      (course.batch_list && course.batch_list.some(b => String(b) === String(selectedBatch)));
 
     return matchesSearch && matchesDept && matchesScheme && matchesClass && matchesSem && matchesBatch;
   });

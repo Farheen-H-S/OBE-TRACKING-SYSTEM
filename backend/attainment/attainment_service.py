@@ -387,14 +387,28 @@ class AttainmentService:
                         
                         # Find actual CO object matching this mapping
                         # Enhanced matching: positional fallback + name match
-                        target_idx = co_key.replace("CO", "")
+                        target_idx = co_key.replace("CO", "").strip()
                         
+                        co_obj = None
                         # 1. Try exact search in current tool mappings
                         if target_idx:
-                            co_obj = mappings.filter(
-                                models.Q(co_id__co_number__icontains=target_idx) |
-                                models.Q(co_id__co_number__iexact=co_key)
-                            ).first()
+                            # Instead of ambiguous icontains (which matches 1 in 201.1), 
+                            # we fetch all mappings for this tool and do strict suffix/exact matching
+                            all_mappings = list(mappings)
+                            for m in all_mappings:
+                                co_numStr = str(m.co_id.co_number).strip().upper()
+                                # E.g., target_idx="1", co_numStr="CO201.1" -> matches
+                                # E.g., target_idx="1", co_numStr="CO301" -> fails
+                                # E.g., target_idx="CO1", co_numStr="CO1" -> matches
+                                if co_numStr == co_key.upper().strip():
+                                    co_obj = m
+                                    break
+                                
+                                # Strict numeric suffix matching
+                                match = re.search(r'(\d+)$', co_numStr)
+                                if match and match.group(1) == target_idx:
+                                    co_obj = m
+                                    break
                         else:
                             # If no number (just "CO"), only exact match
                             co_obj = mappings.filter(co_id__co_number__iexact=co_key).first()
