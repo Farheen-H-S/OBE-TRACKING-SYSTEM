@@ -258,18 +258,40 @@ class ReportService:
             ws.cell(row=1, column=i+1, value=h).font = Font(bold=True)
             
         # Data
+        from .models import CourseATR
+        c_atr = CourseATR.objects.filter(course_id=course, academic_year=academic_year).first()
+        
         for r, att in enumerate(co_atts):
             ws.cell(row=r+2, column=1, value=str(att.co_id.co_number))
             ws.cell(row=r+2, column=2, value=round(att.direct_attainment, 2))
             ws.cell(row=r+2, column=3, value=round(att.indirect_attainment or 0, 2))
             ws.cell(row=r+2, column=4, value=round(att.overall_attainment, 2))
-            # Target is not stored in COAttainment, but gap is. Target = Overall + Gap
+            
             target = round(att.overall_attainment + att.gap, 2)
             ws.cell(row=r+2, column=5, value=target)
             ws.cell(row=r+2, column=6, value=round(att.gap, 2))
-            ws.cell(row=r+2, column=7, value=att.atr_status)
-            ws.cell(row=r+2, column=8, value=att.action_proposed or "")
             
+            # If consolidated ATR exists, reflect it in the status column
+            if c_atr:
+                ws.cell(row=r+2, column=7, value="Submitted (Consolidated)")
+                ws.cell(row=r+2, column=8, value=c_atr.action_proposed)
+            else:
+                ws.cell(row=r+2, column=7, value=att.atr_status)
+                ws.cell(row=r+2, column=8, value=att.action_proposed or "")
+
+        # 3. Add Consolidated ATR at bottom
+        from .models import CourseATR
+        c_atr = CourseATR.objects.filter(course_id=course, academic_year=academic_year).first()
+        if c_atr:
+            last_row = len(co_atts) + 4
+            ws.merge_cells(start_row=last_row, start_column=1, end_row=last_row, end_column=8)
+            ws.cell(row=last_row, column=1, value="CONSOLIDATED COURSE-LEVEL ACTION TAKEN REPORT (ATR)").font = Font(bold=True)
+            ws.cell(row=last_row, column=1).alignment = Alignment(horizontal='center')
+            ws.cell(row=last_row, column=1).fill = PatternFill(start_color="CFE2F3", end_color="CFE2F3", fill_type="solid")
+            
+            ws.merge_cells(start_row=last_row+1, start_column=1, end_row=last_row+4, end_column=8)
+            ws.cell(row=last_row+1, column=1, value=c_atr.action_proposed).alignment = Alignment(wrap_text=True, vertical='top')
+
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)

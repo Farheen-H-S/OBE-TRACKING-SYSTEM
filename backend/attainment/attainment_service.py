@@ -19,6 +19,10 @@ class AttainmentService:
         ay_spaced = ay_clean.replace('-', ' - ')
         ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
         
+        # Check for consolidated CourseATR first to influence ATR status
+        from .models import CourseATR
+        course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
+
         # Part A: Direct CO Attainment
         co_direct = AttainmentService._calculate_direct_co_attainment(course_id, academic_year)
         if not co_direct:
@@ -49,12 +53,14 @@ class AttainmentService:
             
             # ATR Status logic
             if gap > 0:
-                # If gap exists, set to pending UNLESS it was already submitted
-                # (We might want to reset it if d_val/i_val changed significantly, but for now we keep it)
-                existing = COAttainment.objects.filter(co_id=co, academic_year=academic_year).first()
+                # If gap exists, set to pending UNLESS it was already submitted via CO or Course level
                 atr_status = 'pending'
-                if existing and existing.atr_status == 'submitted' and abs(existing.gap - gap) < 0.01:
+                if course_atr:
                     atr_status = 'submitted'
+                else:
+                    existing = COAttainment.objects.filter(co_id=co, academic_year=academic_year).first()
+                    if existing and existing.atr_status == 'submitted' and abs(existing.gap - gap) < 0.01:
+                        atr_status = 'submitted'
             else:
                 atr_status = 'not_required'
 
@@ -137,28 +143,32 @@ class AttainmentService:
         final_po_avg = sum(final_pos.values()) / len(final_pos) if final_pos else 0
         final_pso_avg = sum(final_psos.values()) / len(final_psos) if final_psos else 0
             
-        year_str = academic_year
+        # Check for CourseATR
+        from .models import CourseATR
+        course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
+        
         return {
             'final_course_attainment': round(final_course_attainment, 2),
             'final_po_avg': round(final_po_avg, 2),
             'final_pso_avg': round(final_pso_avg, 2),
-            'academic_year': year_str,
-            'atr_required': any(att.atr_status == 'pending' for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year)),
-            'pending_cos': [att.co_id.co_number for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year, atr_status='pending')]
+            'academic_year': academic_year,
+            'atr_required': any(att.atr_status == 'pending' for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year)) and not course_atr,
+            'pending_cos': [att.co_id.co_number for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year, atr_status='pending')] if not course_atr else [],
+            'course_atr': course_atr.action_proposed if course_atr else None
         }
 
     @staticmethod
     def check_and_generate_report(course_id, academic_year, user=None):
         """
-        Checks if any ATR is pending. If not, generates the Direct Attainment report.
+        Checks if CourseATR exists. If so, generates the Direct Attainment report.
         """
-        atr_needed = COAttainment.objects.filter(
+        from .models import CourseATR
+        course_atr_exists = CourseATR.objects.filter(
             course_id=course_id, 
-            academic_year=academic_year, 
-            atr_status='pending'
+            academic_year=academic_year
         ).exists()
 
-        if not atr_needed:
+        if course_atr_exists:
             from .report_service import ReportService
             from reports.utils import save_generated_report
             from academics.models import Course
@@ -193,17 +203,21 @@ class AttainmentService:
 
         avg_level = all_atts.aggregate(Avg('overall_attainment'))['overall_attainment__avg'] or 0
         
-        # Course-wide ATR status: 'submitted' if all required are submitted, 'pending' if any gap exists and matches pending
-        if all_atts.filter(atr_status='pending').exists():
-            status = 'pending'
-        elif all_atts.filter(atr_status='submitted').exists():
+        # Check for CourseATR
+        from .models import CourseATR
+        course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
+        
+        if course_atr:
             status = 'submitted'
+        elif all_atts.filter(atr_status='pending').exists():
+            status = 'pending'
         else:
             status = 'not_required'
 
         return {
             "overall_level": f"{avg_level:.2f}",
-            "atr_status": status
+            "atr_status": status,
+            "course_atr": course_atr.action_proposed if course_atr else None
         }
 
     @staticmethod
@@ -501,31 +515,47 @@ class AttainmentService:
     def _calculate_direct_po_attainment(course_id, final_cos, final_course_attainment):
         mappings = COPOMapping.objects.filter(co_id__course_id=course_id)
         po_direct = {}
+        po_weights = {} # Track sum of weights for proper average
         for m in mappings:
             po_id = m.po_id_id
             weight = m.weightage or 0
-            if po_id not in po_direct: po_direct[po_id] = 0
+            if po_id not in po_direct:
+                po_direct[po_id] = 0
+                po_weights[po_id] = 0
+            
             # Use specific CO attainment if available, otherwise course avg
             co_val = final_cos.get(m.co_id_id, final_course_attainment)
             po_direct[po_id] += (co_val * weight)
+            po_weights[po_id] += weight
+            
         for po_id in po_direct:
-            # Normalize by max possible weight (assuming total weightage logic)
-            # This logic depends on the specific institution's calculation
-            po_direct[po_id] = po_direct[po_id] / 3 
+            if po_weights[po_id] > 0:
+                po_direct[po_id] = po_direct[po_id] / po_weights[po_id]
+            else:
+                po_direct[po_id] = 0
         return po_direct
 
     @staticmethod
     def _calculate_direct_pso_attainment(course_id, final_cos, final_course_attainment):
         mappings = COPSOMapping.objects.filter(co_id__course_id=course_id)
         pso_direct = {}
+        pso_weights = {}
         for m in mappings:
             pso_id = m.pso_id_id
             weight = m.weightage or 0
-            if pso_id not in pso_direct: pso_direct[pso_id] = 0
+            if pso_id not in pso_direct:
+                pso_direct[pso_id] = 0
+                pso_weights[pso_id] = 0
+            
             co_val = final_cos.get(m.co_id_id, final_course_attainment)
             pso_direct[pso_id] += (co_val * weight)
+            pso_weights[pso_id] += weight
+            
         for pso_id in pso_direct:
-            pso_direct[pso_id] = pso_direct[pso_id] / 3
+            if pso_weights[pso_id] > 0:
+                pso_direct[pso_id] = pso_direct[pso_id] / pso_weights[pso_id]
+            else:
+                pso_direct[pso_id] = 0
         return pso_direct
 
     @staticmethod

@@ -52,6 +52,8 @@ class CourseSerializer(serializers.ModelSerializer):
     faculty_assigned_name = serializers.SerializerMethodField()
     batch_list = serializers.SerializerMethodField()
     cos = COSerializer(many=True, read_only=True)
+    course_atr = serializers.SerializerMethodField()
+    atr_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -60,7 +62,7 @@ class CourseSerializer(serializers.ModelSerializer):
             'course_abbr', 'semester', 'class_year', 'program_id', 
             'program_name', 'scheme_id', 'assessment_tools', 
             'faculty_assigned', 'faculty_assigned_name', 'batch_list', 'cos', 'is_internal', 'co_status', 'mapping_status',
-            'course_atr', 'introduction_year', 'is_active', 'batches', 'created_at', 'updated_at'
+            'course_atr', 'atr_status', 'introduction_year', 'is_active', 'batches', 'created_at', 'updated_at'
         ]
         read_only_fields = ['batches']
 
@@ -76,6 +78,28 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def get_batch_list(self, obj):
         return [f"{b.batch_year}-{(b.batch_year + 1) % 100:02d}" for b in obj.batches.all()]
+
+    def get_course_atr(self, obj):
+        from attainment.models import CourseATR
+        from .models import AcademicSetup
+        setup = AcademicSetup.objects.first()
+        ay = setup.academic_year if setup else "2023-24"
+        atr = CourseATR.objects.filter(course_id=obj, academic_year=ay).first()
+        return atr.action_proposed if atr else None
+
+    def get_atr_status(self, obj):
+        from attainment.models import CourseATR, COAttainment
+        from .models import AcademicSetup
+        setup = AcademicSetup.objects.first()
+        ay = setup.academic_year if setup else "2023-24"
+        
+        atr = CourseATR.objects.filter(course_id=obj, academic_year=ay).first()
+        if atr:
+            return 'submitted'
+        
+        # Fallback: check if any CO gaps exist
+        has_pending = COAttainment.objects.filter(course_id=obj, academic_year=ay, atr_status='pending').exists()
+        return 'pending' if has_pending else 'not_required'
 
 
 class POSerializer(serializers.ModelSerializer):

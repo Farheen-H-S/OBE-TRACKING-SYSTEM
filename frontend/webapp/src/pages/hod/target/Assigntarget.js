@@ -123,18 +123,14 @@ const Assigntarget = () => {
       });
 
       const formattedCourses = coursesArr
-        .filter(c =>
-          String(c.program_id) === String(selectedDept) &&
-          c.co_status === 'COMPLETED' &&
-          c.mapping_status === 'COMPLETED'
-        )
+        .filter(c => String(c.program_id) === String(selectedDept))
         .map(c => {
           const tVal = coTargetMap[String(c.course_id)] || '0';
           const cosForCourse = coArr.filter(co => String(co.course_id) === String(c.course_id));
           const levels = cosForCourse.map(co => coAttainmentMap[co.co_id]?.overall_attainment).filter(l => l !== undefined);
           const aLevel = levels.length > 0 ? (levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(2) : '-';
           const gapVal = aLevel === '-'
-            ? (parseFloat(tVal) - 0).toFixed(2)  // achieved unknown → target - 0
+            ? (parseFloat(tVal) - 0).toFixed(2)
             : (parseFloat(tVal) - parseFloat(aLevel)).toFixed(2);
 
           return {
@@ -152,7 +148,9 @@ const Assigntarget = () => {
             targetLevel: tVal,
             achievedLevel: aLevel,
             gap: gapVal,
-            course_atr: c.course_atr || ''
+            course_atr: c.course_atr || '',
+            co_status: c.co_status || 'PENDING',
+            mapping_status: c.mapping_status || 'PENDING'
           };
         });
 
@@ -196,12 +194,14 @@ const Assigntarget = () => {
     const matchesDept = !selectedDept || selectedDept === 'All' || String(course.program_id) === String(selectedDept);
     const matchesScheme = !selectedScheme || selectedScheme === 'All' || String(course.scheme_id) === String(selectedScheme);
 
-    // More robust class matching
+    // If a specific batch/class/sem is selected, try to match but don't hide everything if it's broad
     const matchesClass = !selectedClass || selectedClass === 'All' || (course.class_year && selectedClass.includes(course.class_year));
     const matchesSem = !selectedSem || selectedSem === 'All' || String(course.semester) === String(selectedSem);
 
-    // Check if the current selected batch is in the course's batch list
-    const matchesBatch = !selectedBatch || selectedBatch === 'All' || (course.batch_list && course.batch_list.includes(selectedBatch));
+    // Batch matching: If no batch selected, or course has no batches (allow assignment), or it matches
+    const matchesBatch = !selectedBatch || selectedBatch === 'All' ||
+      (course.batch_list && course.batch_list.length === 0) ||
+      (course.batch_list && course.batch_list.includes(selectedBatch));
 
     return matchesSearch && matchesDept && matchesScheme && matchesClass && matchesSem && matchesBatch;
   });
@@ -376,7 +376,7 @@ const Assigntarget = () => {
                     />
                     <small className="text-muted mt-1 d-block">
                       <i className="bi bi-info-circle me-1"></i>
-                      Cannot find a course? Make sure it has <strong>CO Status</strong> &amp; <strong>Mapping Status</strong> both marked as <strong>Complete</strong>.
+                      All courses in this department are shown. Evaluation data (Achieved Level) requires <strong>CO Status</strong> &amp; <strong>Mapping Status</strong> to be <strong>Complete</strong>.
                     </small>
                   </div>
                 )}
@@ -440,8 +440,7 @@ const Assigntarget = () => {
                     <th>COURSE CODE</th>
                     <th>COURSE NAME</th>
                     <th>COURSE TITLE</th>
-                    <th>ABBR.</th>
-                    <th>SCHEME</th>
+                    <th>STATUS</th>
                     <th>TARGET LEVEL</th>
                     <th>ACHIEVED LEVEL</th>
                     <th>GAP</th>
@@ -454,8 +453,16 @@ const Assigntarget = () => {
                       <td className="fw-bold">{course.code}</td>
                       <td>{course.name}</td>
                       <td>{course.title}</td>
-                      <td>{course.abbr}</td>
-                      <td>{course.scheme}</td>
+                      <td>
+                        <div className="d-flex flex-column gap-1">
+                          <span className={`badge ${course.co_status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}`} style={{ fontSize: '10px' }}>
+                            CO: {course.co_status}
+                          </span>
+                          <span className={`badge ${course.mapping_status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}`} style={{ fontSize: '10px' }}>
+                            MAP: {course.mapping_status}
+                          </span>
+                        </div>
+                      </td>
                       <td>
                         <input
                           type="text"

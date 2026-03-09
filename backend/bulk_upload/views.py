@@ -769,8 +769,16 @@ class BulkCISUploadView(APIView):
                         m = float(df.iloc[r, q_start_col + i])
                         if pd.isna(m): m = 0
                     except: m = 0
-                    q_marks[i] = m
+                    q_marks[str(i)] = m
                     total_m += m
+                
+                tool_base = tool_name.split('-')[0]
+                is_avg_tool = tool_base == "FA" and "PR" in tool_name or tool_base == "SLA"
+                
+                if is_avg_tool and len(custom_questions) > 0:
+                    total_m = round(total_m / len(custom_questions), 2)
+                    
+                q_marks['total'] = total_m
                 
                 marks_map[enroll_val] = q_marks
                 marks_list.append({"enrollment_no": enroll_val, "marks": total_m})

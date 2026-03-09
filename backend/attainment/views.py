@@ -263,50 +263,78 @@ class IndirectAttainmentSummaryView(APIView):
 class SubmitATRView(APIView):
     def post(self, request):
         co_id = request.data.get('co_id')
+        course_id = request.data.get('course_id')
         academic_year = request.data.get('academic_year')
         action_proposed = request.data.get('action_proposed')
         
-        if not all([co_id, academic_year, action_proposed]):
-            return Response({"error": "co_id, academic_year and action_proposed are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not academic_year or not action_proposed:
+            return Response({"error": "academic_year and action_proposed are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not co_id and not course_id:
+            return Response({"error": "Either co_id or course_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # RBAC: Only assigned Faculty can submit ATR
+        # RBAC: Only assigned Faculty or HOD/Coordinator can submit ATR
         user = request.user
-        if user.is_authenticated and user.role_id.role_name == "Faculty":
-            from users.models import FacultyCourseAssignment
-            from .models import COAttainment
-            att_check = COAttainment.objects.filter(co_id=co_id, academic_year=academic_year).first()
-            if att_check:
-                is_assigned = FacultyCourseAssignment.objects.filter(
-                    faculty_id=user, 
-                    course_id=att_check.course_id, 
-                    is_active=True
-                ).exists()
-                if not is_assigned:
-                    return Response({"error": "You are not assigned to this course and cannot submit ATR."}, status=status.HTTP_403_FORBIDDEN)
-        elif user.is_authenticated and user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
-            return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
-            
+        
         try:
-            # co_id might be a CO object ID or a number. If it's a number, we need to find the CO.
-            # But usually it's passed as the database ID.
-            att = COAttainment.objects.filter(co_id=co_id, academic_year=academic_year).first()
-            if not att:
-                 return Response({"error": f"Attainment record not found for CO {co_id}"}, status=status.HTTP_404_NOT_FOUND)
-                 
-            att.action_proposed = action_proposed
-            att.atr_status = 'submitted'
-            att.save()
+            from .models import CourseATR, COAttainment
             
-            user = request.user if request.user and not request.user.is_anonymous else None
-            # Check if all other ATRs are cleared for this course to generate the report
-            report_generated = AttainmentService.check_and_generate_report(att.course_id.course_id, academic_year, user)
+            if course_id:
+                # Consolidated Course-Level ATR
+                course = get_object_or_404(Course, pk=course_id)
+                
+                # RBAC Check
+                if user.is_authenticated and user.role_id.role_name == "Faculty":
+                    from users.models import FacultyCourseAssignment
+                    if not FacultyCourseAssignment.objects.filter(faculty_id=user, course_id=course, is_active=True).exists():
+                        return Response({"error": "You are not assigned to this course."}, status=status.HTTP_403_FORBIDDEN)
+                
+                # Create or Update CourseATR
+                CourseATR.objects.update_or_create(
+                    course_id=course,
+                    academic_year=academic_year,
+                    defaults={'action_proposed': action_proposed, 'atr_status': 'submitted'}
+                )
+                
+                # Mark all pending CO attainments as submitted
+                COAttainment.objects.filter(
+                    course_id=course, 
+                    academic_year=academic_year, 
+                    atr_status='pending'
+                ).update(atr_status='submitted')
+                
+                report_generated = AttainmentService.check_and_generate_report(course_id, academic_year, user if not user.is_anonymous else None)
+                log_action(user if not user.is_anonymous else None, 'CREATE', 'CourseATR', course_id, remark=f"Consolidated ATR submitted for {academic_year}")
+                
+                return Response({
+                    "message": "Consolidated ATR submitted successfully",
+                    "report_generated": report_generated
+                }, status=status.HTTP_200_OK)
             
-            log_action(user, 'UPDATE', 'COAttainment', att.attainment_id, remark=f"ATR submitted for {att.co_id.co_number}")
-            
-            return Response({
-                "message": "ATR submitted successfully",
-                "report_generated": report_generated
-            }, status=status.HTTP_200_OK)
+            else:
+                # Existing Per-CO ATR logic (backward compatibility)
+                att = COAttainment.objects.filter(co_id=co_id, academic_year=academic_year).first()
+                if not att:
+                     return Response({"error": "Attainment record not found"}, status=status.HTTP_404_NOT_FOUND)
+                
+                # RBAC Check
+                if user.is_authenticated and user.role_id.role_name == "Faculty":
+                    from users.models import FacultyCourseAssignment
+                    if not FacultyCourseAssignment.objects.filter(faculty_id=user, course_id=att.course_id, is_active=True).exists():
+                        return Response({"error": "You are not assigned to this course."}, status=status.HTTP_403_FORBIDDEN)
+
+                att.action_proposed = action_proposed
+                att.atr_status = 'submitted'
+                att.save()
+                
+                report_generated = AttainmentService.check_and_generate_report(att.course_id.course_id, academic_year, user if not user.is_anonymous else None)
+                log_action(user if not user.is_anonymous else None, 'UPDATE', 'COAttainment', att.attainment_id, remark=f"ATR submitted for CO {att.co_id.co_number}")
+                
+                return Response({
+                    "message": "ATR submitted successfully",
+                    "report_generated": report_generated
+                }, status=status.HTTP_200_OK)
+                
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

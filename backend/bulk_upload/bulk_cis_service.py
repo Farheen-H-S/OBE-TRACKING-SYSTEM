@@ -322,7 +322,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                     s_marks[col_idx] = m_val
                     row_sum += m_val
                 
-                total = row_sum
+                total = row_sum / len(questions) if questions else 0
                 s_marks['total'] = round(total, 2)
                 marks_data.append((student, s_marks, s_marks['total']))
             else:
@@ -393,6 +393,9 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
     # Save Assessment
     if parser == "SA":
         max_m = float(weights[0]) if weights else 100.0
+    elif parser in ["PR", "SLA"]:
+        # For average-based tools, max_m should be the average of weights
+        max_m = sum(float(w) for w in weights) / len(weights) if weights else 0.0
     else:
         max_m = sum(float(w) for w in weights)
     

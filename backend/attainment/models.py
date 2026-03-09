@@ -124,3 +124,19 @@ class AttainmentSnapshot(models.Model):
 
     def __str__(self):
         return f"Snapshot {self.month}/{self.year} - {self.course_id}"
+
+class CourseATR(models.Model):
+    atr_id = models.AutoField(primary_key=True)
+    course_id = models.ForeignKey('academics.Course', on_delete=models.CASCADE, related_name='course_atrs', db_column='course_id')
+    academic_year = models.CharField(max_length=9)
+    action_proposed = models.TextField(help_text="Consolidated Action Taken/Proposed Report for the whole course")
+    atr_status = models.CharField(max_length=20, default='submitted')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'attainment_courseatr'
+        unique_together = ('course_id', 'academic_year')
+
+    def __str__(self):
+        return f"Course ATR: {self.course_id} - {self.academic_year}"

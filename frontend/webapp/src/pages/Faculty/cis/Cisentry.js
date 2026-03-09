@@ -152,6 +152,13 @@ const Cisentry = () => {
       return app ? ((count / app) * 100).toFixed(2) : '0';
     });
 
+    // 4.5 Total Average
+    const totalAverage = (() => {
+      const validTotals = students.map(s => parseFloat(marksData[s.enrollment_no]?.['total'])).filter(m => !isNaN(m));
+      const totalSum = validTotals.reduce((a, b) => a + b, 0);
+      return validTotals.length ? (totalSum / validTotals.length) : 0;
+    })();
+
     // 5. CO wise Hierarchical Attainment (Aggregated by Success/Appearance per CO)
     const coStats = {}; // { co_num: { success: 0, appeared: 0 } }
     questions.forEach((_, colIndex) => {
@@ -175,7 +182,7 @@ const Cisentry = () => {
       return '0.00';
     });
 
-    return { appeared, equalOrMoreAvg, percentMoreAvg, coAttainment, averages, coStats };
+    return { appeared, equalOrMoreAvg, percentMoreAvg, coAttainment, averages, totalAverage, coStats };
   };
 
   const attainmentStats = calculateAttainmentStats();
@@ -450,6 +457,7 @@ const Cisentry = () => {
     if (assessmentTools && assessmentTools[toolKey] && assessmentTools[toolKey].maxMarks) {
       configMax = parseInt(assessmentTools[toolKey].maxMarks, 10);
     }
+
     if (selectedTool === 'FA-PR') {
       setColumnCount(10); // Template generates 10 practicals by default
       setTotalMaxMarks(configMax || 25);
@@ -458,7 +466,7 @@ const Cisentry = () => {
       setTotalMaxMarks(configMax || 20);
     } else if (selectedTool === 'SA-TH' || selectedTool === 'SA-PR') {
       setColumnCount(1);
-      setTotalMaxMarks(configMax || 10);
+      setTotalMaxMarks(configMax || 100);
     } else if (selectedTool.startsWith('FA-TH')) {
       setColumnCount(14);
       setTotalMaxMarks(configMax || 30);
@@ -485,7 +493,24 @@ const Cisentry = () => {
 
         // Detailed marks breakdown if stored in config
         if (config.marksData) {
-          setMarksData(config.marksData);
+          const parsedData = { ...config.marksData };
+          if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
+            const colCount = config.columnCount || (selectedTool === 'FA-PR' ? 10 : 4);
+            Object.keys(parsedData).forEach(enroll => {
+              if (enroll !== 'total') {
+                let sum = 0;
+                for (let i = 0; i < colCount; i++) {
+                  const mark = parsedData[enroll][i];
+                  if (mark && !isNaN(parseFloat(mark))) {
+                    sum += parseFloat(mark);
+                  }
+                }
+                const correctTotal = colCount > 0 ? (sum / colCount) : 0;
+                parsedData[enroll]['total'] = correctTotal === 0 ? '0' : (Math.round(correctTotal * 100) / 100).toString();
+              }
+            });
+          }
+          setMarksData(parsedData);
 
           // Populate uploaded files from backend
           if (res.data.evidence) {
@@ -506,7 +531,26 @@ const Cisentry = () => {
     const data = localStorage.getItem(`cis_entry_${selectedCourse}_${selectedTool}`);
     if (data) {
       const parsed = JSON.parse(data);
-      setMarksData(parsed.marksData || {});
+      const parsedData = parsed.marksData || {};
+
+      if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
+        const colCount = parsed.columnCount || (selectedTool === 'FA-PR' ? 10 : 4);
+        Object.keys(parsedData).forEach(enroll => {
+          if (enroll !== 'total') {
+            let sum = 0;
+            for (let i = 0; i < colCount; i++) {
+              const mark = parsedData[enroll][i];
+              if (mark && !isNaN(parseFloat(mark))) {
+                sum += parseFloat(mark);
+              }
+            }
+            const correctTotal = colCount > 0 ? (sum / colCount) : 0;
+            parsedData[enroll]['total'] = correctTotal === 0 ? '0' : (Math.round(correctTotal * 100) / 100).toString();
+          }
+        });
+      }
+
+      setMarksData(parsedData);
       setCustomQuestions(parsed.customQuestions || new Array(30).fill(''));
       setCustomWeights(new Array(30).fill('')); // Always clear — weights come from config
       setUserCos(parsed.userCos || new Array(30).fill(''));
@@ -603,7 +647,7 @@ const Cisentry = () => {
         };
         total = getBest5Sum(0, 6) + getBest5Sum(7, 13);
       } else if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
-        // Normalization: Sum
+        // Normalization: Average
         let sum = 0;
         for (let i = 0; i < columnCount; i++) {
           const mark = studentMarks[i];
@@ -611,7 +655,7 @@ const Cisentry = () => {
             sum += parseFloat(mark);
           }
         }
-        total = sum;
+        total = columnCount > 0 ? (sum / columnCount) : 0;
         // Round to 2 decimal places
         total = Math.round(total * 100) / 100;
       } else {
@@ -839,6 +883,13 @@ const Cisentry = () => {
         semester: parseInt(selectedSemester)
       };
 
+      // Calculate correct max_marks for payload if tool is average-based
+      if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
+        const floatWeights = weights.map(w => parseFloat(w)).filter(w => !isNaN(w));
+        const avgMax = floatWeights.length > 0 ? (floatWeights.reduce((a, b) => a + b, 0) / floatWeights.length) : totalMaxMarks;
+        payload.max_marks = avgMax;
+      }
+
       // Correct tool_type logic
       let backendToolType = 'FA_TH';
       if (selectedTool.startsWith('FA-TH')) backendToolType = 'FA_TH';
@@ -881,36 +932,23 @@ const Cisentry = () => {
     }
   };
 
-  const submitAtr = async (coNumber, actionText) => {
+  const submitAtr = async (actionText) => {
     setAtrSubmitLoading(true);
     try {
-      // Find the CO object ID for this coNumber
-      const coObj = courseOutcomes.find(co =>
-        co.co_number === coNumber ||
-        co.co_number.endsWith(`.${coNumber}`) ||
-        co.co_number === `CO${coNumber}`
-      );
-
-      if (!coObj) {
-        alert(`Error: CO statement for "${coNumber}" not found in course outcomes. Please ensure CO mapping is correct.`);
-        return;
-      }
-
       const res = await api.post('/attainment/atr/submit/', {
-        co_id: coObj.co_id,
+        course_id: selectedCourse,
         academic_year: selectedYear,
         action_proposed: actionText
       });
 
       if (res.data.report_generated) {
-        alert('ATR submitted and Direct Attainment Report generated successfully!');
+        alert('Consolidated ATR submitted and Direct Attainment Report generated successfully!');
       } else {
-        alert('ATR submitted successfully!');
+        alert('Consolidated ATR submitted successfully!');
       }
 
-      const remaining = pendingAtrCos.filter(c => c !== coNumber);
-      setPendingAtrCos(remaining);
-      if (remaining.length === 0) setShowAtrModal(false);
+      setPendingAtrCos([]);
+      setShowAtrModal(false);
 
     } catch (error) {
       alert('Failed to submit ATR: ' + (error.response?.data?.error || error.message));
@@ -1779,12 +1817,29 @@ const Cisentry = () => {
                             <td colSpan="2" style={{ backgroundColor: '#cfe2f3' }}></td>
                           </tr>
                           <tr className="bg-light">
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Average Marks</td>
+                            <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
+                            {attainmentStats.averages.map((avg, i) => (
+                              <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{avg.toFixed(2)}</td>
+                            ))}
+                            <td className="bg-light"></td>
+                            <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{(attainmentStats.totalAverage || 0).toFixed(2)}</td>
+                          </tr>
+                          <tr className="bg-light">
                             <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student scored more than average</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.percentMoreAvg.map((val, i) => (
                               <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>
                             ))}
-                            <td colSpan="2" style={{ backgroundColor: '#e9f2fb' }}></td>
+                            <td className="bg-light"></td>
+                            <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>
+                              {(() => {
+                                const app = students.length;
+                                const avg = attainmentStats.totalAverage;
+                                const count = students.filter(s => parseFloat((marksData[s.enrollment_no] && marksData[s.enrollment_no].total) || 0) >= avg).length;
+                                return app > 0 ? ((count / app) * 100).toFixed(2) : '0.00';
+                              })()}%
+                            </td>
                           </tr>
                           <tr className="bg-light">
                             <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
@@ -2115,39 +2170,33 @@ const Cisentry = () => {
                 <div className="oit-modal-body">
                   <p className="text-danger fw-bold mb-3">
                     <FaExclamationCircle className="me-2" />
-                    Attainment gap detected for the following Course Outcomes:
+                    Overall Attainment gaps detected for: {pendingAtrCos.map(c => `CO${c}`).join(', ')}
                   </p>
-                  <div className="list-group mb-4">
-                    {pendingAtrCos.map((coNum, idx) => (
-                      <div key={idx} className="list-group-item">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                          <span className="fw-bold">CO {coNum}</span>
-                          <span className="badge bg-danger">Gap Detected</span>
-                        </div>
-                        <textarea
-                          className="form-control form-control-sm"
-                          placeholder="Enter proposed action for this gap..."
-                          rows="2"
-                          id={`atr-text-${coNum}`}
-                        ></textarea>
-                        <div className="text-end mt-2">
-                          <button
-                            className="btn btn-primary btn-sm"
-                            disabled={atrSubmitLoading}
-                            onClick={() => {
-                              const txt = document.getElementById(`atr-text-${coNum}`).value;
-                              if (!txt.trim()) return alert("Please enter action taken text.");
-                              submitAtr(coNum, txt);
-                            }}
-                          >
-                            {atrSubmitLoading ? 'Submitting...' : 'Submit ATR'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+
+                  <div className="mb-4">
+                    <label className="form-label fw-bold small text-uppercase mb-2">Proposed Actions for Course Improvement</label>
+                    <textarea
+                      className="form-control"
+                      placeholder="Enter a consolidated action plan to address these attainment gaps..."
+                      rows="4"
+                      id="consolidated-atr-text"
+                    ></textarea>
+                    <div className="text-end mt-3">
+                      <button
+                        className="btn btn-primary px-4 fw-bold"
+                        disabled={atrSubmitLoading}
+                        onClick={() => {
+                          const txt = document.getElementById('consolidated-atr-text').value;
+                          if (!txt.trim()) return alert("Please enter action taken text.");
+                          submitAtr(txt);
+                        }}
+                      >
+                        {atrSubmitLoading ? 'Submitting...' : 'Submit Consolidated ATR'}
+                      </button>
+                    </div>
                   </div>
                   <p className="small text-muted">
-                    Note: A direct attainment report will be generated only after all gaps have proposed actions.
+                    Note: This action plan applies to the entire course for {selectedYear}. A direct attainment report will be generated upon submission.
                   </p>
                 </div>
                 <div className="oit-modal-footer">
