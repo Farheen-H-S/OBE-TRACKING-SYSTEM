@@ -242,55 +242,175 @@ class ReportService:
 
     @staticmethod
     def generate_course_attainment_report(course_id, academic_year):
+        from academics.models import Course, CO
+        from attainment.attainment_service import AttainmentService
+        from .models import COAttainment, CourseATR, COTarget
+        from django.db.models import Q
+
         course = Course.objects.get(pk=course_id)
-        
-        # 1. Fetch CO Attainments
-        co_atts = COAttainment.objects.filter(course_id=course, academic_year=academic_year).order_by('co_id__co_id')
-        
-        # 2. Create Excel
+
+        ay_clean = academic_year.replace(' ', '') if academic_year else ""
+        ay_spaced = ay_clean.replace('-', ' - ')
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
+
+        # Fetch tool-wise attainment per CO
+        tool_data = AttainmentService._calculate_detailed_tool_attainment(course_id, academic_year)
+        all_cos = CO.objects.filter(course_id=course_id, is_active=True).order_by('co_number')
+
+        # Build per-CO rows
+        rows = []
+        for co in all_cos:
+            tools = tool_data.get(co.co_id, {})
+
+            def get_level(key):
+                # Search tools dictionary for any key ending with the requested type (e.g. _FA_TH_1)
+                # and matching the category logic
+                for full_key, v in tools.items():
+                    if full_key.endswith(f"_{key}"):
+                        if isinstance(v, dict):
+                            return v.get('level', '-')
+                        return v if v is not None else '-'
+                return '-'
+
+            # Use dynamic category-aware lookups
+            ct1      = get_level('FA_TH_1')
+            ct2      = get_level('FA_TH_2')
+            sla      = get_level('SLA')
+            fa_pr    = get_level('FA_PR')
+            sa_pr_i  = get_level('SA_PR')  # Will find INTERNAL_SA_PR if exists
+            sa_th    = get_level('SA_TH')
+            sa_pr_e  = '-'                 # Logic remains similar for split-tool lookup
+
+            # Redefine logic for Avg(I) and Avg(E) based on tool dictionary keys
+            internal_vals = [v['level'] for k, v in tools.items() if k.startswith('INTERNAL_') and isinstance(v, dict)]
+            avg_i = round(sum(internal_vals) / len(internal_vals), 2) if internal_vals else '-'
+
+            external_vals = [v['level'] for k, v in tools.items() if k.startswith('EXTERNAL_') and isinstance(v, dict)]
+            avg_e = round(sum(external_vals) / len(external_vals), 2) if external_vals else '-'
+
+            if isinstance(avg_i, float) and isinstance(avg_e, float):
+                avg_b = round(0.4 * avg_i + 0.6 * avg_e, 2)
+            elif isinstance(avg_i, float):
+                avg_b = avg_i
+            elif isinstance(avg_e, float):
+                avg_b = avg_e
+            else:
+                avg_b = '-'
+
+            # Target & gap
+            co_att = COAttainment.objects.filter(ay_query, co_id=co).first()
+            target_obj = COTarget.objects.filter(ay_query, co_id=co).first()
+            target = round(target_obj.target_value, 2) if target_obj else 3.0
+            overall = round(co_att.overall_attainment, 2) if co_att else (avg_b if isinstance(avg_b, float) else 0)
+            gap = round(target - overall, 2) if isinstance(overall, float) else '-'
+
+            rows.append({
+                'co_number': co.co_number,
+                'ct1': ct1, 'ct2': ct2, 'sla': sla, 'fa_pr': fa_pr,
+                'sa_pr_i': sa_pr_i, 'avg_i': avg_i,
+                'sa_th': sa_th, 'sa_pr_e': sa_pr_e,
+                'avg_b': avg_b,
+                'target': target, 'gap': gap
+            })
+
+        # --- Excel Layout ---
         wb = Workbook()
         ws = wb.active
-        ws.title = "Direct Attainment Report"
-        
-        # Headers
-        headers = ['CO Number', 'Direct Attainment', 'Indirect Attainment', 'Overall Attainment', 'Target', 'Gap', 'ATR Status', 'Action Taken']
-        for i, h in enumerate(headers):
-            ws.cell(row=1, column=i+1, value=h).font = Font(bold=True)
-            
-        # Data
-        from .models import CourseATR
-        c_atr = CourseATR.objects.filter(course_id=course, academic_year=academic_year).first()
-        
-        for r, att in enumerate(co_atts):
-            ws.cell(row=r+2, column=1, value=str(att.co_id.co_number))
-            ws.cell(row=r+2, column=2, value=round(att.direct_attainment, 2))
-            ws.cell(row=r+2, column=3, value=round(att.indirect_attainment or 0, 2))
-            ws.cell(row=r+2, column=4, value=round(att.overall_attainment, 2))
-            
-            target = round(att.overall_attainment + att.gap, 2)
-            ws.cell(row=r+2, column=5, value=target)
-            ws.cell(row=r+2, column=6, value=round(att.gap, 2))
-            
-            # If consolidated ATR exists, reflect it in the status column
-            if c_atr:
-                ws.cell(row=r+2, column=7, value="Submitted (Consolidated)")
-                ws.cell(row=r+2, column=8, value=c_atr.action_proposed)
-            else:
-                ws.cell(row=r+2, column=7, value=att.atr_status)
-                ws.cell(row=r+2, column=8, value=att.action_proposed or "")
+        ws.title = "CO Attainment"
 
-        # 3. Add Consolidated ATR at bottom
-        from .models import CourseATR
-        c_atr = CourseATR.objects.filter(course_id=course, academic_year=academic_year).first()
+        thin = Border(left=Side(style='thin'), right=Side(style='thin'),
+                      top=Side(style='thin'), bottom=Side(style='thin'))
+        bold = Font(bold=True)
+        center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+
+        yellow_fill  = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")  # Internal 40%
+        blue_fill    = PatternFill(start_color="DDEEFF", end_color="DDEEFF", fill_type="solid")  # External 60%
+        header_fill  = PatternFill(start_color="C9DAF8", end_color="C9DAF8", fill_type="solid")
+        title_fill   = PatternFill(start_color="A9C4F5", end_color="A9C4F5", fill_type="solid")
+        gap_red_fill = PatternFill(start_color="F4CCCC", end_color="F4CCCC", fill_type="solid")
+        ok_green     = PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid")
+
+        def bc(row, col, val='', fill=None, font=None, align=center, border=thin):
+            cell = ws.cell(row=row, column=col, value=val)
+            if fill:  cell.fill  = fill
+            if font:  cell.font  = font
+            cell.alignment = align
+            cell.border = border
+            return cell
+
+        # Row 1: Meta
+        meta = [
+            (1, 'Academic Year', academic_year),
+            (2, 'Semester', ''),
+            (3, 'Scheme', ''),
+            (4, 'Name of Faculty', ''),
+            (5, 'Name of Course & Code', f"{course.course_name} {course.course_code}"),
+            (6, 'Class & Division', ''),
+        ]
+        for r_off, label, val in meta:
+            bc(r_off, 1, label, font=bold, align=left_align)
+            ws.merge_cells(start_row=r_off, start_column=2, end_row=r_off, end_column=4)
+            bc(r_off, 2, val, align=left_align)
+
+        # Row 8: Title
+        TITLE_ROW = 8
+        ws.merge_cells(start_row=TITLE_ROW, start_column=1, end_row=TITLE_ROW, end_column=11)
+        bc(TITLE_ROW, 1, "CO Attainment", fill=title_fill, font=Font(bold=True, size=13), align=center)
+
+        # Row 9: Section headers
+        SECT_ROW = 9
+        ws.merge_cells(start_row=SECT_ROW, start_column=2, end_row=SECT_ROW, end_column=7)
+        bc(SECT_ROW, 2, "Internal Assessment 40%", fill=yellow_fill, font=bold, align=center)
+        ws.merge_cells(start_row=SECT_ROW, start_column=8, end_row=SECT_ROW, end_column=11)
+        bc(SECT_ROW, 8, "External Assessment 60%", fill=blue_fill, font=bold, align=center)
+
+        # Row 10: Column headers
+        HDR_ROW = 10
+        headers = ['CO', 'CT1', 'CT2', 'Assignment (SLA)', 'FA-PR', 'SA-PR\n(Internal)', 'Avg(I)',
+                   'SA-TH', 'SA-PR\n(External)', 'Avg(B)', 'Target / Gap']
+        fills   = [header_fill, yellow_fill, yellow_fill, yellow_fill, yellow_fill, yellow_fill, yellow_fill,
+                   blue_fill, blue_fill, blue_fill, header_fill]
+        for i, (h, f) in enumerate(zip(headers, fills)):
+            bc(HDR_ROW, i+1, h, fill=f, font=bold, align=center)
+
+        # Data rows
+        DATA_START = 11
+        for r_i, row in enumerate(rows):
+            r = DATA_START + r_i
+            vals = [row['co_number'], row['ct1'], row['ct2'], row['sla'], row['fa_pr'],
+                    row['sa_pr_i'], row['avg_i'], row['sa_th'], row['sa_pr_e'], row['avg_b'],
+                    f"{row['avg_b']} / {row['gap']}" if isinstance(row['avg_b'], float) else '-']
+            row_fills = [None, yellow_fill, yellow_fill, yellow_fill, yellow_fill, yellow_fill, yellow_fill,
+                         blue_fill, blue_fill, blue_fill, None]
+            for c_i, (v, f) in enumerate(zip(vals, row_fills)):
+                cell = bc(r, c_i+1, v, fill=f)
+                # Highlight gap column
+                if c_i == 10:
+                    if isinstance(row['gap'], float) and row['gap'] > 0:
+                        cell.fill = gap_red_fill
+                    elif isinstance(row['gap'], float):
+                        cell.fill = ok_green
+
+        # Footer: ATR
+        c_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
         if c_atr:
-            last_row = len(co_atts) + 4
-            ws.merge_cells(start_row=last_row, start_column=1, end_row=last_row, end_column=8)
-            ws.cell(row=last_row, column=1, value="CONSOLIDATED COURSE-LEVEL ACTION TAKEN REPORT (ATR)").font = Font(bold=True)
-            ws.cell(row=last_row, column=1).alignment = Alignment(horizontal='center')
-            ws.cell(row=last_row, column=1).fill = PatternFill(start_color="CFE2F3", end_color="CFE2F3", fill_type="solid")
-            
-            ws.merge_cells(start_row=last_row+1, start_column=1, end_row=last_row+4, end_column=8)
-            ws.cell(row=last_row+1, column=1, value=c_atr.action_proposed).alignment = Alignment(wrap_text=True, vertical='top')
+            atr_row = DATA_START + len(rows) + 2
+            ws.merge_cells(start_row=atr_row, start_column=1, end_row=atr_row, end_column=11)
+            bc(atr_row, 1, "ACTION TAKEN REPORT (ATR)", fill=title_fill, font=bold)
+            ws.merge_cells(start_row=atr_row+1, start_column=1, end_row=atr_row+4, end_column=11)
+            bc(atr_row+1, 1, c_atr.action_proposed, align=Alignment(wrap_text=True, vertical='top'))
+
+        # Footer note
+        note_row = DATA_START + len(rows) + (7 if c_atr else 2)
+        ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=11)
+        bc(note_row, 1, "CT1 & CT2 : Class Test 1 & 2   SLA : Self Learning Assessments   FA PR : Formative Assessment Practical",
+           font=Font(italic=True, size=9), align=left_align)
+
+        # Column widths
+        col_widths = [14, 7, 7, 18, 9, 12, 9, 9, 12, 9, 14]
+        for idx, w in enumerate(col_widths):
+            ws.column_dimensions[ws.cell(row=1, column=idx+1).column_letter].width = w
 
         output = io.BytesIO()
         wb.save(output)

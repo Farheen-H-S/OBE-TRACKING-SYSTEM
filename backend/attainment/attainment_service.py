@@ -319,23 +319,40 @@ class AttainmentService:
             marks_data = config.get('marksData', {})
             user_cos = config.get('userCos', [])
             
-            # Group keys by what user provided: 'FATH1', 'FATH2', 'FAPR', 'SLA', 'SATH', 'SAPR'
-            tool_name_upper = tool.assessment_name.upper().replace('-', '').replace(' ', '')
-            tool_key = tool.assessment_type
+            # Determine tool category (Internal vs External) from Course configuration
+            course_tools_config = tool.course_id.assessment_tools or {}
+            tool_name_norm = tool.assessment_name.upper().replace(' ', '')
             
-            if 'FATH' in tool_name_upper or 'CT' in tool_name_upper or 'TEST' in tool_name_upper:
-                tool_key = 'FA_TH_1' if '1' in tool_name_upper else ('FA_TH_2' if '2' in tool_name_upper else 'FA_TH_1')
-            elif 'FAPR' in tool_name_upper or 'PRACTICAL' in tool_name_upper: tool_key = 'FA_PR'
-            elif 'SLA' in tool_name_upper: tool_key = 'SLA'
-            elif 'SATH' in tool_name_upper: tool_key = 'SA_TH'
-            elif 'SAPR' in tool_name_upper: tool_key = 'SA_PR'
+            # Default classification fallback
+            tool_category = 'Internal'
+            if 'SA' in tool_name_norm: tool_category = 'External'
+            
+            # Check course config for explicit user selection
+            for cfg_key, cfg_val in course_tools_config.items():
+                if cfg_key.upper().replace('-', '') in tool_name_norm.replace('-', ''):
+                    tool_category = cfg_val.get('type', tool_category)
+                    break
+            
+            # Store category in the key for discovery during direct attainment calc
+            effective_tool_key = f"{tool_category.upper()}_{tool.assessment_type}"
+            
+            if 'FATH' in tool_name_norm or 'CT' in tool_name_norm or 'TEST' in tool_name_norm:
+                tool_key = 'FA_TH_1' if '1' in tool_name_norm else ('FA_TH_2' if '2' in tool_name_norm else 'FA_TH_1')
+            elif 'FAPR' in tool_name_norm or 'PRACTICAL' in tool_name_norm: tool_key = 'FA_PR'
+            elif 'SLA' in tool_name_norm: tool_key = 'SLA'
+            elif 'SATH' in tool_name_norm: tool_key = 'SA_TH'
+            elif 'SAPR' in tool_name_norm: tool_key = 'SA_PR'
+            else: tool_key = tool.assessment_type
+
+            # Use effective_tool_key for the actual storage map
+            tool_key = f"{tool_category.upper()}_{tool_key}"
 
             # Mappings for co_id association
             mappings = AssessmentCOMapping.objects.filter(assessment_id=tool)
             
             # Summative Auto-Map Fallback
             # SA marks evaluate the entire course holistically, so they map to all active COs.
-            is_summative = tool_key in ['SA_TH', 'SA_PR'] or 'ESE' in tool_name_upper or 'FINAL' in tool_name_upper
+            is_summative = any(x in tool_key for x in ['SA_TH', 'SA_PR']) or 'ESE' in tool_name_norm or 'FINAL' in tool_name_norm
             sa_auto_mapped = False
             
             if is_summative:
@@ -487,18 +504,28 @@ class AttainmentService:
 
     @staticmethod
     def _calculate_direct_co_attainment(course_id, academic_year):
-        # We can reuse the detailed logic to calculate the averages
+        # Detailed logic now returns keys prefixed with INTERNAL_ or EXTERNAL_
         detailed = AttainmentService._calculate_detailed_tool_attainment(course_id, academic_year)
         
         direct_cos = {}
         for co_id, tools in detailed.items():
-            internal_levels = [val['level'] for key, val in tools.items() if key in ['FA_TH_1', 'FA_TH_2', 'FA_PR', 'SLA'] and isinstance(val, dict)]
-            external_levels = [val['level'] for key, val in tools.items() if key in ['SA_TH', 'SA_PR'] and isinstance(val, dict)]
+            # Dynamically group levels based on the prefix we added
+            internal_levels = [val['level'] for key, val in tools.items() 
+                               if key.startswith('INTERNAL_') and isinstance(val, dict)]
+            
+            external_levels = [val['level'] for key, val in tools.items() 
+                               if key.startswith('EXTERNAL_') and isinstance(val, dict)]
             
             i_avg = sum(internal_levels) / len(internal_levels) if internal_levels else 0
             e_avg = sum(external_levels) / len(external_levels) if external_levels else 0
             
-            direct_cos[co_id] = 0.4 * i_avg + 0.6 * e_avg
+            # Weighted average logic: 40% Internal, 60% External
+            if internal_levels and not external_levels:
+                direct_cos[co_id] = i_avg
+            elif external_levels and not internal_levels:
+                direct_cos[co_id] = e_avg
+            else:
+                direct_cos[co_id] = 0.4 * i_avg + 0.6 * e_avg
             
         return direct_cos
 

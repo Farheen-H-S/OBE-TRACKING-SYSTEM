@@ -159,35 +159,53 @@ class SurveyStatsView(APIView):
                 if q_info:
                     teacher_scores[q_info['teacher']][q_info['statement']].append(ans.answer_value)
 
-        # Build Teacher Matrix
-        teacher_data = []
-        for t_name in teacher_names:
-            row = {'teacher': t_name, 'scores': {}, 'achieved_score': 0}
-            total_sum = 0
-            count = 0
-            for stmt in unique_statements:
-                scores = teacher_scores[t_name].get(stmt, [])
-                if scores:
-                    avg = round(sum(scores) / len(scores), 2)
-                    row['scores'][stmt] = avg
-                    total_sum += avg
-                    count += 1
-                else:
-                    row['scores'][stmt] = "N/A"
-            
-            if count > 0:
-                row['achieved_score'] = round(total_sum / count, 2)
-            else:
-                row['achieved_score'] = 0
-            
-            teacher_data.append(row)
+        # Build Individual Responses List for simple viewing (like Course Exit Survey)
+        responses_list = []
+        for res in responses.prefetch_related('answers'):
+            res_item = {
+                'id': res.response_id,
+                'enrollment': res.enrollment_no or (res.student_id.enrollment_no if res.student_id else "N/A"),
+                'roll_no': res.student_id.roll_no if res.student_id else "N/A",
+                'name': res.respondent_name or (res.student_id.name if res.student_id else "Guest"),
+                'submitted_at': res.submitted_at,
+                'answers': {ans.question_id_id: ans.answer_value for ans in res.answers.all()}
+            }
+            responses_list.append(res_item)
 
-        # Sort teachers descending by achieved score
-        teacher_data.sort(key=lambda x: x['achieved_score'], reverse=True)
+        # Build Teacher Matrix (only if it looks like a teacher feedback survey)
+        teacher_data = []
+        if any('|' in q.question_text for q in questions):
+            for t_name in teacher_names:
+                row = {'teacher': t_name, 'scores': {}, 'achieved_score': 0}
+                total_sum = 0
+                count = 0
+                for stmt in unique_statements:
+                    scores = teacher_scores[t_name].get(stmt, [])
+                    if scores:
+                        avg = round(sum(scores) / len(scores), 2)
+                        row['scores'][stmt] = avg
+                        total_sum += avg
+                        count += 1
+                    else:
+                        row['scores'][stmt] = "N/A"
+                
+                if count > 0:
+                    row['achieved_score'] = round(total_sum / count, 2)
+                else:
+                    row['achieved_score'] = 0
+                
+                teacher_data.append(row)
+
+            # Sort teachers descending by achieved score
+            teacher_data.sort(key=lambda x: x['achieved_score'], reverse=True)
 
         return Response({
             'survey': SurveyMasterSerializer(survey).data,
-            'statements': unique_statements,
+            'statements': unique_statements if teacher_data else [
+                {'id': q.question_id, 'co_id': q.co_id_id, 'co_number': q.co_id.co_number if q.co_id else f"Q{q.question_id}"} 
+                for q in questions
+            ],
+            'responses': responses_list,
             'teachers': teacher_data,
             'total_responses': responses.count()
         }, status=status.HTTP_200_OK)
