@@ -416,25 +416,21 @@ def create_marks_sheet(wb, title, assessment_type, course, academic_year, studen
     marks_list = []
     absent_count = 0
     
-    # Correcting assessment type lookup to match model
+    # Flexible assessment lookup
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
     ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
     
+    # Try multiple naming patterns
     assessment = Assessment.objects.filter(
         ay_query,
         course_id=course, 
-        assessment_type=assessment_type, 
-        semester=course.semester
+        assessment_type=assessment_type
+    ).filter(
+        models.Q(assessment_name__iexact=title) | 
+        models.Q(assessment_name__icontains=title) |
+        models.Q(assessment_name__icontains=assessment_type.replace('_', '-'))
     ).first()
-    
-    if not assessment:
-        # Fallback without semester
-        assessment = Assessment.objects.filter(
-            ay_query,
-            course_id=course, 
-            assessment_type=assessment_type
-        ).first()
     
     for student in students:
         ws.cell(row=current_row, column=1, value=student.enrollment_no).border = get_border()
@@ -457,18 +453,17 @@ def create_marks_sheet(wb, title, assessment_type, course, academic_year, studen
         cell_marks.alignment = Alignment(horizontal="center")
         current_row += 1
     
-    # Stats Footer
+    # Stats Footer (Marks-based scaling)
     avg = sum(marks_list)/len(marks_list) if marks_list else 0
     appeared = len(marks_list)
-    pass_above_avg = len([m for m in marks_list if m >= avg]) if marks_list else 0
-    perc_above_avg = (pass_above_avg / appeared * 100) if appeared > 0 else 0
-    att_level = AttainmentService._get_attainment_level(perc_above_avg)
+    max_m = assessment.max_marks or 100
+    att_level = round((avg / max_m) * 3, 2) if max_m > 0 else 0
     
     stats = [
         ("Average", round(avg, 2)),
         ("Total Students Appeared", appeared),
         ("Absent", absent_count),
-        ("% above Avg", f"{round(perc_above_avg, 2)}%"),
+        ("Max Marks", max_m),
         ("CO Attainment", att_level)
     ]
     
@@ -496,6 +491,7 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     add_common_header(ws, "FA-PR (K3)", faculty_name)
     next_row = add_info_block(ws, course, academic_year, faculty_name)
     
+    # Flexible assessment lookup
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
     ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
@@ -503,17 +499,8 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     assessment = Assessment.objects.filter(
         ay_query,
         course_id=course, 
-        assessment_type='FA_PR', 
-        semester=course.semester
+        assessment_type='FA_PR'
     ).first()
-
-    if not assessment:
-        # Fallback without semester
-        assessment = Assessment.objects.filter(
-            ay_query,
-            course_id=course, 
-            assessment_type='FA_PR'
-        ).first()
 
     config = assessment.configuration if assessment and assessment.configuration else {}
     
@@ -652,7 +639,7 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
             q_perc = (q_pass / len(q_marks_collector[i]) * 100)
         else:
             q_perc = 0
-        ws.cell(row=current_row, column=5+i, value=AttainmentService._get_attainment_level(q_perc)).border = get_border()
+        ws.cell(row=current_row, column=5+i, value=round(q_perc * 3 / 100, 2)).border = get_border()
         ws.cell(row=current_row, column=5+i).alignment = Alignment(horizontal="center")
     
     # Total column attainment
@@ -663,7 +650,7 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
         perc_above_avg = (pass_above_avg / appeared * 100)
     else:
         perc_above_avg = 0
-    att_level = AttainmentService._get_attainment_level(perc_above_avg)
+    att_level = round(perc_above_avg * 3 / 100, 2)
     total_att_cell = ws.cell(row=current_row, column=total_col, value=att_level)
     total_att_cell.border = get_border()
     total_att_cell.alignment = Alignment(horizontal="center")
@@ -693,12 +680,20 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     for co_name in sorted(co_stats.keys()):
         c_marks = co_stats[co_name]
         c_avg = sum(c_marks)/len(c_marks) if c_marks else 0
-        if c_avg > 0 and c_marks:
-            c_pass = len([m for m in c_marks if m >= c_avg])
-            c_perc = (c_pass / len(c_marks) * 100)
-        else:
-            c_perc = 0
-        c_level = AttainmentService._get_attainment_level(c_perc)
+        # Determine average max marks for this CO group
+        c_q_indices = [idx for idx, cv in enumerate(cos_map) if (f"CO{cv}" if not str(cv).upper().startswith("CO") else str(cv).upper()) == co_name]
+        c_max_sum = 0
+        for idx in c_q_indices:
+            qm = 25
+            if idx < len(config.get('customWeights', [])):
+                try: qm = float(config.get('customWeights')[idx])
+                except: pass
+            elif assessment and assessment.max_marks:
+                qm = assessment.max_marks / len(practicals)
+            c_max_sum += qm
+        
+        c_max_avg = c_max_sum / len(c_q_indices) if c_q_indices else 25
+        c_level = round((c_avg / c_max_avg) * 3, 2) if c_max_avg > 0 else 0
         
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
         ws.cell(row=current_row, column=2).alignment = Alignment(horizontal="center")
@@ -727,38 +722,12 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     assessment = Assessment.objects.filter(
         ay_query,
         course_id=course, 
-        assessment_type='FA_TH', 
-        assessment_name__icontains=f"CT{ct_num}", 
-        semester=course.semester
+        assessment_type='FA_TH'
+    ).filter(
+        models.Q(assessment_name__icontains=f"CT{ct_num}") | 
+        models.Q(assessment_name__icontains=f"Test {ct_num}") |
+        models.Q(assessment_name__icontains=f"Class Test {ct_num}")
     ).first()
-    
-    if not assessment:
-        # Try without semester
-        assessment = Assessment.objects.filter(
-            ay_query,
-            course_id=course, 
-            assessment_type='FA_TH', 
-            assessment_name__icontains=f"CT{ct_num}"
-        ).first()
-
-    if not assessment:
-        # Fallback to "Test X" naming
-        assessment = Assessment.objects.filter(
-            ay_query,
-            course_id=course,
-            assessment_type='FA_TH',
-            assessment_name__icontains=f"Test {ct_num}",
-            semester=course.semester
-        ).first()
-        
-    if not assessment:
-        # Fallback to "Test X" naming without semester
-        assessment = Assessment.objects.filter(
-            ay_query,
-            course_id=course,
-            assessment_type='FA_TH',
-            assessment_name__icontains=f"Test {ct_num}"
-        ).first()
 
     config = assessment.configuration if assessment and assessment.configuration else {}
     
@@ -910,16 +879,20 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
         perc_above_avg = (pass_above_avg / appeared * 100)
     else:
         perc_above_avg = 0
-    att_level = AttainmentService._get_attainment_level(perc_above_avg)
+    att_level = round(perc_above_avg * 3 / 100, 2)
     
     for i in range(len(questions)):
-        q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
-        if q_avg > 0:
-            q_pass = len([m for m in q_marks_collector[i] if m >= q_avg])
-            q_perc = (q_pass / len(q_marks_collector[i]) * 100)
-        else:
-            q_perc = 0
-        ws.cell(row=current_row, column=5+i, value=AttainmentService._get_attainment_level(q_perc)).border = get_border()
+        q_stats = q_marks_collector[i]
+        q_avg = sum(q_stats)/len(q_stats) if q_stats else 0
+        q_max = 20
+        if i < len(config.get('customWeights', [])):
+            try: q_max = float(config.get('customWeights')[i])
+            except: pass
+        elif assessment.max_marks:
+            q_max = assessment.max_marks / len(questions)
+            
+        q_level = round((q_avg / q_max) * 3, 2) if q_max > 0 else 0
+        ws.cell(row=current_row, column=5+i, value=q_level).border = get_border()
         ws.cell(row=current_row, column=5+i).alignment = Alignment(horizontal="center")
         
     ws.cell(row=current_row, column=total_col, value=att_level).border = get_border()
@@ -950,17 +923,26 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     for co_name in sorted(co_stats.keys()):
         c_marks = co_stats[co_name]
         c_avg = sum(c_marks)/len(c_marks) if c_marks else 0
-        if c_avg > 0 and c_marks:
-            c_pass = len([m for m in c_marks if m >= c_avg])
-            c_perc = (c_pass / len(c_marks) * 100)
-        else:
-            c_perc = 0
-        c_level = AttainmentService._get_attainment_level(c_perc)
+        
+        # Determine average max marks for this CO group
+        c_q_indices = [idx for idx, cv in enumerate(cos_map) if (f"CO{cv}" if not str(cv).upper().startswith("CO") else str(cv).upper()) == co_name]
+        c_max_sum = 0
+        for idx in c_q_indices:
+            qm = 20
+            if idx < len(config.get('customWeights', [])):
+                try: qm = float(config.get('customWeights')[idx])
+                except: pass
+            elif assessment.max_marks:
+                qm = assessment.max_marks / len(questions)
+            c_max_sum += qm
+        
+        c_max_avg = c_max_sum / len(c_q_indices) if c_q_indices else 20
+        c_level = round((c_avg / c_max_avg) * 3, 2) if c_max_avg > 0 else 0
         
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
         ws.cell(row=current_row, column=2).alignment = Alignment(horizontal="center")
         
-        ws.cell(row=current_row, column=3, value=round(c_perc, 2)).border = get_border()
+        ws.cell(row=current_row, column=3, value=round(c_avg, 2 if c_avg < 10 else 1)).border = get_border() # Marks Avg
         ws.cell(row=current_row, column=3).fill = PatternFill(start_color=STAT_GREEN_MEDIUM, end_color=STAT_GREEN_MEDIUM, fill_type="solid")
         ws.cell(row=current_row, column=3).alignment = Alignment(horizontal="center")
         
@@ -988,6 +970,7 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
     absent_count = 0
     q_marks_collector = {i: [] for i in range(6)} # For assignment-wise stats
     
+    # Flexible assessment lookup
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
     ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
@@ -995,17 +978,8 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
     assessment = Assessment.objects.filter(
         ay_query,
         course_id=course, 
-        assessment_type='SLA', 
-        semester=course.semester
+        assessment_type='SLA'
     ).first()
-
-    if not assessment:
-        # Fallback without semester
-        assessment = Assessment.objects.filter(
-            ay_query,
-            course_id=course, 
-            assessment_type='SLA'
-        ).first()
     
     config = assessment.configuration if assessment and assessment.configuration else {}
     marks_data = config.get('marksData', {})
@@ -1028,7 +1002,9 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
         # To maintain syntactic correctness and adhere to the spirit of the change (type safety),
         # I will apply the type safety logic to the existing loop structure.
         # If 'questions' was intended to be passed or derived, that would be a larger change.
-        for i in range(6): # Original loop structure
+        # Attempt to find practicals if not explicitly defined
+        practicals_count = len(config.get('customQuestions', [])) or 6
+        for i in range(practicals_count): # Use dynamic or fallback count
             q_val = student_marks.get(str(i), "-")
             
             cell_val = q_val
@@ -1088,24 +1064,23 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
     att_lbl.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
     att_lbl.border = get_border(); att_lbl.font = Font(bold=True); att_lbl.alignment = Alignment(horizontal="right", indent=1)
     
-    # Python-calculated attainment level fallback
+    # Python-calculated attainment level (Marks-based scaling)
     appeared = len(marks_list)
     avg = sum(marks_list)/len(marks_list) if marks_list else 0
-    if avg > 0 and appeared > 0:
-        pass_above_avg = len([m for m in marks_list if m >= avg])
-        perc_above_avg = (pass_above_avg / appeared * 100)
-    else:
-        perc_above_avg = 0
-    att_level = AttainmentService._get_attainment_level(perc_above_avg)
+    max_total = assessment.max_marks or 60
+    att_level = round((avg / max_total) * 3, 2) if max_total > 0 else 0
     
     for i in range(6):
         q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
-        if q_avg > 0:
-            q_pass = len([m for m in q_marks_collector[i] if m >= q_avg])
-            q_perc = (q_pass / len(q_marks_collector[i]) * 100)
-        else:
-            q_perc = 0
-        ws.cell(row=current_row, column=4+i, value=AttainmentService._get_attainment_level(q_perc)).border = get_border()
+        q_max = 10
+        if i < len(config.get('customWeights', [])):
+            try: q_max = float(config.get('customWeights')[i])
+            except: pass
+        elif assessment and assessment.max_marks:
+            q_max = assessment.max_marks / 6
+            
+        q_level = round((q_avg / q_max) * 3, 2) if q_max > 0 else 0
+        ws.cell(row=current_row, column=4+i, value=q_level).border = get_border()
         ws.cell(row=current_row, column=4+i).alignment = Alignment(horizontal="center")
         
     ws.cell(row=current_row, column=total_col, value=att_level).border = get_border()
@@ -1133,14 +1108,10 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
         if not co_stats[co_name]: continue
         c_marks = co_stats[co_name]
         c_avg = sum(c_marks)/len(c_marks) if c_marks else 0
-        if c_avg > 0 and c_marks:
-            c_pass = len([m for m in c_marks if m >= c_avg])
-            c_perc = (c_pass / len(c_marks) * 100)
-        else:
-            c_perc = 0
-        c_level = AttainmentService._get_attainment_level(c_perc)
+        # For SLA, using max marks of 10 per assignment
+        c_level = round((c_avg / 10) * 3, 2) if c_avg > 0 else 0
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
-        ws.cell(row=current_row, column=3, value=round(c_perc, 2)).border = get_border()
+        ws.cell(row=current_row, column=3, value=round(c_avg, 2)).border = get_border()
         ws.cell(row=current_row, column=3).fill = PatternFill(start_color=STAT_GREEN_MEDIUM, end_color=STAT_GREEN_MEDIUM, fill_type="solid")
         ws.cell(row=current_row, column=4, value=c_level).border = get_border()
         current_row += 1
@@ -1156,25 +1127,16 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
     add_common_header(ws, "CES", faculty_name)
     next_row = add_info_block(ws, course, academic_year, faculty_name)
     
+    # Flexible survey lookup
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
     ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
     
-    # Fetch Survey for this course (Relaxed active filter for reports)
     survey = SurveyMaster.objects.filter(
         ay_query,
         course_id=course, 
-        survey_category='course_exit', 
-        semester=course.semester
+        survey_category='course_exit'
     ).first()
-
-    if not survey:
-        # Fallback without semester
-        survey = SurveyMaster.objects.filter(
-            ay_query,
-            course_id=course, 
-            survey_category='course_exit'
-        ).first()
     questions = SurveyQuestion.objects.filter(survey_id=survey).order_by('question_id') if survey else []
     
     headers = ["ENROLLMENT NO.", "Roll no.", "Name of Student"]
@@ -1248,11 +1210,14 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
     current_row += 1
 
     for i, q in enumerate(questions):
-        q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
+        q_marks = q_marks_collector[i]
+        q_avg = sum(q_marks)/len(q_marks) if q_marks else 0
+        # Survey rating is typically 1-5, scaling to 3
+        q_level = round((q_avg / 5) * 3, 2)
         ws.cell(row=current_row, column=2, value=f"CO{i+1}").border = get_border()
         ws.cell(row=current_row, column=3, value=round(q_avg, 2)).border = get_border()
         ws.cell(row=current_row, column=3).fill = PatternFill(start_color=STAT_GREEN_MEDIUM, end_color=STAT_GREEN_MEDIUM, fill_type="solid")
-        ws.cell(row=current_row, column=4, value="").border = get_border()
+        ws.cell(row=current_row, column=4, value=q_level).border = get_border()
         current_row += 1
     ws.column_dimensions['A'].width = 18
     ws.column_dimensions['B'].width = 10
@@ -1523,14 +1488,14 @@ def generate_cis_report(course_id, academic_year=None, batch_id=None):
             student_filters['batch_id'] = batch_id
 
     students = list(Student.objects.filter(**student_filters))
-    students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
-    
     if not students:
-        # If no students in current semester, try class_year (rough approximation)
+        # Fallback: remove semester and try matching by class_year (e.g., SY)
         student_filters.pop('semester', None)
-        student_filters['class_year'] = course.class_year
+        if course.class_year:
+            student_filters['class_year'] = course.class_year
         students = list(Student.objects.filter(**student_filters))
-        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
+
+    students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
 
     wb = openpyxl.Workbook()
     wb.remove(wb.active) 

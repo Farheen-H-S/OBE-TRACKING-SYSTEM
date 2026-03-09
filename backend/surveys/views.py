@@ -43,21 +43,37 @@ class SubmitSurveyResponseView(APIView):
         
         from users.models import Student
         student = None
-        if not student_id and request.data.get('enrollment_no'):
-            student = Student.objects.filter(enrollment_no=request.data.get('enrollment_no')).first()
-        elif student_id:
-            student = Student.objects.filter(enrollment_no=student_id).first()
         
-        if student and not request.data.get('enrollment_no'):
+        # 1. Try to get student from current logged-in user
+        if request.user.is_authenticated:
+            student = Student.objects.filter(user_id=request.user).first()
+            
+        # 2. Try lookup by frontend-provided IDs if not found yet
+        if not student:
+            if not student_id and request.data.get('enrollment_no'):
+                student = Student.objects.filter(enrollment_no=request.data.get('enrollment_no')).first()
+            elif student_id:
+                student = Student.objects.filter(enrollment_no=student_id).first()
+        
+        # 3. Determine enrollment number to store
+        if student:
             enrollment_no = student.enrollment_no
         else:
-            enrollment_no = request.data.get('enrollment_no')
+            enrollment_no = request.data.get('enrollment_no') or student_id
+            
+        # 4. Determine respondent name
+        respondent_name = request.data.get('respondent_name')
+        if not respondent_name:
+            if student:
+                respondent_name = student.name
+            elif request.user.is_authenticated:
+                respondent_name = request.user.name
 
         response = SurveyResponse.objects.create(
             survey_id=survey,
             student_id=student,
-            respondent_name=request.data.get('respondent_name') or (student.name if student else None),
-            enrollment_no=enrollment_no
+            respondent_name=respondent_name or "Guest",
+            enrollment_no=enrollment_no or "N/A"
         )
         
         for ans in answers:

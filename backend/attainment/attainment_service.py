@@ -282,12 +282,12 @@ class AttainmentService:
                 'co_id': co.co_id,
                 'co_number': formatted_co,
                 'tools': {
-                    'fa_th_1': tools.get('FA_TH_1', '-'),
-                    'fa_th_2': tools.get('FA_TH_2', '-'),
-                    'fa_pr': tools.get('FA_PR', '-'),
-                    'sla': tools.get('SLA', '-'),
-                    'sa_th': tools.get('SA_TH', '-'),
-                    'sa_pr': tools.get('SA_PR', {}).get('level', '-') if isinstance(tools.get('SA_PR'), dict) else tools.get('SA_PR', '-'),
+                    'fa_th_1': tools.get('INTERNAL_FA_TH_1', tools.get('EXTERNAL_FA_TH_1', tools.get('FA_TH_1', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_FA_TH_1', tools.get('EXTERNAL_FA_TH_1', tools.get('FA_TH_1'))), dict) else tools.get('INTERNAL_FA_TH_1', tools.get('EXTERNAL_FA_TH_1', tools.get('FA_TH_1', '-'))),
+                    'fa_th_2': tools.get('INTERNAL_FA_TH_2', tools.get('EXTERNAL_FA_TH_2', tools.get('FA_TH_2', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_FA_TH_2', tools.get('EXTERNAL_FA_TH_2', tools.get('FA_TH_2'))), dict) else tools.get('INTERNAL_FA_TH_2', tools.get('EXTERNAL_FA_TH_2', tools.get('FA_TH_2', '-'))),
+                    'fa_pr': tools.get('INTERNAL_FA_PR', tools.get('EXTERNAL_FA_PR', tools.get('FA_PR', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_FA_PR', tools.get('EXTERNAL_FA_PR', tools.get('FA_PR'))), dict) else tools.get('INTERNAL_FA_PR', tools.get('EXTERNAL_FA_PR', tools.get('FA_PR', '-'))),
+                    'sla': tools.get('INTERNAL_SLA', tools.get('EXTERNAL_SLA', tools.get('SLA', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_SLA', tools.get('EXTERNAL_SLA', tools.get('SLA'))), dict) else tools.get('INTERNAL_SLA', tools.get('EXTERNAL_SLA', tools.get('SLA', '-'))),
+                    'sa_th': tools.get('INTERNAL_SA_TH', tools.get('EXTERNAL_SA_TH', tools.get('SA_TH', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_SA_TH', tools.get('EXTERNAL_SA_TH', tools.get('SA_TH'))), dict) else tools.get('INTERNAL_SA_TH', tools.get('EXTERNAL_SA_TH', tools.get('SA_TH', '-'))),
+                    'sa_pr': tools.get('INTERNAL_SA_PR', tools.get('EXTERNAL_SA_PR', tools.get('SA_PR', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_SA_PR', tools.get('EXTERNAL_SA_PR', tools.get('SA_PR'))), dict) else tools.get('INTERNAL_SA_PR', tools.get('EXTERNAL_SA_PR', tools.get('SA_PR', '-'))),
                     'ces': co_indirect.get(co.co_id, '-'),
                     'tool_details': {k.lower(): v for k, v in tools.items()} # Normalize keys to lowercase for frontend
                 },
@@ -377,29 +377,31 @@ class AttainmentService:
                 q_averages = {}
                 student_list = list(marks_data.keys())
                 for q_idx in q_indices:
+                    # Marks for this question across students
                     v_marks = [float(marks_data[s].get(str(q_idx))) for s in student_list if isinstance(marks_data[s], dict) and marks_data[s].get(str(q_idx)) not in [None, '']]
                     if v_marks:
-                        q_avg = sum(v_marks) / len(v_marks)
-                        if q_avg > 0:
-                            q_success = len([m for m in v_marks if m >= q_avg])
-                        else:
-                            q_success = 0
-                        
+                        # Determine max marks for this question (fallback to 25 or tool.max_marks/N)
+                        q_max = 25
+                        if q_idx < len(config.get('customWeights', [])):
+                            try: q_max = float(config.get('customWeights')[q_idx])
+                            except: pass
+                        elif tool.max_marks:
+                            q_max = tool.max_marks / len(user_cos) if len(user_cos) > 0 else tool.max_marks
+                            
                         # Map question back to CO (using co_num like "1", "2")
-                        # user_cos index matches q_idx
                         co_val = user_cos[q_idx] if q_idx < len(user_cos) else None
                         if co_val:
                             # Normalize CO key
                             co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                            if co_key not in co_stats: co_stats[co_key] = {'success': 0, 'appeared': 0}
-                            co_stats[co_key]['success'] += q_success
-                            co_stats[co_key]['appeared'] += len(v_marks)
+                            if co_key not in co_stats: co_stats[co_key] = {'total_marks': 0, 'total_max': 0}
+                            co_stats[co_key]['total_marks'] += sum(v_marks)
+                            co_stats[co_key]['total_max'] += q_max * len(v_marks)
 
-                # 2. Convert aggregated CO stats to levels
+                # 2. Convert aggregated CO marks to levels
                 for co_key, stats in co_stats.items():
-                    if stats['appeared'] > 0:
-                        percentage = (stats['success'] / stats['appeared']) * 100
-                        level = AttainmentService._get_attainment_level(percentage)
+                    if stats['total_max'] > 0:
+                        # Linear scaling: (Total Marks / Total Max) * 3
+                        level = round((stats['total_marks'] / stats['total_max']) * 3, 2)
                         
                         # Find actual CO object matching this mapping
                         # Enhanced matching: first look in AssessmentCOMapping for this tool,
@@ -481,14 +483,13 @@ class AttainmentService:
                 if not entries.exists(): continue
                 
                 avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
-                total_students = entries.count()
-                if avg_marks > 0 and total_students > 0:
-                    count_ge_avg = entries.filter(marks_obtained__gte=avg_marks).count()
-                    percentage = (count_ge_avg / total_students) * 100
+                max_marks = tool.max_marks or 100
+                
+                if avg_marks > 0 and max_marks > 0:
+                    # Linear scaling: (Average Marks / Max Marks) * 3
+                    level = round((avg_marks / max_marks) * 3, 2)
                 else:
-                    count_ge_avg = 0
-                    percentage = 0
-                level = AttainmentService._get_attainment_level(percentage)
+                    level = 0
                 
                 for m in mappings:
                     co_id = m.co_id_id
@@ -552,16 +553,13 @@ class AttainmentService:
                 
                 ans_stats = SurveyAnswer.objects.filter(question_id=q).aggregate(Avg('answer_value'))
                 avg_rating = ans_stats['answer_value__avg'] or 0
-                total_students = SurveyAnswer.objects.filter(question_id=q).count()
                 
-                if avg_rating > 0 and total_students > 0:
-                    count_ge_avg = SurveyAnswer.objects.filter(question_id=q, answer_value__gte=avg_rating).count()
-                    percentage = (count_ge_avg / total_students) * 100
+                if avg_rating > 0:
+                    # Linear scaling for survey (Avg / 5 * 3)
+                    level = round((avg_rating / 5) * 3, 2)
                 else:
-                    count_ge_avg = 0
-                    percentage = 0
+                    level = 0
                 
-                level = AttainmentService._get_attainment_level(percentage)
                 indirect_cos[co_id] = level
         return indirect_cos
 
