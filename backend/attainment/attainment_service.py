@@ -334,18 +334,17 @@ class AttainmentService:
             mappings = AssessmentCOMapping.objects.filter(assessment_id=tool)
             
             # Summative Auto-Map Fallback
-            # If SA has no mappings, treat it as mapped to all active COs
-            # Also force whole-tool mode (MarksEntry) - SA marks are stored as totals, not per-CO
+            # SA marks evaluate the entire course holistically, so they map to all active COs.
+            is_summative = tool_key in ['SA_TH', 'SA_PR'] or 'ESE' in tool_name_upper or 'FINAL' in tool_name_upper
             sa_auto_mapped = False
-            if not mappings.exists():
-                is_summative = tool_key in ['SA_TH', 'SA_PR'] or 'ESE' in tool_name_upper or 'FINAL' in tool_name_upper
-                if is_summative:
-                    course_cos = CO.objects.filter(course_id=tool.course_id, is_active=True)
-                    # Create mock mapping objects to fit the whole-tool loop below
-                    mappings = [type('obj', (object,), {'co_id_id': co.co_id, 'co_id': co})() for co in course_cos]
-                    sa_auto_mapped = True  # Force MarksEntry path below
-                else:
-                    continue
+            
+            if is_summative:
+                course_cos = CO.objects.filter(course_id=tool.course_id, is_active=True)
+                # Create mock mapping objects to fit the whole-tool loop below and bypass any bad stored mappings
+                mappings = [type('obj', (object,), {'co_id_id': co.co_id, 'co_id': co})() for co in course_cos]
+                sa_auto_mapped = True  # Force MarksEntry path below
+            elif not mappings.exists():
+                continue
             
             if marks_data and user_cos and not sa_auto_mapped:
                 # User's Hierarchical Logic: Group success by CO
