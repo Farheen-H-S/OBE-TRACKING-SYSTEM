@@ -8,7 +8,7 @@ class COAttainment(models.Model):
     indirect_attainment = models.FloatField(null=True, blank=True)
     overall_attainment = models.FloatField(help_text="Weighted CO attainment (0.8L + 0.2M)")
     gap = models.FloatField(help_text="Target vs achieved")
-    attainment_level = models.IntegerField(help_text="Level 1/2/3")
+    attainment_level = models.FloatField(help_text="Level 0.00 to 3.00")
     academic_year = models.CharField(max_length=9, help_text="Academic year (e.g., 2024-25)")
     ATR_STATUS_CHOICES = [
         ('pending', 'Pending'),

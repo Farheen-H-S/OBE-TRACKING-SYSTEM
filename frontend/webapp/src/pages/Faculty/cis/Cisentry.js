@@ -123,6 +123,7 @@ const Cisentry = () => {
     // 1. Number of students appeared (filter out absents/non-numeric)
     const appeared = questions.map((_, colIndex) => {
       return students.filter(s => {
+        if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
         const mark = marksData[s.enrollment_no]?.[colIndex];
         return mark !== undefined && mark !== '' && mark !== null && !isNaN(parseFloat(mark));
       }).length;
@@ -138,14 +139,15 @@ const Cisentry = () => {
     // 3. Number of Students meeting threshold (>= 50% of weight or based on class average if requested)
     const getSuccessThreshold = (colIndex) => {
       const weight = parseFloat(weights[colIndex]) || 0;
-      // Class Tests (Internal) often use 40% threshold, others use 50%
-      if (selectedTool.startsWith('FA-TH-CT')) return weight * 0.40;
+      // All Formative Assessments and Class Tests use 40% threshold
+      if (selectedTool.startsWith('FA-') || selectedTool.startsWith('CT') || selectedTool.startsWith('SLA')) return weight * 0.40;
       return weight * 0.50;
     };
 
     const equalOrMoreAvg = questions.map((_, colIndex) => {
       const threshold = getSuccessThreshold(colIndex);
       return students.filter(s => {
+        if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
         const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
         return !isNaN(mark) && mark >= threshold;
       }).length;
@@ -965,21 +967,24 @@ const Cisentry = () => {
   };
 
   const isMarkExcluded = (enrollment, colIndex) => {
-    if (!selectedTool.startsWith('FA-TH') || columnCount !== 14) return false;
+    if (!selectedTool.startsWith('FA-TH')) return false;
+    
+    // Every group of 7 indices is a separate question (Q1: 0-6, Q2: 7-13, Q3: 14-20, etc.)
+    const groupIndex = Math.floor(colIndex / 7);
+    const start = groupIndex * 7;
+    const end = start + 6;
+
     const sMarks = marksData[enrollment] || {};
     const val = parseFloat(sMarks[colIndex]);
     if (isNaN(val)) return false;
-
-    let start = 0, end = 6;
-    if (colIndex > 6 && colIndex <= 13) { start = 7; end = 13; }
-    else if (colIndex > 13) return false;
 
     const groupMarks = [];
     for (let i = start; i <= end; i++) {
       const v = parseFloat(sMarks[i]);
       if (!isNaN(v)) groupMarks.push({ i, v });
     }
-    groupMarks.sort((a, b) => b.v - a.v);
+    // Sort descending by value, and then by index to keep it stable
+    groupMarks.sort((a, b) => (b.v - a.v) || (a.i - b.i));
 
     // Included are top 5
     const included = groupMarks.slice(0, 5).map(m => m.i);
@@ -1828,7 +1833,7 @@ const Cisentry = () => {
                             <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{(attainmentStats.totalAverage || 0).toFixed(2)}</td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student meeting threshold (50%)</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student meeting threshold ({selectedTool.startsWith('FA-TH-CT') ? '40%' : '50%'})</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.percentMoreAvg.map((val, i) => (
                               <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>

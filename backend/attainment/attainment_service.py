@@ -73,7 +73,7 @@ class AttainmentService:
                     'indirect_attainment': i_val,
                     'overall_attainment': final_val,
                     'gap': gap,
-                    'attainment_level': int(round(final_val)),
+                    'attainment_level': round(final_val, 2),
                     'atr_status': atr_status
                 }
             )
@@ -376,30 +376,59 @@ class AttainmentService:
                 
                 q_averages = {}
                 student_list = list(marks_data.keys())
-                for q_idx in q_indices:
-                    # Marks for this question across students
-                    v_marks = [float(marks_data[s].get(str(q_idx))) for s in student_list if isinstance(marks_data[s], dict) and marks_data[s].get(str(q_idx)) not in [None, '']]
-                    if v_marks:
-                        # Determine max marks for this question (fallback to 25 or tool.max_marks/N)
-                        q_max = 25
-                        if q_idx < len(config.get('customWeights', [])):
-                            try: q_max = float(config.get('customWeights')[q_idx])
-                            except: pass
-                        elif tool.max_marks:
-                            q_max = tool.max_marks / len(user_cos) if len(user_cos) > 0 else tool.max_marks
-                            
-                        # Map question back to CO (using co_num like "1", "2")
+                is_internal = tool_category.upper() == 'INTERNAL'
+                is_fa_th = 'FATH' in tool_name_norm or 'CT' in tool_name_norm or 'TEST' in tool_name_norm
+                threshold_ratio = 0.4 if is_internal else 0.5
+                
+                for student_enroll, s_marks in marks_data.items():
+                    if not isinstance(s_marks, dict): continue
+                    
+                    excluded_indices = set()
+                    if is_fa_th:
+                        # Top 5 of 7 sub-questions per group
+                        indices = [int(k) for k in s_marks.keys() if k.isdigit()]
+                        if indices:
+                            max_idx = max(indices)
+                            num_groups = (max_idx // 7) + 1
+                            for g in range(num_groups):
+                                start = g * 7
+                                end = start + 6
+                                group_marks = []
+                                for i in range(start, end + 1):
+                                    v = s_marks.get(str(i))
+                                    if v not in [None, '']:
+                                        try: group_marks.append({'idx': i, 'val': float(v)})
+                                        except: pass
+                                if group_marks:
+                                    group_marks.sort(key=lambda x: (x['val'], -x['idx']), reverse=True)
+                                    for m in group_marks[5:]:
+                                        excluded_indices.add(m['idx'])
+                    
+                    for q_idx_str, val in s_marks.items():
+                        if q_idx_str == 'total' or not q_idx_str.isdigit(): continue
+                        q_idx = int(q_idx_str)
+                        if q_idx in excluded_indices: continue
+                        if val in [None, '']: continue
+                        
+                        try: mark_val = float(val)
+                        except: continue
+                        
                         co_val = user_cos[q_idx] if q_idx < len(user_cos) else None
                         if co_val:
-                            # Normalize CO key
                             co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                            if co_key not in co_stats: co_stats[co_key] = {'total_marks': 0, 'total_max': 0, 'success': 0, 'appeared': 0}
+                            if co_key not in co_stats: co_stats[co_key] = {'success': 0, 'appeared': 0}
                             
-                            q_threshold = q_max / 2
-                            co_stats[co_key]['appeared'] += len(v_marks)
-                            co_stats[co_key]['success'] += len([m for m in v_marks if m >= q_threshold])
-                            co_stats[co_key]['total_marks'] += sum(v_marks)
-                            co_stats[co_key]['total_max'] += q_max * len(v_marks)
+                            q_max = 25
+                            if q_idx < len(config.get('customWeights', [])):
+                                try: q_max = float(config.get('customWeights')[q_idx])
+                                except: pass
+                            elif tool.max_marks:
+                                q_max = tool.max_marks / len(user_cos) if len(user_cos) > 0 else tool.max_marks
+                            
+                            q_threshold = q_max * threshold_ratio
+                            co_stats[co_key]['appeared'] += 1
+                            if mark_val >= q_threshold:
+                                co_stats[co_key]['success'] += 1
 
                 # 2. Convert aggregated CO marks to levels
                 for co_key, stats in co_stats.items():
@@ -408,15 +437,7 @@ class AttainmentService:
                         
                         # Use standard OBE attainment levels (e.g., 80%+=3, 70%+=2, etc.)
                         # Matching frontend logic:
-                        if percentage >= 80: level = 3.00
-                        elif percentage >= 76: level = 2.75
-                        elif percentage >= 71: level = 2.50
-                        elif percentage >= 66: level = 2.25
-                        elif percentage >= 61: level = 2.00
-                        elif percentage >= 56: level = 1.75
-                        elif percentage >= 51: level = 1.50
-                        elif percentage >= 46: level = 1.25
-                        elif percentage >= 20: level = 1.00
+                        if percentage >= 20: level = round(min((percentage / 100) * 3, 3.00), 2)
                         else: level = 0.00
                         
                         # Find actual CO object matching this mapping
@@ -504,15 +525,7 @@ class AttainmentService:
                     count_ge_avg = entries.filter(marks_obtained__gte=threshold).count()
                     percentage = (count_ge_avg / total_students * 100) if total_students > 0 else 0
                     
-                    if percentage >= 80: level = 3.00
-                    elif percentage >= 76: level = 2.75
-                    elif percentage >= 71: level = 2.50
-                    elif percentage >= 66: level = 2.25
-                    elif percentage >= 61: level = 2.00
-                    elif percentage >= 56: level = 1.75
-                    elif percentage >= 51: level = 1.50
-                    elif percentage >= 46: level = 1.25
-                    elif percentage >= 20: level = 1.00
+                    if percentage >= 20: level = round(min((percentage / 100) * 3, 3.00), 2)
                     else: level = 0.00
                     
                     for m in mappings:
@@ -645,13 +658,6 @@ class AttainmentService:
 
     @staticmethod
     def _get_attainment_level(percentage):
-        if percentage >= 80: return 3.00
-        if percentage >= 76: return 2.75
-        if percentage >= 71: return 2.50
-        if percentage >= 66: return 2.25
-        if percentage >= 61: return 2.00
-        if percentage >= 56: return 1.75
-        if percentage >= 51: return 1.50
-        if percentage >= 46: return 1.25
-        if percentage >= 20: return 1.00
+        if percentage >= 20:
+            return round(min((percentage / 100) * 3, 3.00), 2)
         return 0.00
