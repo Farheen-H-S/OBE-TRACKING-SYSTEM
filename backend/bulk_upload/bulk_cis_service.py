@@ -262,22 +262,25 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 for col_idx, q in enumerate(questions):
                     m = df.iloc[row, 3 + col_idx]  # col D (index 3) onwards
                     try: 
-                        m_val = float(m) if pd.notnull(m) else 0
-                    except: m_val = 0
+                        m_val = float(m) if pd.notnull(m) and str(m).strip() not in ('', '-', 'ab', 'AB', 'Abs', 'abs', 'absent', 'Absent') else None
+                    except: m_val = None
                     
-                    max_w = weights[col_idx]
-                    if max_w > 0 and m_val > max_w:
-                        errors.append(f"Row {row+1}, Q '{q}': {m_val} exceeds max {max_w} — capped")
-                        m_val = max_w  # Cap and warn, don't abort
+                    if m_val is not None:
+                        max_w = weights[col_idx]
+                        if max_w > 0 and m_val > max_w:
+                            errors.append(f"Row {row+1}, Q '{q}': {m_val} exceeds max {max_w} — capped")
+                            m_val = max_w  # Cap and warn, don't abort
                         
                     s_marks[col_idx] = m_val
                     # Logic for CT usually best of 5, but for storage we just need marksData
                 
-                # Calculate CT total (Best 5 of 7)
+                # Calculate CT total (Best 5 of 7) using only non-absent marks
                 def get_best_5(marks_dict, start_idx, end_idx):
                     vals = []
                     for i in range(start_idx, end_idx + 1):
-                        vals.append(marks_dict.get(i, 0))
+                        v = marks_dict.get(i)
+                        if v is not None:
+                            vals.append(v)
                     vals.sort(reverse=True)
                     return sum(vals[:5])
                 
@@ -285,7 +288,7 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 if len(questions) >= 14:
                     total = get_best_5(s_marks, 0, 6) + get_best_5(s_marks, 7, 13)
                 else:
-                    total = sum(s_marks.values())
+                    total = sum(v for v in s_marks.values() if v is not None)
                     
                 s_marks['total'] = total
                 marks_data.append((student, s_marks, total))
@@ -311,19 +314,22 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                 row_sum = 0
                 for col_idx, q in enumerate(questions):
                     m = df.iloc[row, 3 + col_idx]  # col D (index 3) onwards
-                    try: m_val = float(m) if pd.notnull(m) else 0
-                    except: m_val = 0
+                    try: m_val = float(m) if pd.notnull(m) and str(m).strip() not in ('', '-', 'ab', 'AB', 'Abs', 'abs', 'absent', 'Absent') else None
+                    except: m_val = None
                     
-                    max_w = weights[col_idx]
-                    if max_w > 0 and m_val > max_w:
-                        errors.append(f"Row {row+1}, Q '{q}': {m_val} exceeds max {max_w} — capped")
-                        m_val = max_w  # Cap instead of abort
+                    if m_val is not None:
+                        max_w = weights[col_idx]
+                        if max_w > 0 and m_val > max_w:
+                            errors.append(f"Row {row+1}, Q '{q}': {m_val} exceeds max {max_w} — capped")
+                            m_val = max_w  # Cap instead of abort
                     
                     s_marks[col_idx] = m_val
-                    row_sum += m_val
+                    if m_val is not None:
+                        row_sum += m_val
                 
-                total = row_sum / len(questions) if questions else 0
-                s_marks['total'] = round(total, 2)
+                valid_marks = [v for v in s_marks.values() if v is not None]
+                total = sum(valid_marks) / len(valid_marks) if valid_marks else 0
+                s_marks['total'] = round(total, 2) if valid_marks else None
                 marks_data.append((student, s_marks, s_marks['total']))
             else:
                 unmatched_rolls.append(roll)
@@ -359,12 +365,15 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
             if norm_roll in students_map:
                 student = students_map[norm_roll]
                 try:
-                    total = float(df.iloc[row, total_col])
-                    if pd.isna(total): total = 0.0
+                    raw = df.iloc[row, total_col]
+                    if pd.isna(raw) or str(raw).strip() in ('', '-', 'ab', 'AB', 'Abs', 'abs', 'absent', 'Absent'):
+                        total = None
+                    else:
+                        total = float(raw)
                 except:
-                    total = 0.0
+                    total = None
                 
-                if total > max_w:
+                if total is not None and total > max_w:
                     errors.append(f"Row {row+1}: Total marks ({total}) exceed max configuration ({max_w})")
                     
                 marks_data.append((student, {'0': total, 'total': total}, total))
@@ -429,11 +438,11 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
         if co_obj:
             AssessmentCOMapping.objects.create(assessment_id=assessment, co_id=co_obj, co_weightage=weight)
 
-    # Bulk Save Marks
+    # Bulk Save Marks — skip absent (None total) students entirely
     MarksEntry.objects.filter(assessment_id=assessment).delete()
     entries = [
         MarksEntry(assessment_id=assessment, student_id=m[0], marks_obtained=m[2], user_id=user)
-        for m in marks_data
+        for m in marks_data if m[2] is not None
     ]
     MarksEntry.objects.bulk_create(entries)
     
