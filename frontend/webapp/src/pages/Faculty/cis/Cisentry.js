@@ -120,11 +120,11 @@ const Cisentry = () => {
 
   // Attainment Calculation Logic
   const calculateAttainmentStats = () => {
-    // 1. Number of students appeared (per question)
+    // 1. Number of students appeared (filter out absents/non-numeric)
     const appeared = questions.map((_, colIndex) => {
       return students.filter(s => {
         const mark = marksData[s.enrollment_no]?.[colIndex];
-        return mark !== undefined && mark !== '' && mark !== null;
+        return mark !== undefined && mark !== '' && mark !== null && !isNaN(parseFloat(mark));
       }).length;
     });
 
@@ -135,17 +135,17 @@ const Cisentry = () => {
       return validMarks.length ? (total / validMarks.length) : 0;
     });
 
-    // 3. Number of Students >= Average
+    // 3. Number of Students meeting threshold (>= 50% of weight)
     const equalOrMoreAvg = questions.map((_, colIndex) => {
-      const avg = averages[colIndex];
-      // if (!avg && avg !== 0) return 0; // Handle 0 avg
+      const weight = parseFloat(weights[colIndex]) || 0;
+      const threshold = weight / 2;
       return students.filter(s => {
         const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
-        return !isNaN(mark) && mark >= avg;
+        return !isNaN(mark) && mark >= threshold;
       }).length;
     });
 
-    // 4. % of Student scored more than average
+    // 4. % of Student meeting threshold (50%)
     const percentMoreAvg = questions.map((_, colIndex) => {
       const app = appeared[colIndex];
       const count = equalOrMoreAvg[colIndex];
@@ -722,15 +722,17 @@ const Cisentry = () => {
         }
       });
       const average = appearedCount > 0 ? sum / appearedCount : 0;
-      const aboveAvgCount = marks.filter(m => m >= average).length;
-      const percentAboveAvg = appearedCount > 0 ? (aboveAvgCount / appearedCount) * 100 : 0;
-      const coAttainment = (percentAboveAvg / 100) * 3;
+      const weight = parseFloat(weights[col]) || 0;
+      const threshold = weight / 2;
+      const aboveThresholdCount = marks.filter(m => m >= threshold).length;
+      const percentAboveThreshold = appearedCount > 0 ? (aboveThresholdCount / appearedCount) * 100 : 0;
+      const coAttainment = (percentAboveThreshold / 100) * 3;
       stats.push({
         average: average.toFixed(2),
-        aboveAvgCount,
+        aboveAvgCount: aboveThresholdCount,
         appearedCount,
         absentCount: students.length - appearedCount,
-        percentAboveAvg: percentAboveAvg.toFixed(2),
+        percentAboveAvg: percentAboveThreshold.toFixed(2),
         coAttainment: coAttainment.toFixed(2)
       });
     }
@@ -1826,7 +1828,7 @@ const Cisentry = () => {
                             <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{(attainmentStats.totalAverage || 0).toFixed(2)}</td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student scored more than average</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student meeting threshold (50%)</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.percentMoreAvg.map((val, i) => (
                               <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>
@@ -1834,9 +1836,14 @@ const Cisentry = () => {
                             <td className="bg-light"></td>
                             <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>
                               {(() => {
-                                const app = students.length;
-                                const avg = attainmentStats.totalAverage;
-                                const count = students.filter(s => parseFloat((marksData[s.enrollment_no] && marksData[s.enrollment_no].total) || 0) >= avg).length;
+                                const totalWeight = weights.reduce((a, b) => a + parseFloat(b) || 0, 0);
+                                const threshold = totalWeight / 2;
+                                const validStudents = students.filter(s => {
+                                  const total = parseFloat(marksData[s.enrollment_no]?.total);
+                                  return !isNaN(total);
+                                });
+                                const app = validStudents.length;
+                                const count = validStudents.filter(s => parseFloat(marksData[s.enrollment_no]?.total || 0) >= threshold).length;
                                 return app > 0 ? ((count / app) * 100).toFixed(2) : '0.00';
                               })()}%
                             </td>

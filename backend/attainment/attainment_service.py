@@ -389,19 +389,34 @@ class AttainmentService:
                             q_max = tool.max_marks / len(user_cos) if len(user_cos) > 0 else tool.max_marks
                             
                         # Map question back to CO (using co_num like "1", "2")
-                        co_val = user_cos[q_idx] if q_idx < len(user_cos) else None
                         if co_val:
                             # Normalize CO key
                             co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                            if co_key not in co_stats: co_stats[co_key] = {'total_marks': 0, 'total_max': 0}
+                            if co_key not in co_stats: co_stats[co_key] = {'total_marks': 0, 'total_max': 0, 'success': 0, 'appeared': 0}
+                            
+                            q_threshold = q_max / 2
+                            co_stats[co_key]['appeared'] += len(v_marks)
+                            co_stats[co_key]['success'] += len([m for m in v_marks if m >= q_threshold])
                             co_stats[co_key]['total_marks'] += sum(v_marks)
                             co_stats[co_key]['total_max'] += q_max * len(v_marks)
 
                 # 2. Convert aggregated CO marks to levels
                 for co_key, stats in co_stats.items():
-                    if stats['total_max'] > 0:
-                        # Linear scaling: (Total Marks / Total Max) * 3
-                        level = round((stats['total_marks'] / stats['total_max']) * 3, 2)
+                    if stats['appeared'] > 0:
+                        percentage = (stats['success'] / stats['appeared']) * 100
+                        
+                        # Use standard OBE attainment levels (e.g., 80%+=3, 70%+=2, etc.)
+                        # Matching frontend logic:
+                        if percentage >= 80: level = 3.00
+                        elif percentage >= 76: level = 2.75
+                        elif percentage >= 71: level = 2.50
+                        elif percentage >= 66: level = 2.25
+                        elif percentage >= 61: level = 2.00
+                        elif percentage >= 56: level = 1.75
+                        elif percentage >= 51: level = 1.50
+                        elif percentage >= 46: level = 1.25
+                        elif percentage >= 20: level = 1.00
+                        else: level = 0.00
                         
                         # Find actual CO object matching this mapping
                         # Enhanced matching: first look in AssessmentCOMapping for this tool,
@@ -480,26 +495,34 @@ class AttainmentService:
             else:
                 # Fallback to simple whole-tool logic
                 entries = MarksEntry.objects.filter(assessment_id=tool)
-                if not entries.exists(): continue
-                
-                avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
-                max_marks = tool.max_marks or 100
-                
-                if avg_marks > 0 and max_marks > 0:
-                    # Linear scaling: (Average Marks / Max Marks) * 3
-                    level = round((avg_marks / max_marks) * 3, 2)
-                else:
-                    level = 0
-                
-                for m in mappings:
-                    co_id = m.co_id_id
-                    if co_id not in tool_co_results: tool_co_results[co_id] = {}
-                    tool_co_results[co_id][tool_key] = {
-                        'level': level,
-                        'appeared': total_students,
-                        'success': count_ge_avg,
-                        'percentage': percentage
-                    }
+                if entries.exists():
+                    total_students = entries.count()
+                    avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
+                    max_marks = tool.max_marks or 100
+                    threshold = max_marks / 2
+                    count_ge_avg = entries.filter(marks_obtained__gte=threshold).count()
+                    percentage = (count_ge_avg / total_students * 100) if total_students > 0 else 0
+                    
+                    if percentage >= 80: level = 3.00
+                    elif percentage >= 76: level = 2.75
+                    elif percentage >= 71: level = 2.50
+                    elif percentage >= 66: level = 2.25
+                    elif percentage >= 61: level = 2.00
+                    elif percentage >= 56: level = 1.75
+                    elif percentage >= 51: level = 1.50
+                    elif percentage >= 46: level = 1.25
+                    elif percentage >= 20: level = 1.00
+                    else: level = 0.00
+                    
+                    for m in mappings:
+                        co_id = m.co_id_id
+                        if co_id not in tool_co_results: tool_co_results[co_id] = {}
+                        tool_co_results[co_id][tool_key] = {
+                            'level': level,
+                            'appeared': total_students,
+                            'success': count_ge_avg,
+                            'percentage': percentage
+                        }
                 
         return tool_co_results
 
