@@ -866,10 +866,12 @@ const Cisentry = () => {
         tool_name: selectedTool,
         max_marks: totalMaxMarks,
         marks_data: Object.entries(marksData).filter(([enroll, data]) => enroll !== 'total').map(([enrollment, data]) => {
-          // Flatten marks data for backend (this assumes question index 0 if it's SA)
-          // For multi-column, we might need a better format or the backend handles configuration
-          // Let's send the first column as marks for now if it's SA, or the total
-          const marksValue = data.total || data[0] || 0;
+          let marksValue = null;
+          if (data.total !== undefined && data.total !== '') {
+            marksValue = data.total;
+          } else if (data[0] !== undefined && data[0] !== '') {
+            marksValue = data[0];
+          }
           return { enrollment_no: enrollment, marks: marksValue };
         }),
         co_mappings: slicedUserCos.map((co, idx) => ({ co_id: (co || '').toString().trim(), weight: weights[idx] })).filter(m => m.co_id),

@@ -389,6 +389,7 @@ class AttainmentService:
                             q_max = tool.max_marks / len(user_cos) if len(user_cos) > 0 else tool.max_marks
                             
                         # Map question back to CO (using co_num like "1", "2")
+                        co_val = user_cos[q_idx] if q_idx < len(user_cos) else None
                         if co_val:
                             # Normalize CO key
                             co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()

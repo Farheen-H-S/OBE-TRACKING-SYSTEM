@@ -633,21 +633,27 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     att_lbl.border = get_border(); att_lbl.font = Font(bold=True); att_lbl.alignment = Alignment(horizontal="right", indent=1)
     
     for i in range(len(practicals)):
-        q_avg = sum(q_marks_collector[i])/len(q_marks_collector[i]) if q_marks_collector[i] else 0
-        if q_avg > 0:
-            q_pass = len([m for m in q_marks_collector[i] if m >= q_avg])
-            q_perc = (q_pass / len(q_marks_collector[i]) * 100)
-        else:
-            q_perc = 0
+        # Use 50% threshold instead of class average
+        q_max = 25
+        if i < len(config.get('customWeights', [])):
+            try: q_max = float(config.get('customWeights')[i])
+            except: pass
+        elif assessment and assessment.max_marks:
+            q_max = assessment.max_marks / len(practicals)
+        
+        q_threshold = q_max / 2
+        q_pass = len([m for m in q_marks_collector[i] if m >= q_threshold])
+        q_perc = (q_pass / len(q_marks_collector[i]) * 100) if q_marks_collector[i] else 0
         ws.cell(row=current_row, column=5+i, value=round(q_perc * 3 / 100, 2)).border = get_border()
         ws.cell(row=current_row, column=5+i).alignment = Alignment(horizontal="center")
     
-    # Total column attainment
-    avg = sum(marks_list)/len(marks_list) if marks_list else 0
+    # Total column attainment (50% threshold)
+    total_max = assessment.max_marks or sum([float(w) for w in config.get('customWeights', [])]) or 100
+    total_threshold = total_max / 2
     appeared = len(marks_list)
-    if avg > 0 and appeared > 0:
-        pass_above_avg = len([m for m in marks_list if m >= avg])
-        perc_above_avg = (pass_above_avg / appeared * 100)
+    if appeared > 0:
+        pass_above_threshold = len([m for m in marks_list if m >= total_threshold])
+        perc_above_avg = (pass_above_threshold / appeared * 100)
     else:
         perc_above_avg = 0
     att_level = round(perc_above_avg * 3 / 100, 2)
@@ -693,7 +699,10 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
             c_max_sum += qm
         
         c_max_avg = c_max_sum / len(c_q_indices) if c_q_indices else 25
-        c_level = round((c_avg / c_max_avg) * 3, 2) if c_max_avg > 0 else 0
+        c_threshold = c_max_avg / 2
+        c_pass = len([m for m in c_marks if m >= c_threshold])
+        c_perc = (c_pass / len(c_marks) * 100) if c_marks else 0
+        c_level = round((c_perc * 3 / 100), 2)
         
         ws.cell(row=current_row, column=2, value=co_name).border = get_border()
         ws.cell(row=current_row, column=2).alignment = Alignment(horizontal="center")

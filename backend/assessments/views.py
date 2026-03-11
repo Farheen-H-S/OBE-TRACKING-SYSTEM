@@ -223,11 +223,14 @@ class SaveAssessmentMarksView(APIView):
                 if enrollment_no and marks_obtained is not None:
                     student = students_map.get(enrollment_no)
                     if student:
-                        try: val = float(marks_obtained)
-                        except: val = 0
-                        new_entries.append(
-                            MarksEntry(assessment_id=assessment, student_id=student, marks_obtained=val, user_id=user)
-                        )
+                        try: 
+                            val = float(marks_obtained)
+                            new_entries.append(
+                                MarksEntry(assessment_id=assessment, student_id=student, marks_obtained=val, user_id=user)
+                            )
+                        except (ValueError, TypeError):
+                            # Skip non-numeric marks (e.g. '-', 'A', empty string) so they don't count as "appeared"
+                            pass
             
             if new_entries:
                 MarksEntry.objects.bulk_create(new_entries)
