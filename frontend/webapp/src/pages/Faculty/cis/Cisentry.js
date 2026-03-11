@@ -135,10 +135,16 @@ const Cisentry = () => {
       return validMarks.length ? (total / validMarks.length) : 0;
     });
 
-    // 3. Number of Students meeting threshold (>= 50% of weight)
-    const equalOrMoreAvg = questions.map((_, colIndex) => {
+    // 3. Number of Students meeting threshold (>= 50% of weight or based on class average if requested)
+    const getSuccessThreshold = (colIndex) => {
       const weight = parseFloat(weights[colIndex]) || 0;
-      const threshold = weight / 2;
+      // Class Tests (Internal) often use 40% threshold, others use 50%
+      if (selectedTool.startsWith('FA-TH-CT')) return weight * 0.40;
+      return weight * 0.50;
+    };
+
+    const equalOrMoreAvg = questions.map((_, colIndex) => {
+      const threshold = getSuccessThreshold(colIndex);
       return students.filter(s => {
         const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
         return !isNaN(mark) && mark >= threshold;
@@ -791,16 +797,8 @@ const Cisentry = () => {
   const saveData = async (showAlert = false) => {
     // Calculation and storage logic
     const getAttainmentLevel = (percent) => {
-      if (percent >= 80) return 3.00;
-      if (percent >= 76) return 2.75;
-      if (percent >= 71) return 2.50;
-      if (percent >= 66) return 2.25;
-      if (percent >= 61) return 2.00;
-      if (percent >= 56) return 1.75;
-      if (percent >= 51) return 1.50;
-      if (percent >= 46) return 1.25;
-      if (percent >= 20) return 1.00;
-      return 0.00;
+      // Linear scaling: level = (percent / 100) * 3, capped at 3.00
+      return parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
     };
 
     const stats = calculateAttainmentStats();
@@ -1005,9 +1003,9 @@ const Cisentry = () => {
       return (
         <thead>
           <tr>
-            <th className="student-col-header fw-bold bg-light" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Enrollment No.</th>
-            <th className="student-col-header fw-bold bg-light" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Roll No.</th>
-            <th className="student-col-header fw-bold bg-light" style={{ width: 'auto', minWidth: '250px', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Name of Student</th>
+            <th className="student-col-header fw-bold" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Enrollment No.</th>
+            <th className="student-col-header fw-bold" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Roll No.</th>
+            <th className="student-col-header fw-bold" style={{ width: 'auto', minWidth: '250px', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Name of Student</th>
             <th className="fw-bold text-white text-center blue-header-dark" style={{ width: '200px', verticalAlign: 'middle' }}>
               Total Marks {totalMaxMarks ? `(out of ${totalMaxMarks})` : ''}
             </th>
@@ -1021,9 +1019,9 @@ const Cisentry = () => {
         <thead>
           {/* Row 1: Student info and Practical Numbers */}
           <tr>
-            <th rowSpan="3" className="student-col-header fw-bold bg-light" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Enrollment No.</th>
-            <th rowSpan="3" className="student-col-header fw-bold bg-light" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Roll No.</th>
-            <th rowSpan="3" className="student-col-header fw-bold bg-light" style={{ width: 'auto', minWidth: '250px', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Name of Student</th>
+            <th rowSpan="3" className="student-col-header fw-bold" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Enrollment No.</th>
+            <th rowSpan="3" className="student-col-header fw-bold" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Roll No.</th>
+            <th rowSpan="3" className="student-col-header fw-bold" style={{ width: 'auto', minWidth: '250px', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Name of Student</th>
 
             <th className="label-col-cell text-white text-center fw-bold" style={{ verticalAlign: 'middle', backgroundColor: '#2f5597' }}>
               Practical No.
@@ -1109,9 +1107,9 @@ const Cisentry = () => {
         <thead>
           {/* Row 1: Student info and Assignment Numbers */}
           <tr>
-            <th rowSpan="3" className="student-col-header fw-bold bg-light" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Enrollment No.</th>
-            <th rowSpan="3" className="student-col-header fw-bold bg-light" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Roll No.</th>
-            <th rowSpan="3" className="student-col-header fw-bold bg-light" style={{ width: 'auto', minWidth: '250px', verticalAlign: 'middle', borderBottom: '2px solid #dee2e6' }}>Name of Student</th>
+            <th rowSpan="3" className="student-col-header fw-bold" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Enrollment No.</th>
+            <th rowSpan="3" className="student-col-header fw-bold" style={{ width: 'auto', whiteSpace: 'nowrap', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Roll No.</th>
+            <th rowSpan="3" className="student-col-header fw-bold" style={{ width: 'auto', minWidth: '250px', verticalAlign: 'middle', backgroundColor: '#e7e6e6' }}>Name of Student</th>
 
             <th className="label-col-cell text-white text-center fw-bold" style={{ verticalAlign: 'middle', backgroundColor: '#2f5597' }}>
               Assignment
@@ -1855,16 +1853,7 @@ const Cisentry = () => {
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.coAttainment.map((val, i) => {
                               const percent = parseFloat(val);
-                              let level = 0.00;
-                              if (percent >= 80) level = 3.00;
-                              else if (percent >= 76) level = 2.75;
-                              else if (percent >= 71) level = 2.50;
-                              else if (percent >= 66) level = 2.25;
-                              else if (percent >= 61) level = 2.00;
-                              else if (percent >= 56) level = 1.75;
-                              else if (percent >= 51) level = 1.50;
-                              else if (percent >= 46) level = 1.25;
-                              else if (percent >= 20) level = 1.00;
+                              const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
 
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
@@ -1925,26 +1914,41 @@ const Cisentry = () => {
                         <tbody>
                           {students.map((student, rowIndex) => (
                             <tr key={rowIndex}>
-                              <td>{student.enrollment_no}</td>
-                              <td>{student.roll_no}</td>
-                              <td className="text-start ps-3">{student.name}</td>
+                              <td className="bg-light">{student.enrollment_no}</td>
+                              <td className="bg-light">{student.roll_no}</td>
+                              <td className="text-start ps-3 bg-light">{student.name}</td>
                               <td style={{ backgroundColor: '#6c8ebf' }}></td>
                               {questions.map((_, colIndex) => (
                                 <td key={colIndex} className="p-0">
-                                  <input
-                                    type="text"
-                                    value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
-                                    onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
-                                    readOnly={viewMode === 'view'}
-                                    data-type="mark"
-                                    data-row={rowIndex}
-                                    data-col={colIndex}
-                                    onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
-                                  />
+                                  {viewMode === 'view' ? (
+                                    <div className="p-2 text-center fw-bold">
+                                      {marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== '' && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : '-'}
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      className="form-control border-0 text-center table-input shadow-none"
+                                      style={{ borderRadius: 0 }}
+                                      value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
+                                      onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
+                                      data-type="mark"
+                                      data-row={rowIndex}
+                                      data-col={colIndex}
+                                      onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
+                                    />
+                                  )}
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] !== undefined && marksData[student.enrollment_no]?.['total'] !== null ? marksData[student.enrollment_no]?.['total'] : '0'}</td>
+                              <td className="p-0" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>
+                                <input
+                                  type="text"
+                                  className="form-control border-0 text-center table-input shadow-none bg-transparent fw-bold"
+                                  style={{ borderRadius: 0 }}
+                                  value={marksData[student.enrollment_no]?.['total'] !== undefined && marksData[student.enrollment_no]?.['total'] !== null ? marksData[student.enrollment_no]?.['total'] : '0'}
+                                  readOnly
+                                />
+                              </td>
                             </tr>
                           ))}
                           <tr className="bg-light">
@@ -1960,16 +1964,7 @@ const Cisentry = () => {
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.coAttainment.map((val, i) => {
                               const percent = parseFloat(val);
-                              let level = 0.00;
-                              if (percent >= 80) level = 3.00;
-                              else if (percent >= 76) level = 2.75;
-                              else if (percent >= 71) level = 2.50;
-                              else if (percent >= 66) level = 2.25;
-                              else if (percent >= 61) level = 2.00;
-                              else if (percent >= 56) level = 1.75;
-                              else if (percent >= 51) level = 1.50;
-                              else if (percent >= 46) level = 1.25;
-                              else if (percent >= 20) level = 1.00;
+                              const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
 
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
@@ -2030,26 +2025,41 @@ const Cisentry = () => {
                         <tbody>
                           {students.map((student, rowIndex) => (
                             <tr key={rowIndex}>
-                              <td>{student.enrollment_no}</td>
-                              <td>{student.roll_no}</td>
-                              <td className="text-start ps-3">{student.name}</td>
+                              <td className="bg-light">{student.enrollment_no}</td>
+                              <td className="bg-light">{student.roll_no}</td>
+                              <td className="text-start ps-3 bg-light">{student.name}</td>
                               <td style={{ backgroundColor: '#6c8ebf' }}></td>
                               {questions.map((_, colIndex) => (
                                 <td key={colIndex} className="p-0">
-                                  <input
-                                    type="text"
-                                    value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
-                                    onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
-                                    readOnly={viewMode === 'view'}
-                                    data-type="mark"
-                                    data-row={rowIndex}
-                                    data-col={colIndex}
-                                    onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
-                                  />
+                                  {viewMode === 'view' ? (
+                                    <div className="p-2 text-center fw-bold">
+                                      {marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== '' && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : '-'}
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      className="form-control border-0 text-center table-input shadow-none"
+                                      style={{ borderRadius: 0 }}
+                                      value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
+                                      onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
+                                      data-type="mark"
+                                      data-row={rowIndex}
+                                      data-col={colIndex}
+                                      onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, colIndex)}
+                                    />
+                                  )}
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] !== undefined && marksData[student.enrollment_no]?.['total'] !== null ? marksData[student.enrollment_no]?.['total'] : '0'}</td>
+                              <td className="p-0" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>
+                                <input
+                                  type="text"
+                                  className="form-control border-0 text-center table-input shadow-none bg-transparent fw-bold"
+                                  style={{ borderRadius: 0 }}
+                                  value={marksData[student.enrollment_no]?.['total'] !== undefined && marksData[student.enrollment_no]?.['total'] !== null ? marksData[student.enrollment_no]?.['total'] : '0'}
+                                  readOnly
+                                />
+                              </td>
                             </tr>
                           ))}
                           <tr className="bg-light">
@@ -2065,16 +2075,7 @@ const Cisentry = () => {
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.coAttainment.map((val, i) => {
                               const percent = parseFloat(val);
-                              let level = 0.00;
-                              if (percent >= 80) level = 3.00;
-                              else if (percent >= 76) level = 2.75;
-                              else if (percent >= 71) level = 2.50;
-                              else if (percent >= 66) level = 2.25;
-                              else if (percent >= 61) level = 2.00;
-                              else if (percent >= 56) level = 1.75;
-                              else if (percent >= 51) level = 1.50;
-                              else if (percent >= 46) level = 1.25;
-                              else if (percent >= 20) level = 1.00;
+                              const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
 
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
@@ -2119,21 +2120,26 @@ const Cisentry = () => {
                         <tbody>
                           {students.map((student, rowIndex) => (
                             <tr key={rowIndex}>
-                              <td>{student.enrollment_no}</td>
-                              <td>{student.roll_no}</td>
-                              <td className="text-start ps-3">{student.name}</td>
+                              <td className="bg-light">{student.enrollment_no}</td>
+                              <td className="bg-light">{student.roll_no}</td>
+                              <td className="text-start ps-3 bg-light">{student.name}</td>
                               <td className="p-0" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : 'transparent' }}>
-                                <input
-                                  type="text"
-                                  className="form-control border-0 text-center shadow-none fw-bold text-center bg-transparent"
-                                  value={marksData[student.enrollment_no]?.[0] !== undefined && marksData[student.enrollment_no]?.[0] !== null ? marksData[student.enrollment_no]?.[0] : ''}
-                                  onChange={(e) => handleMarkChange(student.enrollment_no, 0, e.target.value)}
-                                  readOnly={viewMode === 'view'}
-                                  data-type="mark"
-                                  data-row={rowIndex}
-                                  data-col={0}
-                                  onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, 0)}
-                                />
+                                {viewMode === 'view' ? (
+                                  <div className="p-2 text-center fw-bold">
+                                    {marksData[student.enrollment_no]?.[0] !== undefined && marksData[student.enrollment_no]?.[0] !== '' && marksData[student.enrollment_no]?.[0] !== null ? marksData[student.enrollment_no]?.[0] : '-'}
+                                  </div>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    className="form-control border-0 text-center shadow-none fw-bold text-center bg-transparent"
+                                    value={marksData[student.enrollment_no]?.[0] !== undefined && marksData[student.enrollment_no]?.[0] !== null ? marksData[student.enrollment_no]?.[0] : ''}
+                                    onChange={(e) => handleMarkChange(student.enrollment_no, 0, e.target.value)}
+                                    data-type="mark"
+                                    data-row={rowIndex}
+                                    data-col={0}
+                                    onKeyDown={(e) => handleKeyDown(e, 'mark', rowIndex, 0)}
+                                  />
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -2143,16 +2149,7 @@ const Cisentry = () => {
                               {(() => {
                                 const val = attainmentStats.coAttainment[0] || '0.00';
                                 const percent = parseFloat(val);
-                                let level = 0.00;
-                                if (percent >= 80) level = 3.00;
-                                else if (percent >= 76) level = 2.75;
-                                else if (percent >= 71) level = 2.50;
-                                else if (percent >= 66) level = 2.25;
-                                else if (percent >= 61) level = 2.00;
-                                else if (percent >= 56) level = 1.75;
-                                else if (percent >= 51) level = 1.50;
-                                else if (percent >= 46) level = 1.25;
-                                else if (percent >= 20) level = 1.00;
+                                const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
                                 return `${level.toFixed(2)} (${val}%)`;
                               })()}
                             </td>
