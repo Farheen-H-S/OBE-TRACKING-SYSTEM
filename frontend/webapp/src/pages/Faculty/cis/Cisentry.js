@@ -1773,14 +1773,14 @@ const Cisentry = () => {
                                 <td key={colIndex} className="p-0">
                                   {viewMode === 'view' ? (
                                     <div className="p-2 text-center fw-bold" style={{ backgroundColor: isMarkExcluded(student.enrollment_no, colIndex) ? '#ffcccc' : 'transparent' }}>
-                                      {marksData[student.enrollment_no]?.[colIndex] || '-'}
+                                      {marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== '' && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : '-'}
                                     </div>
                                   ) : (
                                     <input
                                       type="text"
                                       className="form-control border-0 text-center table-input shadow-none"
                                       style={{ borderRadius: 0, backgroundColor: isMarkExcluded(student.enrollment_no, colIndex) ? '#ffcccc' : 'transparent' }}
-                                      value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                      value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
                                       data-type="mark"
                                       data-row={rowIndex}
                                       data-col={colIndex}
@@ -1933,8 +1933,7 @@ const Cisentry = () => {
                                 <td key={colIndex} className="p-0">
                                   <input
                                     type="text"
-                                    className="form-control border-0 text-center shadow-none text-center"
-                                    value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                    value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
                                     onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
                                     readOnly={viewMode === 'view'}
                                     data-type="mark"
@@ -1945,7 +1944,7 @@ const Cisentry = () => {
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
+                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] !== undefined && marksData[student.enrollment_no]?.['total'] !== null ? marksData[student.enrollment_no]?.['total'] : '0'}</td>
                             </tr>
                           ))}
                           <tr className="bg-light">
@@ -2039,8 +2038,7 @@ const Cisentry = () => {
                                 <td key={colIndex} className="p-0">
                                   <input
                                     type="text"
-                                    className="form-control border-0 text-center shadow-none text-center"
-                                    value={marksData[student.enrollment_no]?.[colIndex] || ''}
+                                    value={marksData[student.enrollment_no]?.[colIndex] !== undefined && marksData[student.enrollment_no]?.[colIndex] !== null ? marksData[student.enrollment_no]?.[colIndex] : ''}
                                     onChange={(e) => handleMarkChange(student.enrollment_no, colIndex, e.target.value)}
                                     readOnly={viewMode === 'view'}
                                     data-type="mark"
@@ -2051,7 +2049,7 @@ const Cisentry = () => {
                                 </td>
                               ))}
                               <td className="bg-light"></td>
-                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] || '0'}</td>
+                              <td className="fw-bold" style={{ backgroundColor: isBelowMinimum(student.enrollment_no) ? '#ffcdd2' : '#f0f7ff' }}>{marksData[student.enrollment_no]?.['total'] !== undefined && marksData[student.enrollment_no]?.['total'] !== null ? marksData[student.enrollment_no]?.['total'] : '0'}</td>
                             </tr>
                           ))}
                           <tr className="bg-light">
@@ -2128,7 +2126,7 @@ const Cisentry = () => {
                                 <input
                                   type="text"
                                   className="form-control border-0 text-center shadow-none fw-bold text-center bg-transparent"
-                                  value={marksData[student.enrollment_no]?.[0] || ''}
+                                  value={marksData[student.enrollment_no]?.[0] !== undefined && marksData[student.enrollment_no]?.[0] !== null ? marksData[student.enrollment_no]?.[0] : ''}
                                   onChange={(e) => handleMarkChange(student.enrollment_no, 0, e.target.value)}
                                   readOnly={viewMode === 'view'}
                                   data-type="mark"
