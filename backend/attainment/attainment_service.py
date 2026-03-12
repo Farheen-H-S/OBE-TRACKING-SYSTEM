@@ -486,8 +486,8 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # Threshold: use column average for FA-PR/SA-PR/SLA, else 40% of max for FA-TH
-                                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm
+                                    # Threshold: use column average for FA-PR/SA-PR/SA-TH/SLA, else 40% of max for FA-TH
+                                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm or 'SA_TH' in tool_name_norm or 'SATH' in tool_name_norm
                                     if q_key not in q_stats:
                                         q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
                                     if is_mark_entered:
@@ -509,9 +509,9 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # FA-PR, SA-PR and SLA: % = (count >= col_avg) / appeared * 100
+                # FA-PR, SA-PR, SA-TH and SLA: % = (count >= col_avg) / appeared * 100
                 # FA-TH: % = success_count / appeared * 100
-                is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm
+                is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm or 'SA_TH' in tool_name_norm or 'SATH' in tool_name_norm
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
                         if is_practical:
@@ -648,12 +648,19 @@ class AttainmentService:
                     total_students = entries.count()
                     avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
                     max_marks = tool.max_marks or 100
-                    threshold = max_marks / 2
+
+                    # Threshold: use column average for FA-PR/SA-PR/SA-TH/SLA, else 40% of max for FA-TH
+                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm or 'SA_TH' in tool_name_norm or 'SATH' in tool_name_norm
+                    
+                    if is_practical_tool:
+                        threshold = avg_marks
+                    else:
+                        threshold = max_marks * 0.4
+                    
                     count_ge_avg = entries.filter(marks_obtained__gte=threshold).count()
                     percentage = (count_ge_avg / total_students * 100) if total_students > 0 else 0
                     
-                    if percentage >= 20: level = round(min((percentage / 100) * 3, 3.00), 2)
-                    else: level = 0.00
+                    level = round(min((percentage / 100) * 3, 3.00), 2)
                     
                     for m in mappings:
                         co_id = m.co_id_id
