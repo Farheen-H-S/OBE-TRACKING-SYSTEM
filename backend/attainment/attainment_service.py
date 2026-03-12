@@ -486,14 +486,19 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # Excel uses integer thresholds, rounded down, minimum 1 for small bits
-                                    q_threshold = max(1, int(q_max * threshold_ratio))
-                                    if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
+                                    # Threshold: use column average for FA-PR, else 40% of max for FA-TH/SLA
+                                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm
+                                    if q_key not in q_stats:
+                                        q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
                                     if is_mark_entered:
                                         q_stats[q_key]['appeared'] += 1
                                         q_stats[q_key]['sum'] += mark_val
-                                        if mark_val >= q_threshold:
-                                            q_stats[q_key]['success'] += 1
+                                        q_stats[q_key]['marks'].append(mark_val)
+                                        if not is_practical_tool:
+                                            # FA-TH/SLA: COUNTIF >= 40% threshold
+                                            q_threshold = max(1, int(q_max * threshold_ratio))
+                                            if mark_val >= q_threshold:
+                                                q_stats[q_key]['success'] += 1
 
                                     # 2. CO Aggregation (Marks-based for summary table)
                                     if q_key != 'total' and int(q_key) in excluded_indices:
@@ -504,26 +509,17 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # Finalize Bit-wise Question Stats
-                # FA-PR uses Average/Max formula; FA-TH/SLA use COUNTIF >= threshold
+                # Finalize Question Stats
+                # FA-PR: % = (count ≥ column_avg) / appeared * 100 (matches Excel =AVERAGE of success% row)
+                # FA-TH/SLA: % = success_count / appeared * 100
                 is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
                         if is_practical:
-                            # For practicals: percentage = (avg_marks / max_marks) * 100
-                            # We stored marks in 'sum' and count in 'appeared'
+                            # Use >= column average threshold
                             avg_mark = stats['sum'] / stats['appeared']
-                            # Calculate the max marks for this question
-                            try:
-                                q_idx = int(q_key)
-                                custom_weights = config.get('customWeights', []) if config else []
-                                if q_idx < len(custom_weights) and custom_weights[q_idx] not in [None, '']:
-                                    q_max_for_pct = float(custom_weights[q_idx])
-                                else:
-                                    q_max_for_pct = tool.max_marks or 100
-                            except:
-                                q_max_for_pct = tool.max_marks or 100
-                            stats['success'] = round((avg_mark / q_max_for_pct) * 100, 2) if q_max_for_pct > 0 else 0.0
+                            success_count = sum(1 for m in stats['marks'] if m >= avg_mark)
+                            stats['success'] = round((success_count / stats['appeared']) * 100, 2)
                         else:
                             stats['success'] = round((stats['success'] / stats['appeared']) * 100, 2)
                     else:

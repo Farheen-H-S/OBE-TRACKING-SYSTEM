@@ -168,10 +168,13 @@ const Cisentry = () => {
       averages[colIndex] = qAvg;
 
       if (isPractical) {
-        // FA-PR: marks represent percentage scores directly (0-100)
-        // e.g. a mark of 44 means 44%, so percentage = average mark directly
-        equalOrMoreAvg[colIndex] = 0; // not used for PR
-        percentMoreAvg[colIndex] = attemptedMarks.length > 0 ? qAvg.toFixed(2) : '0.00';
+        // FA-PR: percentage = (students scoring >= column average) / appeared * 100
+        // This matches the Excel formula =AVERAGE of (count>=avg / count * 100) per CO's columns
+        const successCount = attemptedMarks.filter(m => m >= qAvg).length;
+        equalOrMoreAvg[colIndex] = successCount;
+        percentMoreAvg[colIndex] = attemptedMarks.length > 0
+          ? ((successCount / attemptedMarks.length) * 100).toFixed(2)
+          : '0.00';
       } else {
         // FA-TH / SLA: percentage = COUNTIF(marks >= threshold) / COUNT * 100
         // Excel uses integer thresholds, rounded down, minimum 1 for small bits
