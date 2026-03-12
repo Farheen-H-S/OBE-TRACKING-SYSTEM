@@ -31,9 +31,21 @@ class DirectCISPreviewView(APIView):
         
         # Include consolidated ATR
         from academics.models import Course
-        course = Course.objects.filter(pk=course_id).first()
-        course_atr = course.course_atr if course else ""
+        from attainment.models import CourseATR
+        from django.db import models
         
+        # Robust AY Matching
+        ay_clean = academic_year.replace(' ', '') if academic_year else ""
+        ay_spaced = ay_clean.replace('-', ' - ')
+        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        
+        atr_obj = CourseATR.objects.filter(ay_query, course_id_id=course_id).first()
+        if atr_obj and (atr_obj.action_proposed or atr_obj.atr_status == 'submitted'):
+            course_atr = atr_obj.action_proposed or "Submitted"
+        else:
+            course = Course.objects.filter(pk=course_id).first()
+            course_atr = course.course_atr if course else ""
+            
         return Response({
             "attainment": preview_data,
             "course_atr": course_atr

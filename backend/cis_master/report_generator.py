@@ -619,7 +619,7 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{current_row-2}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{current_row-2}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):
@@ -631,12 +631,20 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
 
         for i in range(len(practicals)):
             q_col = 5 + i
-            f_cell = ws.cell(row=current_row, column=q_col, value=q_stat_formula(q_col))
+            # Use specific current_row-2 based on label to avoid circular reference in COUNTIF
+            # The criteria is ALWAYS the Average row (which is current_row - something)
+            # Row mapping: current_row (Average), current_row+1 (Appeared), current_row+2 (% above Avg)
+            # So criteria for % above Avg is current_row (the first row in this loop)
+            avg_row = current_row - idx 
+            f_val = q_stat_formula(q_col, avg_row) if label == "% above Avg" else q_stat_formula(q_col)
+            f_cell = ws.cell(row=current_row, column=q_col, value=f_val)
             f_cell.border = get_border()
             f_cell.alignment = Alignment(horizontal="center")
         
         # Total column stat
-        total_f_cell = ws.cell(row=current_row, column=total_col, value=q_stat_formula(total_col))
+        avg_row = current_row - idx
+        total_f_val = q_stat_formula(total_col, avg_row) if label == "% above Avg" else q_stat_formula(total_col)
+        total_f_cell = ws.cell(row=current_row, column=total_col, value=total_f_val)
         total_f_cell.border = get_border()
         total_f_cell.alignment = Alignment(horizontal="center")
         total_f_cell.font = Font(bold=True)
@@ -845,7 +853,7 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{current_row-2}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{r_idx}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):
@@ -859,12 +867,16 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
         # Question stats formulas
         for i in range(len(questions)):
             q_col = 5 + i
-            f_cell = ws.cell(row=current_row, column=q_col, value=q_stat_formula(q_col))
+            avg_row = current_row - idx
+            f_val = q_stat_formula(q_col, avg_row) if label == "% above Avg" else q_stat_formula(q_col)
+            f_cell = ws.cell(row=current_row, column=q_col, value=f_val)
             f_cell.border = get_border()
             f_cell.alignment = Alignment(horizontal="center")
             
         # Total column stat formula
-        total_f_cell = ws.cell(row=current_row, column=total_col, value=q_stat_formula(total_col))
+        avg_row = current_row - idx
+        total_f_val = q_stat_formula(total_col, avg_row) if label == "% above Avg" else q_stat_formula(total_col)
+        total_f_cell = ws.cell(row=current_row, column=total_col, value=total_f_val)
         total_f_cell.border = get_border()
         total_f_cell.alignment = Alignment(horizontal="center")
         total_f_cell.font = Font(bold=True)
@@ -1049,7 +1061,7 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col: f'=IF(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col, r_idx: f'=IF(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):
@@ -1061,11 +1073,15 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
 
         for i in range(6): # Assignments 1-6
             q_col = 4 + i
-            ws.cell(row=current_row, column=q_col, value=q_stat_formula(q_col)).border = get_border()
+            avg_row = current_row - idx
+            f_val = q_stat_formula(q_col, avg_row) if label == "% above Avg" else q_stat_formula(q_col)
+            ws.cell(row=current_row, column=q_col, value=f_val).border = get_border()
             ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
             
         # Total col
-        ws.cell(row=current_row, column=total_col, value=q_stat_formula(total_col)).border = get_border()
+        avg_row = current_row - idx
+        total_f_val = q_stat_formula(total_col, avg_row) if label == "% above Avg" else q_stat_formula(total_col)
+        ws.cell(row=current_row, column=total_col, value=total_f_val).border = get_border()
         ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
         current_row += 1
 

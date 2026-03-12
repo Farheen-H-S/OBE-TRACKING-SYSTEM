@@ -285,20 +285,41 @@ class AttainmentService:
             
             # Combine to match front-end expectation
             def get_tool_val(prefixes, base_key):
+                # Standardize base_key for lookup
+                lookup_base = base_key.upper().strip()
+                
+                # Variations to check
+                keys_to_try = [
+                    lookup_base,
+                    lookup_base.lower(),
+                    lookup_base.replace('_', ''),
+                    lookup_base.replace('_', '-'),
+                    lookup_base.replace('_', ' ')
+                ]
+                
                 for p in prefixes:
-                    # Try exact, case-insensitive, and underscored
-                    keys_to_try = [
-                        f"{p}_{base_key}",
-                        f"{p.upper()}_{base_key.upper()}",
-                        f"{p.lower()}_{base_key.lower()}",
-                        base_key,
-                        base_key.upper(),
-                        base_key.lower()
-                    ]
                     for k in keys_to_try:
-                        if k in tools:
-                            val = tools[k]
-                            return val.get('level', '-') if isinstance(val, dict) else val
+                        # Try Prefix_Key, Key_Prefix, and raw Key
+                        variations = [
+                            f"{p.upper()}_{k.upper()}",
+                            f"{p.lower()}_{k.lower()}",
+                            f"{k.upper()}_{p.upper()}",
+                            f"{k.lower()}_{p.lower()}",
+                            k.upper(),
+                            k.lower()
+                        ]
+                        for v in variations:
+                            if v in tools:
+                                res = tools[v]
+                                return res.get('level', '-') if isinstance(res, dict) else res
+                
+                # Last resort: try substring match if prefix or base_key exists in any tools key
+                for k in tools.keys():
+                    k_upper = str(k).upper()
+                    if lookup_base in k_upper or base_key.upper() in k_upper:
+                        res = tools[k]
+                        return res.get('level', '-') if isinstance(res, dict) else res
+
                 return '-'
 
             prefixes = ['INTERNAL', 'EXTERNAL']
@@ -610,26 +631,36 @@ class AttainmentService:
                                     co_obj = m
                                     break
                                 # Strict numeric suffix matching: "4" matches "CO201.4"
-                                m_match = re.search(r'(\d+)$', co_numStr)
-                                if m_match and m_match.group(1) == target_idx:
-                                    co_obj = m
+                                break
+                        
+                        # Second: if not in tool mapping, search all active COs for this course
+                        if not co_obj:
+                            course_co_list = list(CO.objects.filter(course_id=tool.course_id, is_active=True))
+                            for co in course_co_list:
+                                co_numStr = str(co.co_number).strip().upper()
+                                if co_numStr == co_key.upper().strip():
+                                    resolved_co = co
                                     break
-                            
-                            # Second: if not in tool mapping, search all active COs for this course
-                            if not co_obj:
-                                course_co_list = list(CO.objects.filter(course_id=tool.course_id, is_active=True))
-                                for co in course_co_list:
-                                    co_numStr = str(co.co_number).strip().upper()
-                                    if co_numStr == co_key.upper().strip():
-                                        resolved_co = co
-                                        break
-                                    # Strict suffix match: co_key="CO4", co_number="CO201.4" -> last digits = "4"
-                                    c_match = re.search(r'(\d+)$', co_numStr)
-                                    if c_match and c_match.group(1) == target_idx:
-                                        resolved_co = co
-                                        break
-                        else:
-                            co_obj = mappings.filter(co_id__co_number__iexact=co_key).first()
+                                # Match suffix: "CO1" matches "313301.1" or "CO301.1"
+                                m_match = re.search(r'(\d+)$', co_numStr)
+                                if m_match and (m_match.group(1) == target_idx or m_match.group(1) == str(target_idx)):
+                                    resolved_co = co
+                                    break
+                        
+                        # Last resort: positional fallback by index
+                        if not co_obj and not resolved_co:
+                            clean_key = co_key.upper().strip()
+                            pos = None
+                            match = re.search(r'\d+', clean_key)
+                            if match:
+                                pos = int(match.group()) - 1
+                            elif clean_key == "CO":
+                                pos = 0
+                                
+                            if pos is not None:
+                                course_cos = list(CO.objects.filter(course_id=tool.course_id, is_active=True).order_by('co_number'))
+                                if 0 <= pos < len(course_cos):
+                                    resolved_co = course_cos[pos]
                         
                         # Determine the co_id to record results against
                         if co_obj:
@@ -637,27 +668,8 @@ class AttainmentService:
                         elif resolved_co:
                             co_id = resolved_co.co_id
                         else:
-                            # Last resort: positional fallback by index
-                            clean_key = co_key.upper().strip()
-                            pos = None
-                            if clean_key == "CO":
-                                pos = 0
-                            else:
-                                match = re.search(r'\d+', clean_key)
-                                if match:
-                                    pos = int(match.group()) - 1
-                                elif clean_key.startswith("CO"):
-                                    pos = 0
-                            if pos is not None:
-                                course_cos = list(CO.objects.filter(course_id=tool.course_id).order_by('co_id'))
-                                if 0 <= pos < len(course_cos):
-                                    co_id = course_cos[pos].co_id
-                                else:
-                                    print(f"DEBUG: Positional fallback out of range for '{co_key}' in tool {tool.assessment_name}")
-                                    continue
-                            else:
-                                print(f"DEBUG: Failed to match CO key '{co_key}' (idx: {target_idx}) for tool {tool.assessment_name}")
-                                continue
+                            print(f"DEBUG: Failed to match CO key '{co_key}' for tool {tool.assessment_name}")
+                            continue
                         
                         # Record the resolved result
                         if co_id not in tool_co_results: tool_co_results[co_id] = {}
