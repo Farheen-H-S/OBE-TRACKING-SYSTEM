@@ -420,15 +420,27 @@ class AttainmentService:
                                     for m in group_marks[5:]:
                                         excluded_indices.add(m['idx'])
                     
-                    appearing = any(v not in [None, '', '-'] for v in s_marks.values())
-                    if not appearing: continue
+                    # Find COs touched by this student
+                    touched_cos = set()
+                    for k, v in s_marks.items():
+                        if v not in [None, '', '-']:
+                            try:
+                                if k == 'total':
+                                    if user_cos: touched_cos.add(f"CO{user_cos[0]}")
+                                else:
+                                    q_idx = int(k)
+                                    if q_idx < len(user_cos): touched_cos.add(f"CO{user_cos[q_idx]}")
+                            except: pass
 
                     # Re-implementing the loop to handle 'total' and choice properly
                     for q_key in q_indices:
                         val = s_marks.get(str(q_key))
                         mark_val = 0.0
+                        is_mark_entered = False
                         if val not in [None, '', '-']:
-                            try: mark_val = float(val)
+                            try: 
+                                mark_val = float(val)
+                                is_mark_entered = True
                             except: pass
                         
                         # Mapping to CO
@@ -445,46 +457,47 @@ class AttainmentService:
                         for co_val in co_vals:
                             if co_val:
                                 co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                                if co_key not in co_agg: 
-                                    co_agg[co_key] = {'total_got': 0, 'total_max': 0, 'students_appeared': set()}
-                                
-                                # Determine q_max ...
-                                q_max = 2.0 # Standard fallback for bits
-                                custom_weights = config.get('customWeights', [])
-                                if q_key != 'total' and int(q_key) < len(custom_weights) and custom_weights[int(q_key)] not in [None, '']:
-                                    try: q_max = float(custom_weights[int(q_key)])
-                                    except: pass
-                                elif q_key == 'total':
-                                    q_max = tool.max_marks or 30
-                                else:
-                                    # Fallback to defaults if no custom weight
-                                    if tool.max_marks == 30:
-                                        q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
-                                    elif tool.max_marks == 15:
-                                        # For 15 marker tests, usually 1 for sub, 2 for main? 
-                                        # We'll use frontend's max/10 as the baseline
-                                        q_max = tool.max_marks / 10.0
-                                    elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm:
-                                        q_max = tool.max_marks
+                                # Only process if student touched this CO or it's a Summative assessment
+                                if is_summative or co_key in touched_cos:
+                                    if co_key not in co_agg: 
+                                        co_agg[co_key] = {'total_got': 0, 'total_max': 0, 'students_appeared': set()}
+                                    
+                                    q_max = 2.0 # Standard fallback for bits
+                                    custom_weights = config.get('customWeights', [])
+                                    if q_key != 'total' and int(q_key) < len(custom_weights) and custom_weights[int(q_key)] not in [None, '']:
+                                        try: q_max = float(custom_weights[int(q_key)])
+                                        except: pass
+                                    elif q_key == 'total':
+                                        q_max = tool.max_marks or 30
                                     else:
-                                        q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
+                                        # Fallback to defaults if no custom weight
+                                        if tool.max_marks == 30:
+                                            q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
+                                        elif tool.max_marks == 15:
+                                            q_max = tool.max_marks / 10.0
+                                        elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm:
+                                            q_max = tool.max_marks
+                                        else:
+                                            q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                q_threshold = q_max * threshold_ratio
-                                
-                                # 1. Bit-wise stats (Success Rate for difficulty row)
-                                if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
-                                q_stats[q_key]['appeared'] += 1
-                                q_stats[q_key]['sum'] += mark_val
-                                if mark_val >= q_threshold:
-                                    q_stats[q_key]['success'] += 1
+                                    q_threshold = q_max * threshold_ratio
+                                    
+                                    # 1. Bit-wise stats (Success Rate for difficulty row)
+                                    if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
+                                    if is_mark_entered:
+                                        q_stats[q_key]['appeared'] += 1
+                                        q_stats[q_key]['sum'] += mark_val
+                                        if mark_val >= q_threshold:
+                                            q_stats[q_key]['success'] += 1
 
-                                # 2. CO Aggregation (Marks-based for summary table)
-                                if q_key != 'total' and int(q_key) in excluded_indices:
-                                    pass
-                                else:
-                                    co_agg[co_key]['total_got'] += mark_val
-                                    co_agg[co_key]['total_max'] += q_max
-                                    co_agg[co_key]['students_appeared'].add(student_enroll)
+                                    # 2. CO Aggregation (Marks-based for summary table)
+                                    if q_key != 'total' and int(q_key) in excluded_indices:
+                                        pass
+                                    else:
+                                        co_agg[co_key]['total_got'] += mark_val
+                                        co_agg[co_key]['total_max'] += q_max
+                                        if is_mark_entered:
+                                            co_agg[co_key]['students_appeared'].add(student_enroll)
 
                 # Finalize CO Summary Stats
                 co_stats = {}

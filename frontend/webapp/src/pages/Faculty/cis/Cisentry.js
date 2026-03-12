@@ -128,9 +128,6 @@ const Cisentry = () => {
     const end = start + 6;
 
     const sMarks = marksData[enrollment] || {};
-    const val = parseFloat(sMarks[colIndex]);
-    if (isNaN(val)) return false;
-
     const groupMarks = [];
     for (let i = start; i <= end; i++) {
         const v = parseFloat(sMarks[i]) || 0;
@@ -190,30 +187,49 @@ const Cisentry = () => {
       return validTotals.length ? (totalSum / validTotals.length) : 0;
     })();
 
-    // 5. CO wise Hierarchical Attainment (AGGREGATED with Weighted Class Average)
-    const coStats = {}; // { co_num: { totalGot: 0, totalMax: 0, appearedCount: 0 } }
+    // 5. CO wise Hierarchical Attainment
+    const coStats = {}; // { co_num: { totalGot: 0, totalMax: 0 } }
     const studentAppearedInCO = {}; // { enroll: { co: true } }
 
-    // Identify students who appeared (at least one valid mark entered in any column)
-    const appearingStudents = students.filter(s => {
+    // Aggregated CO marks to totals
+    students.forEach(s => {
+      // Find which COs this student touched
       const sMarks = marksData[s.enrollment_no] || {};
-      return Object.values(sMarks).some(v => v !== undefined && v !== '' && v !== null && !isNaN(parseFloat(v)));
-    });
+      const touchedCOs = new Set();
+      questions.forEach((_, colIndex) => {
+        if (userCos[colIndex] && sMarks[colIndex] !== undefined && sMarks[colIndex] !== '' && sMarks[colIndex] !== null) {
+          touchedCOs.add(userCos[colIndex].toString());
+        }
+      });
 
-    appearingStudents.forEach(s => {
+      // Now accumulate stats
       questions.forEach((_, colIndex) => {
         const coVal = userCos[colIndex];
-        if (coVal && !isMarkExcluded(s.enrollment_no, colIndex)) {
+        if (coVal) {
           const coKey = coVal.toString();
-          const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]) || 0;
-          const weight = parseFloat(weights[colIndex]) || 0;
+          // Best 5 Rule: Denominator must include skipped bits IF they were part of the "Top 5" 
+          // but ONLY if the student touched the paper (for summative) or this specific CO (for formative)
+          const mark = parseFloat(sMarks[colIndex]);
+          const isMarkEntered = !isNaN(mark);
+          const isExcluded = isMarkExcluded(s.enrollment_no, colIndex);
           
-          if (!coStats[coKey]) coStats[coKey] = { totalGot: 0, totalMax: 0 };
-          coStats[coKey].totalGot += mark;
-          coStats[coKey].totalMax += weight;
-          
-          if (!studentAppearedInCO[s.enrollment_no]) studentAppearedInCO[s.enrollment_no] = {};
-          studentAppearedInCO[s.enrollment_no][coKey] = true;
+          if (!isExcluded) {
+            const weight = parseFloat(weights[colIndex]) || 0;
+            const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
+            
+            // For Summative or if student touched this CO, we count the weight against the denominator
+            const isSummative = selectedTool.startsWith('SA') || selectedTool.includes('ESE');
+            if (isSummative || touchedCOs.has(coKey)) {
+              if (!coStats[coKey]) coStats[coKey] = { totalGot: 0, totalMax: 0 };
+              coStats[coKey].totalGot += (isMarkEntered ? mark : 0);
+              coStats[coKey].totalMax += weight;
+              
+              if (isMarkEntered) {
+                if (!studentAppearedInCO[s.enrollment_no]) studentAppearedInCO[s.enrollment_no] = {};
+                studentAppearedInCO[s.enrollment_no][coKey] = true;
+              }
+            }
+          }
         }
       });
     });
