@@ -512,13 +512,37 @@ class AttainmentService:
                         stats['success'] = 0.0
 
                 # Finalize CO Summary Stats
+                # CO attainment = AVERAGE of the question-wise success percentages mapped to this CO
+                # (mirrors the formula in the reference Excel sheet)
                 co_stats = {}
+                # Build a helper: for each CO, accumulate question success% values
+                co_q_percents = {}  # {co_key: [pct1, pct2, ...]}
+                for q_key_raw, stats in q_stats.items():
+                    if q_key_raw == 'total':
+                        continue
+                    try:
+                        q_idx = int(q_key_raw)
+                    except:
+                        continue
+                    if q_idx < len(user_cos) and user_cos[q_idx]:
+                        co_raw = user_cos[q_idx]
+                        co_key = f"CO{co_raw}" if not str(co_raw).upper().startswith("CO") else str(co_raw).upper()
+                        if co_key not in co_q_percents:
+                            co_q_percents[co_key] = []
+                        if stats['appeared'] > 0:
+                            co_q_percents[co_key].append(stats['success'])
+
                 for co_key, agg in co_agg.items():
-                    # Reference doc uses Class Average Percentage for the summary levels
-                    percent = (agg['total_got'] / agg['total_max'] * 100) if agg['total_max'] > 0 else 0
+                    q_pcts = co_q_percents.get(co_key, [])
+                    if q_pcts:
+                        percent = sum(q_pcts) / len(q_pcts)
+                    elif agg['total_max'] > 0:
+                        percent = agg['total_got'] / agg['total_max'] * 100
+                    else:
+                        percent = 0
                     co_stats[co_key] = {
                         'appeared': len(agg['students_appeared']),
-                        'success': round(percent, 2), # Using 'success' field for the final % to avoid schema breakage
+                        'success': round(percent, 2),
                         'marks_percent': round(percent, 2)
                     }
 

@@ -207,9 +207,19 @@ const Cisentry = () => {
     // 3. Final Summaries
     const coAttainmentLevels = {};
     Object.keys(coStats).forEach(coKey => {
-      const stats = coStats[coKey];
-      // CO attainment is calculated directly from Total Marks Got vs Total Max Marks for attempted questions
-      const percent = stats.totalMax > 0 ? (stats.totalGot / stats.totalMax) * 100 : 0;
+      // Calculate CO attainment as the AVERAGE of the Question-wise percentages mapped to this CO
+      let sumPercent = 0;
+      let countColumns = 0;
+      
+      questions.forEach((_, colIndex) => {
+        const coVal = userCos[colIndex];
+        if (coVal && coVal.toString() === coKey && appeared[colIndex] > 0) {
+          sumPercent += parseFloat(percentMoreAvg[colIndex]) || 0;
+          countColumns += 1;
+        }
+      });
+      
+      const percent = countColumns > 0 ? (sumPercent / countColumns) : 0;
       const totalTouchers = Object.keys(studentAppearedInCO).filter(enroll => studentAppearedInCO[enroll][coKey]).length;
 
       coAttainmentLevels[coKey] = {
