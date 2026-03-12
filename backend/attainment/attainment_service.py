@@ -376,9 +376,9 @@ class AttainmentService:
                 
                 q_averages = {}
                 student_list = list(marks_data.keys())
-                is_internal = tool_category.upper() == 'INTERNAL'
+                # Standardize at 40% for all tools to match reference benchmarks
                 is_fa_th = 'FATH' in tool_name_norm or 'CT' in tool_name_norm or 'TEST' in tool_name_norm
-                threshold_ratio = 0.4 if is_internal else 0.5
+                threshold_ratio = 0.4
                 
                 for student_enroll, s_marks in marks_data.items():
                     if not isinstance(s_marks, dict): continue
@@ -418,13 +418,21 @@ class AttainmentService:
                             co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
                             if co_key not in co_stats: co_stats[co_key] = {'success': 0, 'appeared': 0}
                             
-                            q_max = 25
-                            if q_idx < len(config.get('customWeights', [])):
-                                try: q_max = float(config.get('customWeights')[q_idx])
+                            # Determine q_max with priority: 1. customWeights 2. Default logic
+                            q_max = 25 # Fallback
+                            custom_weights = config.get('customWeights', [])
+                            if q_idx < len(custom_weights) and custom_weights[q_idx] not in [None, '']:
+                                try: q_max = float(custom_weights[q_idx])
                                 except: pass
-                            elif tool.max_marks:
-                                q_max = tool.max_marks / len(user_cos) if len(user_cos) > 0 else tool.max_marks
-                            
+                            else:
+                                # Default logic replication from frontend (Cisentry.js)
+                                if is_fa_th and tool.max_marks == 30:
+                                    q_max = 2.0 if (q_idx % 14 < 7) else 4.0
+                                elif 'PR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA' in tool_name_norm:
+                                    q_max = tool.max_marks
+                                elif tool.max_marks:
+                                    q_max = tool.max_marks / (len(user_cos) if len(user_cos) > 0 else 1)
+
                             q_threshold = q_max * threshold_ratio
                             co_stats[co_key]['appeared'] += 1
                             if mark_val >= q_threshold:

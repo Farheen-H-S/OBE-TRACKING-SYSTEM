@@ -164,9 +164,8 @@ const Cisentry = () => {
     // 3. Number of Students meeting threshold (>= 50% of weight or based on class average if requested)
     const getSuccessThreshold = (colIndex) => {
       const weight = parseFloat(weights[colIndex]) || 0;
-      // All Formative Assessments and Class Tests use 40% threshold
-      if (selectedTool.startsWith('FA-') || selectedTool.startsWith('CT') || selectedTool.startsWith('SLA')) return weight * 0.40;
-      return weight * 0.50;
+      // All Assessments use 40% threshold as per reference benchmark synchronization
+      return weight * 0.40;
     };
 
     const equalOrMoreAvg = questions.map((_, colIndex) => {
@@ -1834,7 +1833,7 @@ const Cisentry = () => {
                             <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{(attainmentStats.totalAverage || 0).toFixed(2)}</td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student meeting threshold ({selectedTool.startsWith('FA-TH-CT') ? '40%' : '50%'})</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student meeting threshold (40%)</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.percentMoreAvg.map((val, i) => (
                               <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>
