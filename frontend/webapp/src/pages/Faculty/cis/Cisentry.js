@@ -219,28 +219,54 @@ const Cisentry = () => {
 
     // 3. Final Summaries
     const coAttainmentLevels = {};
-    Object.keys(coStats).forEach(coKey => {
-      // Calculate CO attainment as the AVERAGE of the Question-wise percentages mapped to this CO
+    const isSummative = selectedTool === 'SA-PR' || selectedTool === 'SA-TH';
+
+    if (isSummative && courseOutcomes.length > 0) {
+      // Replicate attainment for ALL course COs
+      // Summative tools usually have only 1 main column or we take the avg of entered ones
       let sumPercent = 0;
       let countColumns = 0;
-      
       questions.forEach((_, colIndex) => {
-        const coVal = userCos[colIndex];
-        if (coVal && coVal.toString() === coKey && appeared[colIndex] > 0) {
+        if (appeared[colIndex] > 0) {
           sumPercent += parseFloat(percentMoreAvg[colIndex]) || 0;
           countColumns += 1;
         }
       });
-      
-      const percent = countColumns > 0 ? (sumPercent / countColumns) : 0;
-      const totalTouchers = Object.keys(studentAppearedInCO).filter(enroll => studentAppearedInCO[enroll][coKey]).length;
+      const avgPercent = countColumns > 0 ? (sumPercent / countColumns) : 0;
+      const totalAppeared = students.length; // Use total class size for summative usually
 
-      coAttainmentLevels[coKey] = {
-        percent: percent.toFixed(2),
-        level: ((percent / 100) * 3).toFixed(2),
-        appeared: totalTouchers
-      };
-    });
+      courseOutcomes.forEach(co => {
+        const coKey = co.co_number || `CO${co.co_id}`;
+        coAttainmentLevels[coKey] = {
+          percent: avgPercent.toFixed(2),
+          level: ((avgPercent / 100) * 3).toFixed(2),
+          appeared: appeared[0] || totalAppeared // Use appeared from first column or class
+        };
+      });
+    } else {
+      Object.keys(coStats).forEach(coKey => {
+        // Calculate CO attainment as the AVERAGE of the Question-wise percentages mapped to this CO
+        let sumPercent = 0;
+        let countColumns = 0;
+        
+        questions.forEach((_, colIndex) => {
+          const coVal = userCos[colIndex];
+          if (coVal && coVal.toString() === coKey && appeared[colIndex] > 0) {
+            sumPercent += parseFloat(percentMoreAvg[colIndex]) || 0;
+            countColumns += 1;
+          }
+        });
+        
+        const percent = countColumns > 0 ? (sumPercent / countColumns) : 0;
+        const totalTouchers = Object.keys(studentAppearedInCO).filter(enroll => studentAppearedInCO[enroll][coKey]).length;
+
+        coAttainmentLevels[coKey] = {
+          percent: percent.toFixed(2),
+          level: ((percent / 100) * 3).toFixed(2),
+          appeared: totalTouchers
+        };
+      });
+    }
 
     const totalAverage = (() => {
       // Total Average should also reflect attempted mastery to reach 98.74% precision

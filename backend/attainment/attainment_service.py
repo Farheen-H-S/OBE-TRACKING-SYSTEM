@@ -205,7 +205,7 @@ class AttainmentService:
         
         # Check for CourseATR
         from .models import CourseATR
-        course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
+        course_atr = CourseATR.objects.filter(ay_query, course_id=course_id).first()
         
         if course_atr:
             status = 'submitted'
@@ -278,18 +278,32 @@ class AttainmentService:
             target_val = target_obj.target_value if target_obj else 3.0
             
             # Combine to match front-end expectation
+            def get_tool_val(prefixes, base_key):
+                for p in prefixes:
+                    k = f"{p}_{base_key}"
+                    if k in tools:
+                        val = tools[k]
+                        return val.get('level', '-') if isinstance(val, dict) else val
+                
+                # Try raw key
+                raw_val = tools.get(base_key)
+                if raw_val is not None:
+                    return raw_val.get('level', '-') if isinstance(raw_val, dict) else raw_val
+                return '-'
+
+            prefixes = ['INTERNAL', 'EXTERNAL']
             co_preview = {
                 'co_id': co.co_id,
                 'co_number': formatted_co,
                 'tools': {
-                    'fa_th_1': tools.get('INTERNAL_FA_TH_1', tools.get('EXTERNAL_FA_TH_1', tools.get('FA_TH_1', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_FA_TH_1', tools.get('EXTERNAL_FA_TH_1', tools.get('FA_TH_1'))), dict) else tools.get('INTERNAL_FA_TH_1', tools.get('EXTERNAL_FA_TH_1', tools.get('FA_TH_1', '-'))),
-                    'fa_th_2': tools.get('INTERNAL_FA_TH_2', tools.get('EXTERNAL_FA_TH_2', tools.get('FA_TH_2', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_FA_TH_2', tools.get('EXTERNAL_FA_TH_2', tools.get('FA_TH_2'))), dict) else tools.get('INTERNAL_FA_TH_2', tools.get('EXTERNAL_FA_TH_2', tools.get('FA_TH_2', '-'))),
-                    'fa_pr': tools.get('INTERNAL_FA_PR', tools.get('EXTERNAL_FA_PR', tools.get('FA_PR', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_FA_PR', tools.get('EXTERNAL_FA_PR', tools.get('FA_PR'))), dict) else tools.get('INTERNAL_FA_PR', tools.get('EXTERNAL_FA_PR', tools.get('FA_PR', '-'))),
-                    'sla': tools.get('INTERNAL_SLA', tools.get('EXTERNAL_SLA', tools.get('SLA', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_SLA', tools.get('EXTERNAL_SLA', tools.get('SLA'))), dict) else tools.get('INTERNAL_SLA', tools.get('EXTERNAL_SLA', tools.get('SLA', '-'))),
-                    'sa_th': tools.get('INTERNAL_SA_TH', tools.get('EXTERNAL_SA_TH', tools.get('SA_TH', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_SA_TH', tools.get('EXTERNAL_SA_TH', tools.get('SA_TH'))), dict) else tools.get('INTERNAL_SA_TH', tools.get('EXTERNAL_SA_TH', tools.get('SA_TH', '-'))),
-                    'sa_pr': tools.get('INTERNAL_SA_PR', tools.get('EXTERNAL_SA_PR', tools.get('SA_PR', {}))).get('level', '-') if isinstance(tools.get('INTERNAL_SA_PR', tools.get('EXTERNAL_SA_PR', tools.get('SA_PR'))), dict) else tools.get('INTERNAL_SA_PR', tools.get('EXTERNAL_SA_PR', tools.get('SA_PR', '-'))),
+                    'fa_th_1': get_tool_val(prefixes, 'FA_TH_1'),
+                    'fa_th_2': get_tool_val(prefixes, 'FA_TH_2'),
+                    'fa_pr': get_tool_val(prefixes, 'FA_PR'),
+                    'sla': get_tool_val(prefixes, 'SLA'),
+                    'sa_th': get_tool_val(prefixes, 'SA_TH'),
+                    'sa_pr': get_tool_val(prefixes, 'SA_PR'),
                     'ces': co_indirect.get(co.co_id, '-'),
-                    'tool_details': {k.lower(): v for k, v in tools.items()} # Normalize keys to lowercase for frontend
+                    'tool_details': {k.lower(): v for k, v in tools.items()} 
                 },
                 'overall_attainment': att_rec.overall_attainment if att_rec else 0,
                 'target': target_val,
@@ -350,19 +364,19 @@ class AttainmentService:
             # Mappings for co_id association
             mappings = AssessmentCOMapping.objects.filter(assessment_id=tool)
             
-            # Summative Auto-Map Fallback
+            # Summative Auto-Map
             # SA marks evaluate the entire course holistically, so they map to all active COs.
-            is_summative = any(x in tool_key for x in ['SA_TH', 'SA_PR']) or 'ESE' in tool_name_norm or 'FINAL' in tool_name_norm
+            is_summative = any(x in tool_key for x in ['SA_TH', 'SA_PR']) or any(x in tool_name_norm for x in ['ESE', 'FINAL', 'SUMMATIVE'])
             sa_auto_mapped = False
             
             if is_summative:
                 course_cos = CO.objects.filter(course_id=tool.course_id, is_active=True)
-                # Create mock mapping objects to fit the whole-tool loop below and bypass any bad stored mappings
                 mappings = [type('obj', (object,), {'co_id_id': co.co_id, 'co_id': co})() for co in course_cos]
-                sa_auto_mapped = True  # Force MarksEntry path below
+                sa_auto_mapped = True
             elif not mappings.exists():
                 continue
             
+            # Use granular marks if available, except for summative which usually uses total
             if marks_data and user_cos and not sa_auto_mapped:
                 # User's Hierarchical Logic: Group success by CO
                 co_stats = {} # {co_num: {'success': 0, 'appeared': 0}}

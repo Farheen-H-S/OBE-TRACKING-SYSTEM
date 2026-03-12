@@ -56,6 +56,14 @@ class SubmitATRView(APIView):
 
         Course.objects.filter(pk=course_id).update(course_atr=course_atr)
         
+        # Ensure CourseATR record exists for dashboard status tracking
+        from attainment.models import CourseATR
+        CourseATR.objects.update_or_create(
+            course_id_id=course_id,
+            academic_year=academic_year or "2025-26",
+            defaults={'action_proposed': course_atr, 'atr_status': 'submitted'}
+        )
+        
         if academic_year:
             # Update all COAttainment records for this course and year to 'submitted'
             # if they were pending or required an ATR.

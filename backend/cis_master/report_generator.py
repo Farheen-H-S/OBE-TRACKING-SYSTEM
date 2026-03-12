@@ -287,20 +287,27 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
         ws.cell(row=row, column=2).alignment = Alignment(horizontal="center")
         
         # Internal
-        ct1_obj = tools.get('FA_TH_1', "-")
-        ct1 = ct1_obj.get('level', "-") if isinstance(ct1_obj, dict) else ct1_obj
-        
-        ct2_obj = tools.get('FA_TH_2', "-")
-        ct2 = ct2_obj.get('level', "-") if isinstance(ct2_obj, dict) else ct2_obj
-        
-        sla_obj = tools.get('SLA', "-")
-        sla = sla_obj.get('level', "-") if isinstance(sla_obj, dict) else sla_obj
-        
-        fa_pr_obj = tools.get('FA_PR', "-")
-        fa_pr = fa_pr_obj.get('level', "-") if isinstance(fa_pr_obj, dict) else fa_pr_obj
-        
-        sa_pr_int_obj = tools.get('SA_PR', "-")
-        sa_pr_int = sa_pr_int_obj.get('level', "-") if isinstance(sa_pr_int_obj, dict) else sa_pr_int_obj
+        def get_t_val(base_key, preferred_prefix=None):
+            if preferred_prefix:
+                k = f"{preferred_prefix}_{base_key}"
+                if k in tools:
+                    val = tools[k]
+                    return val.get('level', "-") if isinstance(val, dict) else val
+            
+            for p in ['INTERNAL', 'EXTERNAL']:
+                k = f"{p}_{base_key}"
+                if k in tools:
+                    val = tools[k]
+                    return val.get('level', "-") if isinstance(val, dict) else val
+            
+            raw = tools.get(base_key, "-")
+            return raw.get('level', "-") if isinstance(raw, dict) else raw
+
+        ct1 = get_t_val('FA_TH_1', 'INTERNAL')
+        ct2 = get_t_val('FA_TH_2', 'INTERNAL')
+        sla = get_t_val('SLA')
+        fa_pr = get_t_val('FA_PR', 'INTERNAL')
+        sa_pr_int = get_t_val('SA_PR', 'INTERNAL')
         
         ws.cell(row=row, column=3, value=ct1).border = get_border()
         ws.cell(row=row, column=3).alignment = Alignment(horizontal="center")
@@ -318,11 +325,8 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
         ws.cell(row=row, column=8, value=round(avg_i, 2) if avg_i else "-").border = get_border()
         
         # External
-        sa_th_obj = tools.get('SA_TH', "-")
-        sa_th = sa_th_obj.get('level', "-") if isinstance(sa_th_obj, dict) else sa_th_obj
-        
-        sa_pr_ext_obj = tools.get('SA_PR', "-")
-        sa_pr_ext = sa_pr_ext_obj.get('level', "-") if isinstance(sa_pr_ext_obj, dict) else sa_pr_ext_obj
+        sa_th = get_t_val('SA_TH', 'EXTERNAL')
+        sa_pr_ext = get_t_val('SA_PR', 'EXTERNAL')
         
         ws.cell(row=row, column=10, value=sa_th).border = get_border()
         ws.cell(row=row, column=10).alignment = Alignment(horizontal="center")
