@@ -129,6 +129,15 @@ class DirectCISReportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Trigger attainment calculation before generating report
+        from attainment.attainment_service import AttainmentService
+        try:
+            # We don't necessarily need the return value here, just trigger it
+            AttainmentService.calculate_attainment(course_id, academic_year)
+        except Exception as e:
+            # Log error but proceed if possible, or handle specifically
+            print(f"Attainment calculation error: {e}")
+
         wb = generate_cis_report(course_id, academic_year, batch_id)
         if not wb:
             return Response(

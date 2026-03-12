@@ -377,8 +377,54 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
         total_att_range = f"{get_column_letter(16)}{start_data_row}:{get_column_letter(16)}{end_data_row}"
         gap_range = f"{get_column_letter(18)}{start_data_row}:{get_column_letter(18)}{end_data_row}"
         
-        att_avg_cell = ws.cell(row=row, column=16, value=f"=AVERAGE({total_att_range})")
-        gap_avg_cell = ws.cell(row=row, column=18, value=f"=AVERAGE({gap_range})")
+        
+        all_att = []
+        all_gaps = []
+        for co_item in cos:
+            t_data = tool_data.get(co_item.co_id, {})
+            def local_get_t_val(base_key, preferred_prefix=None):
+                if preferred_prefix:
+                    k = f"{preferred_prefix}_{base_key}"
+                    if k in t_data:
+                        val = t_data[k]
+                        return val.get('level', 0) if isinstance(val, dict) else val
+                for p in ['INTERNAL', 'EXTERNAL']:
+                    k = f"{p}_{base_key}"
+                    if k in t_data:
+                        val = t_data[k]
+                        return val.get('level', 0) if isinstance(val, dict) else val
+                raw = t_data.get(base_key, 0)
+                return raw.get('level', 0) if isinstance(raw, dict) else (raw if isinstance(raw, (int, float)) else 0)
+
+            # Re-calculate exactly as in the loop
+            l_ct1 = local_get_t_val('FA_TH_1', 'INTERNAL')
+            l_ct2 = local_get_t_val('FA_TH_2', 'INTERNAL')
+            l_sla = local_get_t_val('SLA')
+            l_fa_pr = local_get_t_val('FA_PR', 'INTERNAL')
+            l_sa_pr_int = local_get_t_val('SA_PR', 'INTERNAL')
+            l_int_vals = [v for v in [l_ct1, l_ct2, l_sla, l_fa_pr, l_sa_pr_int] if isinstance(v, (int, float))]
+            l_avg_i = sum(l_int_vals)/len(l_int_vals) if l_int_vals else 0
+            
+            l_sa_th = local_get_t_val('SA_TH', 'EXTERNAL')
+            l_sa_pr_ext = local_get_t_val('SA_PR', 'EXTERNAL')
+            l_ext_vals = [v for v in [l_sa_th, l_sa_pr_ext] if isinstance(v, (int, float))]
+            l_avg_b = sum(l_ext_vals)/len(l_ext_vals) if l_ext_vals else 0
+            
+            l_direct_att = 0.4 * l_avg_i + 0.6 * l_avg_b
+            l_ces_val = co_indirect.get(co_item.co_id, 0)
+            if not isinstance(l_ces_val, (int, float)): l_ces_val = 0
+            l_total_att = 0.8 * l_direct_att + 0.2 * l_ces_val
+            all_att.append(l_total_att)
+            
+            l_target = COTarget.objects.filter(ay_query, course_id=course, co_id=co_item).first()
+            l_t_val = l_target.target_value if l_target else 2.86
+            all_gaps.append(l_t_val - l_total_att)
+
+        avg_total_att = sum(all_att) / len(all_att) if all_att else 0
+        avg_gap = sum(all_gaps) / len(all_gaps) if all_gaps else 0
+        
+        att_avg_cell = ws.cell(row=row, column=16, value=round(avg_total_att, 2))
+        gap_avg_cell = ws.cell(row=row, column=18, value=round(avg_gap, 2))
         
         for c_idx in [16, 17, 18, 19]:
             cell = ws.cell(row=row, column=c_idx)
@@ -608,43 +654,64 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
         if total_marks is not None: marks_list.append(total_marks)
         current_row += 1
 
-    # Statistical Footer
-    start_marks_row = next_row + 4
-    end_marks_row = current_row - 1
+    # Calculate stats in Python instead of Excel formulas
+    appeared_count = len(marks_list)
+    avg_total = sum(marks_list) / appeared_count if appeared_count > 0 else 0
     
-    stats_rows = [
-        ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
-        ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{r_idx}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
-    ]
+    # Average Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Average")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
 
-    for idx, (label, q_stat_formula) in enumerate(stats_rows):
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
-        lbl_cell = ws.cell(row=current_row, column=1, value=label)
-        lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
-        lbl_cell.border = get_border()
-        lbl_cell.font = Font(bold=True); lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+    for i in range(len(practicals)):
+        q_col = 5 + i
+        q_avg = sum(q_marks_collector[i]) / len(q_marks_collector[i]) if q_marks_collector[i] else 0
+        ws.cell(row=current_row, column=q_col, value=round(q_avg, 2)).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    
+    ws.cell(row=current_row, column=total_col, value=round(avg_total, 2)).border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
 
-        for i in range(len(practicals)):
-            q_col = 5 + i
-            # Use specific current_row-2 based on label to avoid circular reference in COUNTIF
-            # The criteria is ALWAYS the Average row (which is current_row - something)
-            # Row mapping: current_row (Average), current_row+1 (Appeared), current_row+2 (% above Avg)
-            # So criteria for % above Avg is current_row (the first row in this loop)
-            avg_row = current_row - idx 
-            f_val = q_stat_formula(q_col, avg_row) if label == "% above Avg" else q_stat_formula(q_col)
-            f_cell = ws.cell(row=current_row, column=q_col, value=f_val)
-            f_cell.border = get_border()
-            f_cell.alignment = Alignment(horizontal="center")
-        
-        # Total column stat
-        avg_row = current_row - idx
-        total_f_val = q_stat_formula(total_col, avg_row) if label == "% above Avg" else q_stat_formula(total_col)
-        total_f_cell = ws.cell(row=current_row, column=total_col, value=total_f_val)
-        total_f_cell.border = get_border()
-        total_f_cell.alignment = Alignment(horizontal="center")
-        total_f_cell.font = Font(bold=True)
-        current_row += 1
+    # Total Appeared Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Total Appeared")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(len(practicals)):
+        q_col = 5 + i
+        ws.cell(row=current_row, column=q_col, value=len(q_marks_collector[i])).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    
+    ws.cell(row=current_row, column=total_col, value=appeared_count).border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
+
+    # % above Avg Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="% above Avg")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(len(practicals)):
+        q_col = 5 + i
+        q_list = q_marks_collector[i]
+        q_avg = sum(q_list) / len(q_list) if q_list else 0
+        success = len([m for m in q_list if m >= q_avg]) if q_list else 0
+        perc = (success / len(q_list) * 100) if q_list else 0
+        ws.cell(row=current_row, column=q_col, value=f"{round(perc, 2)}%").border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+
+    total_success = len([m for m in marks_list if m >= avg_total]) if marks_list else 0
+    total_perc = (total_success / appeared_count * 100) if appeared_count > 0 else 0
+    ws.cell(row=current_row, column=total_col, value=f"{round(total_perc, 2)}%").border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
 
     # CO Attainment Row
     ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
@@ -838,45 +905,64 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
         if total_val is not None: marks_list.append(total_val)
         current_row += 1
 
-    # Statistical Footer
-    start_marks_row = h_row + 3
-    end_marks_row = current_row - 1
+    # Calculate stats in Python instead of Excel formulas
+    appeared_count = len(marks_list)
+    avg_total = sum(marks_list) / appeared_count if appeared_count > 0 else 0
     
-    # Total column formulas
-    total_col_letter = get_column_letter(total_col)
-    total_marks_range = f"{total_col_letter}{start_marks_row}:{total_col_letter}{end_marks_row}"
-    
-    stats_rows = [
-        ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
-        ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{r_idx}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
-    ]
+    # Average Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Average")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
 
-    for idx, (label, q_stat_formula) in enumerate(stats_rows):
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
-        lbl_cell = ws.cell(row=current_row, column=1, value=label)
-        lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
-        lbl_cell.border = get_border()
-        lbl_cell.font = Font(bold=True)
-        lbl_cell.alignment = Alignment(horizontal="right", indent=1)
-        
-        # Question stats formulas
-        for i in range(len(questions)):
-            q_col = 5 + i
-            avg_row = current_row - idx
-            f_val = q_stat_formula(q_col, avg_row) if label == "% above Avg" else q_stat_formula(q_col)
-            f_cell = ws.cell(row=current_row, column=q_col, value=f_val)
-            f_cell.border = get_border()
-            f_cell.alignment = Alignment(horizontal="center")
-            
-        # Total column stat formula
-        avg_row = current_row - idx
-        total_f_val = q_stat_formula(total_col, avg_row) if label == "% above Avg" else q_stat_formula(total_col)
-        total_f_cell = ws.cell(row=current_row, column=total_col, value=total_f_val)
-        total_f_cell.border = get_border()
-        total_f_cell.alignment = Alignment(horizontal="center")
-        total_f_cell.font = Font(bold=True)
-        current_row += 1
+    for i in range(len(questions)):
+        q_col = 5 + i
+        q_avg = sum(q_marks_collector[i]) / len(q_marks_collector[i]) if q_marks_collector[i] else 0
+        ws.cell(row=current_row, column=q_col, value=round(q_avg, 2)).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    
+    ws.cell(row=current_row, column=total_col, value=round(avg_total, 2)).border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
+
+    # Total Appeared Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Total Appeared")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(len(questions)):
+        q_col = 5 + i
+        ws.cell(row=current_row, column=q_col, value=len(q_marks_collector[i])).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    
+    ws.cell(row=current_row, column=total_col, value=appeared_count).border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
+
+    # % above Avg Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="% above Avg")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(len(questions)):
+        q_col = 5 + i
+        q_list = q_marks_collector[i]
+        q_avg = sum(q_list) / len(q_list) if q_list else 0
+        success = len([m for m in q_list if m >= q_avg]) if q_list else 0
+        perc = (success / len(q_list) * 100) if q_list else 0
+        ws.cell(row=current_row, column=q_col, value=f"{round(perc, 2)}%").border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+
+    total_success = len([m for m in marks_list if m >= avg_total]) if marks_list else 0
+    total_perc = (total_success / appeared_count * 100) if appeared_count > 0 else 0
+    ws.cell(row=current_row, column=total_col, value=f"{round(total_perc, 2)}%").border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
 
     # Attainment Level Row (Requires Python logic for the threshold or a complex IF formula)
     ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
@@ -1049,37 +1135,66 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
         ws.cell(row=current_row, column=10).alignment = Alignment(horizontal="center")
         current_row += 1
 
-    # Statistical Footer
-    start_marks_row = next_row + 1
-    end_marks_row = current_row - 1
+    # Calculate stats in Python instead of Excel formulas
     total_col = 10
+    appeared_count = len(marks_list)
+    avg_total_val = sum(marks_list) / appeared_count if appeared_count > 0 else 0
+    practicals_count = 6 # As per range(6) in original code
     
-    stats_rows = [
-        ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
-        ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{r_idx}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
-    ]
+    # Average Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Average")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
 
-    for idx, (label, q_stat_formula) in enumerate(stats_rows):
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
-        lbl_cell = ws.cell(row=current_row, column=1, value=label)
-        lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
-        lbl_cell.border = get_border()
-        lbl_cell.font = Font(bold=True); lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+    for i in range(practicals_count):
+        q_col = 4 + i
+        q_avg = sum(q_marks_collector[i]) / len(q_marks_collector[i]) if q_marks_collector[i] else 0
+        ws.cell(row=current_row, column=q_col, value=round(q_avg, 2)).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    
+    ws.cell(row=current_row, column=total_col, value=round(avg_total_val, 2)).border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
 
-        for i in range(6): # Assignments 1-6
-            q_col = 4 + i
-            avg_row = current_row - idx
-            f_val = q_stat_formula(q_col, avg_row) if label == "% above Avg" else q_stat_formula(q_col)
-            ws.cell(row=current_row, column=q_col, value=f_val).border = get_border()
-            ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
-            
-        # Total col
-        avg_row = current_row - idx
-        total_f_val = q_stat_formula(total_col, avg_row) if label == "% above Avg" else q_stat_formula(total_col)
-        ws.cell(row=current_row, column=total_col, value=total_f_val).border = get_border()
-        ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
-        current_row += 1
+    # Total Appeared Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Total Appeared")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(practicals_count):
+        q_col = 4 + i
+        ws.cell(row=current_row, column=q_col, value=len(q_marks_collector[i])).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    
+    ws.cell(row=current_row, column=total_col, value=appeared_count).border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
+
+    # % above Avg Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="% above Avg")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(practicals_count):
+        q_col = 4 + i
+        q_list = q_marks_collector[i]
+        q_avg = sum(q_list) / len(q_list) if q_list else 0
+        success = len([m for m in q_list if m >= q_avg]) if q_list else 0
+        perc = (success / len(q_list) * 100) if q_list else 0
+        ws.cell(row=current_row, column=q_col, value=f"{round(perc, 2)}%").border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+
+    total_success = len([m for m in marks_list if m >= avg_total_val]) if marks_list else 0
+    total_perc = (total_success / appeared_count * 100) if appeared_count > 0 else 0
+    ws.cell(row=current_row, column=total_col, value=f"{round(total_perc, 2)}%").border = get_border()
+    ws.cell(row=current_row, column=total_col).alignment = Alignment(horizontal="center")
+    current_row += 1
 
     # Attainment Level Row
     ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
@@ -1208,23 +1323,36 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
     start_answers_row = next_row + 1
     end_answers_row = current_row - 1
     
-    stats_rows = [
-        ("Average Rating", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_answers_row}:{get_column_letter(q_col)}{end_answers_row}), 2), 0)"),
-        ("Total Responses", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_answers_row}:{get_column_letter(q_col)}{end_answers_row})"),
-    ]
+    # Calculate stats in Python
+    appeared_count = len(marks_list)
+    
+    # Average Rating Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Average Rating")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
 
-    for idx, (label, q_stat_formula) in enumerate(stats_rows):
-        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
-        lbl_cell = ws.cell(row=current_row, column=1, value=label)
-        lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
-        lbl_cell.border = get_border()
-        lbl_cell.font = Font(bold=True); lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+    for i in range(len(questions)):
+        q_col = 4 + i
+        q_list = q_marks_collector[i]
+        q_avg = sum(q_list) / len(q_list) if q_list else 0
+        ws.cell(row=current_row, column=q_col, value=round(q_avg, 2)).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    current_row += 1
 
-        for i in range(len(questions)):
-            q_col = 4 + i
-            ws.cell(row=current_row, column=q_col, value=q_stat_formula(q_col)).border = get_border()
-            ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
-        current_row += 1
+    # Total Responses Row
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+    lbl_cell = ws.cell(row=current_row, column=1, value="Total Responses")
+    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
+    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+
+    for i in range(len(questions)):
+        q_col = 4 + i
+        ws.cell(row=current_row, column=q_col, value=len(q_marks_collector[i])).border = get_border()
+        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
+    current_row += 1
     
     current_row += 1
     # CO Summary Table for CES
@@ -1498,30 +1626,40 @@ def generate_cis_report(course_id, academic_year=None, batch_id=None):
         
     faculty_name = assignment.faculty_id.name if assignment and assignment.faculty_id else "Not Assigned"
 
-    # Robust student fetching: prioritize matching semester, fallback to class_year if possible
-    student_filters = {
-        'program_id': course.program_id,
-        'semester': course.semester,
-        'is_active': True
-    }
+    # Robust student fetching: prioritize students who have marks in this course
+    # This prevents blank past reports after students are promoted to a new semester
+    from assessments.models import MarksEntry
+    marks_students = MarksEntry.objects.filter(
+        assessment_id__course_id=course,
+        assessment_id__academic_year=ay_clean # Use clean AY for assessment matching
+    ).values_list('student_id', flat=True).distinct()
     
-    if batch_id and batch_id != 'All':
-        if isinstance(batch_id, str) and '-' in batch_id:
-            from academics.models import Batch
-            year = batch_id.split('-')[0].strip()
-            batch = Batch.objects.filter(batch_year=year).first()
-            if batch:
-                student_filters['batch_id'] = batch.batch_id
-        else:
-            student_filters['batch_id'] = batch_id
+    if marks_students.exists():
+        students = list(Student.objects.filter(student_id__in=marks_students))
+    else:
+        # Fallback to current enrollment logic if no marks found yet
+        student_filters = {
+            'program_id': course.program_id,
+            'semester': course.semester,
+            'is_active': True
+        }
+        
+        if batch_id and batch_id != 'All':
+            if isinstance(batch_id, str) and '-' in batch_id:
+                from academics.models import Batch
+                year = batch_id.split('-')[0].strip()
+                batch = Batch.objects.filter(batch_year=year).first()
+                if batch:
+                    student_filters['batch_id'] = batch.batch_id
+            else:
+                student_filters['batch_id'] = batch_id
 
-    students = list(Student.objects.filter(**student_filters))
-    if not students:
-        # Fallback: remove semester and try matching by class_year (e.g., SY)
-        student_filters.pop('semester', None)
-        if course.class_year:
-            student_filters['class_year'] = course.class_year
         students = list(Student.objects.filter(**student_filters))
+        if not students:
+            student_filters.pop('semester', None)
+            if course.class_year:
+                student_filters['class_year'] = course.class_year
+            students = list(Student.objects.filter(**student_filters))
 
     students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
 
