@@ -1629,20 +1629,28 @@ def generate_cis_report(course_id, academic_year=None, batch_id=None):
     # Robust student fetching: prioritize students who have marks in this course
     # This prevents blank past reports after students are promoted to a new semester
     from assessments.models import MarksEntry
+    
+    # Use the robust ay_query for assessment matching to find students
+    # We prefix the query with assessment_id__ to filter MarksEntry based on Assessment's AY
+    ay_query_marks = models.Q(assessment_id__academic_year=ay_val) | models.Q(assessment_id__academic_year=ay_clean) | models.Q(assessment_id__academic_year=ay_spaced)
+    
     marks_students = MarksEntry.objects.filter(
-        assessment_id__course_id=course,
-        assessment_id__academic_year=ay_clean # Use clean AY for assessment matching
-    ).values_list('student_id', flat=True).distinct()
+        assessment_id__course_id=course
+    ).filter(ay_query_marks).values_list('student_id', flat=True).distinct()
     
     if marks_students.exists():
         students = list(Student.objects.filter(student_id__in=marks_students))
     else:
         # Fallback to current enrollment logic if no marks found yet
+        # We ignore semester when batch_id is present to account for promoted students
         student_filters = {
             'program_id': course.program_id,
-            'semester': course.semester,
             'is_active': True
         }
+        
+        # Only use semester if we don't have a batch to narrow it down
+        if not batch_id or batch_id == 'All':
+            student_filters['semester'] = course.semester
         
         if batch_id and batch_id != 'All':
             if isinstance(batch_id, str) and '-' in batch_id:
