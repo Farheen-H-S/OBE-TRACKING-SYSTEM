@@ -486,8 +486,8 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # 1. Bit-wise stats (Success Rate for difficulty row)
-                                    q_threshold = q_max * threshold_ratio
+                                    # Excel uses integer thresholds, rounded down, minimum 1 for small bits
+                                    q_threshold = max(1, int(q_max * threshold_ratio))
                                     if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
                                     if is_mark_entered:
                                         q_stats[q_key]['appeared'] += 1

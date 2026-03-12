@@ -160,8 +160,8 @@ const Cisentry = () => {
       const qSum = attemptedMarks.reduce((a, b) => a + b, 0);
       const qAvg = attemptedMarks.length ? (qSum / attemptedMarks.length) : 0;
       const weight = parseFloat(weights[colIndex]) || 0;
-      // Use standard 40% of Max Mark as the passing threshold
-      const threshold = weight * 0.40;
+      // Excel uses integer thresholds, rounded down, minimum 1 for small bits
+      const threshold = Math.max(1, Math.floor(weight * 0.40));
       
       const successCount = attemptedMarks.filter(m => m >= threshold).length;
 
