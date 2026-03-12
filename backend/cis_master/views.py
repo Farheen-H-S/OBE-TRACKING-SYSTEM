@@ -54,27 +54,34 @@ class SubmitATRView(APIView):
         from attainment.models import COAttainment
         from django.db import models
 
+        # Ensure we handle AY spacing consistently
+        ay_clean = academic_year.replace(' ', '') if academic_year else ""
+        ay_spaced = ay_clean.replace('-', ' - ')
+        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        
+        # Update Course model (Legacy fallback)
         Course.objects.filter(pk=course_id).update(course_atr=course_atr)
         
         # Ensure CourseATR record exists for dashboard status tracking
         from attainment.models import CourseATR
-        CourseATR.objects.update_or_create(
-            course_id_id=course_id,
-            academic_year=academic_year or "2025-26",
-            defaults={'action_proposed': course_atr, 'atr_status': 'submitted'}
-        )
-        
-        if academic_year:
-            # Update all COAttainment records for this course and year to 'submitted'
-            # if they were pending or required an ATR.
-            ay_clean = academic_year.replace(' ', '')
-            ay_spaced = ay_clean.replace('-', ' - ')
-            ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
-            
-            COAttainment.objects.filter(ay_query, course_id=course_id).update(
-                atr_status='submitted',
-                action_proposed=course_atr
+        atr_obj = CourseATR.objects.filter(ay_query, course_id_id=course_id).first()
+        if atr_obj:
+            atr_obj.action_proposed = course_atr
+            atr_obj.atr_status = 'submitted'
+            atr_obj.save()
+        else:
+            CourseATR.objects.create(
+                course_id_id=course_id,
+                academic_year=academic_year or "2024-25",
+                action_proposed=course_atr,
+                atr_status='submitted'
             )
+        
+        # Update all COAttainment records for this course and year
+        COAttainment.objects.filter(ay_query, course_id=course_id).update(
+            atr_status='submitted',
+            action_proposed=course_atr
+        )
         
         return Response({"message": "ATR submitted successfully"}, status=status.HTTP_200_OK)
 

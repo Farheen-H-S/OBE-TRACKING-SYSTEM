@@ -207,7 +207,13 @@ class AttainmentService:
         from .models import CourseATR
         course_atr = CourseATR.objects.filter(ay_query, course_id=course_id).first()
         
-        if course_atr:
+        # Check if an ATR text exists in Course model as fallback
+        from academics.models import Course
+        c = Course.objects.filter(pk=course_id).first()
+        course_text_atr = c.course_atr if c else None
+        has_text_atr = course_text_atr and course_text_atr not in ["No ATR Submitted", "None", ""]
+
+        if course_atr or has_text_atr:
             status = 'submitted'
         elif all_atts.filter(atr_status='pending').exists():
             status = 'pending'
@@ -217,7 +223,7 @@ class AttainmentService:
         return {
             "overall_level": f"{avg_level:.2f}",
             "atr_status": status,
-            "course_atr": course_atr.action_proposed if course_atr else None
+            "course_atr": course_atr.action_proposed if course_atr else (course_text_atr if has_text_atr else None)
         }
 
     @staticmethod
@@ -280,15 +286,19 @@ class AttainmentService:
             # Combine to match front-end expectation
             def get_tool_val(prefixes, base_key):
                 for p in prefixes:
-                    k = f"{p}_{base_key}"
-                    if k in tools:
-                        val = tools[k]
-                        return val.get('level', '-') if isinstance(val, dict) else val
-                
-                # Try raw key
-                raw_val = tools.get(base_key)
-                if raw_val is not None:
-                    return raw_val.get('level', '-') if isinstance(raw_val, dict) else raw_val
+                    # Try exact, case-insensitive, and underscored
+                    keys_to_try = [
+                        f"{p}_{base_key}",
+                        f"{p.upper()}_{base_key.upper()}",
+                        f"{p.lower()}_{base_key.lower()}",
+                        base_key,
+                        base_key.upper(),
+                        base_key.lower()
+                    ]
+                    for k in keys_to_try:
+                        if k in tools:
+                            val = tools[k]
+                            return val.get('level', '-') if isinstance(val, dict) else val
                 return '-'
 
             prefixes = ['INTERNAL', 'EXTERNAL']
@@ -303,7 +313,7 @@ class AttainmentService:
                     'sa_th': get_tool_val(prefixes, 'SA_TH'),
                     'sa_pr': get_tool_val(prefixes, 'SA_PR'),
                     'ces': co_indirect.get(co.co_id, '-'),
-                    'tool_details': {k.lower(): v for k, v in tools.items()} 
+                    'tool_details': {str(k).lower(): v for k, v in tools.items()} 
                 },
                 'overall_attainment': att_rec.overall_attainment if att_rec else 0,
                 'target': target_val,
@@ -350,13 +360,15 @@ class AttainmentService:
             # Store category in the key for discovery during direct attainment calc
             effective_tool_key = f"{tool_category.upper()}_{tool.assessment_type}"
             
-            if 'FATH' in tool_name_norm or 'CT' in tool_name_norm or 'TEST' in tool_name_norm:
-                tool_key = 'FA_TH_1' if '1' in tool_name_norm else ('FA_TH_2' if '2' in tool_name_norm else 'FA_TH_1')
-            elif 'FAPR' in tool_name_norm or 'PRACTICAL' in tool_name_norm: tool_key = 'FA_PR'
+            if any(x in tool_name_norm for x in ['FATH', 'CT', 'TEST']):
+                if '1' in tool_name_norm or 'CT1' in tool_name_norm: tool_key = 'FA_TH_1'
+                elif '2' in tool_name_norm or 'CT2' in tool_name_norm: tool_key = 'FA_TH_2'
+                else: tool_key = 'FA_TH_1'
+            elif any(x in tool_name_norm for x in ['FAPR', 'PRACTICAL']): tool_key = 'FA_PR'
             elif 'SLA' in tool_name_norm: tool_key = 'SLA'
             elif 'SATH' in tool_name_norm: tool_key = 'SA_TH'
             elif 'SAPR' in tool_name_norm: tool_key = 'SA_PR'
-            else: tool_key = tool.assessment_type
+            else: tool_key = tool.assessment_type.upper().replace('-', '_')
 
             # Use effective_tool_key for the actual storage map
             tool_key = f"{tool_category.upper()}_{tool_key}"

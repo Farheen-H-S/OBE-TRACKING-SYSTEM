@@ -289,19 +289,33 @@ class SubmitATRView(APIView):
                     if not FacultyCourseAssignment.objects.filter(faculty_id=user, course_id=course, is_active=True).exists():
                         return Response({"error": "You are not assigned to this course."}, status=status.HTTP_403_FORBIDDEN)
                 
+                # Ensure we handle AY spacing consistently
+                ay_clean = academic_year.replace(' ', '')
+                ay_spaced = ay_clean.replace('-', ' - ')
+                from django.db import models
+                ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+
                 # Create or Update CourseATR
-                CourseATR.objects.update_or_create(
-                    course_id=course,
-                    academic_year=academic_year,
-                    defaults={'action_proposed': action_proposed, 'atr_status': 'submitted'}
-                )
+                # We use update_or_create but with a filter that handles AY variations
+                atr_obj = CourseATR.objects.filter(ay_query, course_id=course).first()
+                if atr_obj:
+                    atr_obj.action_proposed = action_proposed
+                    atr_obj.atr_status = 'submitted'
+                    atr_obj.save()
+                else:
+                    CourseATR.objects.create(
+                        course_id=course,
+                        academic_year=academic_year,
+                        action_proposed=action_proposed,
+                        atr_status='submitted'
+                    )
                 
                 # Mark all pending CO attainments as submitted
                 COAttainment.objects.filter(
+                    ay_query,
                     course_id=course, 
-                    academic_year=academic_year, 
                     atr_status='pending'
-                ).update(atr_status='submitted')
+                ).update(atr_status='submitted', action_proposed=action_proposed)
                 
                 report_generated = AttainmentService.check_and_generate_report(course_id, academic_year, user if not user.is_anonymous else None)
                 log_action(user if not user.is_anonymous else None, 'CREATE', 'CourseATR', course_id, remark=f"Consolidated ATR submitted for {academic_year}")
