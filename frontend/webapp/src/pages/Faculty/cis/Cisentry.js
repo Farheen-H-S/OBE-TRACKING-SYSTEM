@@ -133,13 +133,12 @@ const Cisentry = () => {
 
     const groupMarks = [];
     for (let i = start; i <= end; i++) {
-      const v = parseFloat(sMarks[i]);
-      if (!isNaN(v)) groupMarks.push({ i, v });
+        const v = parseFloat(sMarks[i]) || 0;
+        groupMarks.push({ i, v });
     }
-    // Sort descending by value, and then by index to keep it stable
+    // Sort descending by value, then by index for stability
     groupMarks.sort((a, b) => (b.v - a.v) || (a.i - b.i));
 
-    // Included are top 5
     const included = groupMarks.slice(0, 5).map(m => m.i);
     return !included.includes(colIndex);
   };
@@ -195,22 +194,26 @@ const Cisentry = () => {
     const coStats = {}; // { co_num: { totalGot: 0, totalMax: 0, appearedCount: 0 } }
     const studentAppearedInCO = {}; // { enroll: { co: true } }
 
-    students.forEach(s => {
+    // Identify students who appeared (at least one valid mark entered in any column)
+    const appearingStudents = students.filter(s => {
+      const sMarks = marksData[s.enrollment_no] || {};
+      return Object.values(sMarks).some(v => v !== undefined && v !== '' && v !== null && !isNaN(parseFloat(v)));
+    });
+
+    appearingStudents.forEach(s => {
       questions.forEach((_, colIndex) => {
         const coVal = userCos[colIndex];
         if (coVal && !isMarkExcluded(s.enrollment_no, colIndex)) {
           const coKey = coVal.toString();
-          const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
+          const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]) || 0;
           const weight = parseFloat(weights[colIndex]) || 0;
           
-          if (!isNaN(mark)) {
-            if (!coStats[coKey]) coStats[coKey] = { totalGot: 0, totalMax: 0 };
-            coStats[coKey].totalGot += mark;
-            coStats[coKey].totalMax += weight;
-            
-            if (!studentAppearedInCO[s.enrollment_no]) studentAppearedInCO[s.enrollment_no] = {};
-            studentAppearedInCO[s.enrollment_no][coKey] = true;
-          }
+          if (!coStats[coKey]) coStats[coKey] = { totalGot: 0, totalMax: 0 };
+          coStats[coKey].totalGot += mark;
+          coStats[coKey].totalMax += weight;
+          
+          if (!studentAppearedInCO[s.enrollment_no]) studentAppearedInCO[s.enrollment_no] = {};
+          studentAppearedInCO[s.enrollment_no][coKey] = true;
         }
       });
     });

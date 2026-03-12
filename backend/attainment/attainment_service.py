@@ -401,25 +401,35 @@ class AttainmentService:
                         indices = [int(k) for k in s_marks.keys() if k.isdigit()]
                         if indices:
                             max_idx = max(indices)
+                            # Iterate through groups of 7
                             for start_idx in range(0, max_idx + 1, 7):
                                 group_marks = []
                                 for i in range(start_idx, start_idx + 7):
                                     m = s_marks.get(str(i))
+                                    m_val = 0.0
                                     if m not in [None, '', '-']:
-                                        try: group_marks.append({'val': float(m), 'idx': i})
+                                        try: m_val = float(m)
                                         except: pass
+                                    group_marks.append({'val': m_val, 'idx': i})
+                                
+                                # Sort descending by value, then index
+                                group_marks.sort(key=lambda x: (x['val'], -x['idx']), reverse=True)
+                                
+                                # Indices after the first 5 are excluded
                                 if len(group_marks) > 5:
-                                    group_marks.sort(key=lambda x: (x['val'], -x['idx']), reverse=True)
                                     for m in group_marks[5:]:
                                         excluded_indices.add(m['idx'])
                     
+                    appearing = any(v not in [None, '', '-'] for v in s_marks.values())
+                    if not appearing: continue
+
                     # Re-implementing the loop to handle 'total' and choice properly
                     for q_key in q_indices:
                         val = s_marks.get(str(q_key))
-                        if val in [None, '', '-']: continue
-                        
-                        try: mark_val = float(val)
-                        except: continue
+                        mark_val = 0.0
+                        if val not in [None, '', '-']:
+                            try: mark_val = float(val)
+                            except: pass
                         
                         # Mapping to CO
                         co_vals = []
@@ -427,8 +437,10 @@ class AttainmentService:
                             if is_summative and user_cos: co_vals = user_cos
                             elif user_cos: co_vals = [user_cos[0]]
                         else:
-                            q_idx = int(q_key)
-                            if q_idx < len(user_cos): co_vals = [user_cos[q_idx]]
+                            try:
+                                q_idx = int(q_key)
+                                if q_idx < len(user_cos): co_vals = [user_cos[q_idx]]
+                            except: continue
                         
                         for co_val in co_vals:
                             if co_val:
