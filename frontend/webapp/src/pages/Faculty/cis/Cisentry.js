@@ -140,7 +140,7 @@ const Cisentry = () => {
     return !included.includes(colIndex);
   };
 
-  // Attainment Calculation Logic
+  // Attainment Calculation Logic (Attempted-Only + Fixed Threshold)
   const calculateAttainmentStats = () => {
     // Initialize stats containers first
     let appeared = new Array(columnCount).fill(0);
@@ -150,7 +150,7 @@ const Cisentry = () => {
     let coStats = { /* co_key: { totalGot: 0, totalMax: 0, appearedEnrollments: Set } */ };
     let studentAppearedInCO = {}; // { enroll: { co_key: true } }
 
-    // 1. Question-wise statistics (Attempted-Only)
+    // 1. Question-wise statistics (Attempted-Only, Fixed 40% Threshold)
     questions.forEach((_, colIndex) => {
       // Filter ONLY students who actually entered a mark
       const attemptedMarks = students
@@ -160,15 +160,23 @@ const Cisentry = () => {
       const qSum = attemptedMarks.reduce((a, b) => a + b, 0);
       const qAvg = attemptedMarks.length ? (qSum / attemptedMarks.length) : 0;
       const weight = parseFloat(weights[colIndex]) || 0;
+      // Use standard 40% of Max Mark as the passing threshold
       const threshold = weight * 0.40;
+
+      const successCount = attemptedMarks.filter(m => m >= threshold).length;
 
       appeared[colIndex] = attemptedMarks.length;
       averages[colIndex] = qAvg;
-      equalOrMoreAvg[colIndex] = attemptedMarks.filter(m => m >= threshold).length;
-      percentMoreAvg[colIndex] = weight > 0 ? ((qAvg / weight) * 100).toFixed(2) : "0.00";
+      equalOrMoreAvg[colIndex] = successCount;
+      
+      // Fix: Display the TRUE Success Rate (% of students passing the threshold)
+      // This matches the Excel sheet's 100%, 97.92%, 95.35% etc.
+      percentMoreAvg[colIndex] = attemptedMarks.length > 0 
+        ? ((successCount / attemptedMarks.length) * 100).toFixed(2) 
+        : "0.00";
     });
 
-    // 2. CO-wise and Overall aggregation (Attempted-Only)
+    // 2. CO-wise and Overall aggregation (Attempted-Only Percentage)
     students.forEach(s => {
       const sMarks = marksData[s.enrollment_no] || {};
       
@@ -201,6 +209,7 @@ const Cisentry = () => {
     const coAttainmentLevels = {};
     Object.keys(coStats).forEach(coKey => {
       const stats = coStats[coKey];
+      // CO attainment is calculated directly from Total Marks Got vs Total Max Marks for attempted questions
       const percent = stats.totalMax > 0 ? (stats.totalGot / stats.totalMax) * 100 : 0;
       const totalTouchers = Object.keys(studentAppearedInCO).filter(enroll => studentAppearedInCO[enroll][coKey]).length;
 
