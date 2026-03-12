@@ -160,16 +160,18 @@ const Cisentry = () => {
       const qSum = attemptedMarks.reduce((a, b) => a + b, 0);
       const qAvg = attemptedMarks.length ? (qSum / attemptedMarks.length) : 0;
       const weight = parseFloat(weights[colIndex]) || 0;
-      const successCount = attemptedMarks.filter(m => m >= qAvg).length;
+      // Use standard 40% of Max Mark as the passing threshold
+      const threshold = weight * 0.40;
+      
+      const successCount = attemptedMarks.filter(m => m >= threshold).length;
 
       appeared[colIndex] = attemptedMarks.length;
       averages[colIndex] = qAvg;
       equalOrMoreAvg[colIndex] = successCount;
       
-      // Fix: The mathematical percentage in the Excel is simply (Average Marks / Max Marks) * 100
-      // This is exactly what yields 93.94% for Q2(c) and 98.33% for Q1.
-      percentMoreAvg[colIndex] = weight > 0 
-        ? ((qAvg / weight) * 100).toFixed(2) 
+      // Calculate true Success Rate (% of students passing the threshold)
+      percentMoreAvg[colIndex] = attemptedMarks.length > 0 
+        ? ((successCount / attemptedMarks.length) * 100).toFixed(2) 
         : "0.00";
     });
 

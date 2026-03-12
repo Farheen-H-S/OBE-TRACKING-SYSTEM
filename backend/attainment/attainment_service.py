@@ -486,9 +486,8 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    q_threshold = q_max * threshold_ratio
-                                    
                                     # 1. Bit-wise stats (Success Rate for difficulty row)
+                                    q_threshold = q_max * threshold_ratio
                                     if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
                                     if is_mark_entered:
                                         q_stats[q_key]['appeared'] += 1
@@ -504,6 +503,13 @@ class AttainmentService:
                                             co_agg[co_key]['total_got'] += mark_val
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
+
+                # Finalize Bit-wise Question Stats (True percentage of Total Marks vs Max Marks)
+                for q_key, stats in q_stats.items():
+                    if stats['appeared'] > 0:
+                        stats['success'] = round((stats['success'] / stats['appeared']) * 100, 2)
+                    else:
+                        stats['success'] = 0.0
 
                 # Finalize CO Summary Stats
                 co_stats = {}
