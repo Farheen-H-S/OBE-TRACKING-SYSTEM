@@ -151,8 +151,8 @@ const Cisentry = () => {
     let studentAppearedInCO = {}; // { enroll: { co_key: true } }
 
     // 1. Question-wise statistics
-    // FA-PR and SLA use "count >= col_avg" formula; FA-TH uses COUNTIF >= 40% threshold
-    const isPractical = selectedTool === 'FA-PR' || selectedTool === 'SLA';
+    // FA-PR, SA-PR and SLA use "count >= col_avg" formula; FA-TH uses COUNTIF >= 40% threshold
+    const isPractical = selectedTool === 'FA-PR' || selectedTool === 'SLA' || selectedTool === 'SA-PR';
 
     questions.forEach((_, colIndex) => {
       // Filter ONLY students who actually entered a mark
@@ -2179,7 +2179,7 @@ const Cisentry = () => {
                             <td colSpan="2"></td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>QUESTION-WISE ATTAINMENT LEVEL</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.columnAttainmentLevels.map((val, i) => {
                               const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
@@ -2274,7 +2274,7 @@ const Cisentry = () => {
                             </tr>
                           ))}
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>QUESTION-WISE ATTAINMENT LEVEL</td>
                             <td className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
                               {(() => {
                                 const val = attainmentStats.columnAttainmentLevels[0] || '0.00';
