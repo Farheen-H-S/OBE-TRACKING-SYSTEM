@@ -462,13 +462,13 @@ def create_marks_sheet(wb, title, assessment_type, course, academic_year, studen
     appeared = len(marks_list)
     max_m = assessment.max_marks or 100
     
-    # SA-TH, SA-PR, FA-PR, SLA: count >= avg
-    # FA-TH, CT: count >= 40%
-    is_practical = any(x in assessment_type for x in ['PR', 'SA_TH', 'SATH', 'SLA'])
+    tp_norm = assessment_type.upper().replace('-', '').replace('_', '')
+    is_practical = any(x in tp_norm for x in ['PR', 'SLA', 'PRACTICAL']) and 'SATH' not in tp_norm
     
     if is_practical:
         success_count = len([m for m in marks_list if m >= avg])
     else:
+        # Theory Assessments use 40% binary threshold
         threshold = max_m * 0.4
         success_count = len([m for m in marks_list if m >= threshold])
         
@@ -608,18 +608,10 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
         if total_marks is not None: marks_list.append(total_marks)
         current_row += 1
 
-    # Statistical Footer
-    start_marks_row = next_row + 4
-    end_marks_row = current_row - 1
-
-    # Statistical Footer
-    start_marks_row = next_row + 4
-    end_marks_row = current_row - 1
-    
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{current_row-2}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{current_row-2}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{r_idx}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):
@@ -1061,7 +1053,7 @@ def create_sla_sheet(wb, course, academic_year, students, faculty_name, index):
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),
-        ("% above Avg", lambda q_col, r_idx: f'=IF(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
+        ("% above Avg", lambda q_col, r_idx: f'=IF(AND(COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})>0, {get_column_letter(q_col)}{r_idx}>0), ROUND(COUNTIF({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}, ">="&{get_column_letter(q_col)}{r_idx}) / COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}) * 100, 2) & "%", "0%")'),
     ]
 
     for idx, (label, q_stat_formula) in enumerate(stats_rows):

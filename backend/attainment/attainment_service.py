@@ -242,7 +242,7 @@ class AttainmentService:
 
         # Part A: Tool-wise Direct Attainment
         tool_data = AttainmentService._calculate_detailed_tool_attainment(course_id, academic_year)
-        
+
         # Part B: Indirect Attainment (CES)
         co_indirect = AttainmentService._calculate_indirect_co_attainment(course_id, academic_year)
         
@@ -406,11 +406,11 @@ class AttainmentService:
                 course_cos = CO.objects.filter(course_id=tool.course_id, is_active=True)
                 mappings = [type('obj', (object,), {'co_id_id': co.co_id, 'co_id': co})() for co in course_cos]
                 sa_auto_mapped = True
-            elif not mappings.exists():
+            elif not mappings.exists() and not (marks_data and user_cos):
                 continue
             
-            # Use granular marks if available, except for summative which usually uses total
-            if marks_data and user_cos and not sa_auto_mapped:
+            # Use granular marks if available
+            if marks_data and user_cos:
                 # User's Hierarchical Logic: Group success by CO
                 co_stats = {} # {co_num: {'success': 0, 'appeared': 0}}
                 
@@ -472,11 +472,16 @@ class AttainmentService:
                     for k, v in s_marks.items():
                         if v not in [None, '', '-']:
                             try:
+                                co_raw = None
                                 if k == 'total':
-                                    if user_cos: touched_cos.add(f"CO{user_cos[0]}")
+                                    if user_cos: co_raw = user_cos[0]
                                 else:
                                     q_idx = int(k)
-                                    if q_idx < len(user_cos): touched_cos.add(f"CO{user_cos[q_idx]}")
+                                    if q_idx < len(user_cos): co_raw = user_cos[q_idx]
+                                
+                                if co_raw:
+                                    co_key = f"CO{co_raw}" if not str(co_raw).upper().startswith("CO") else str(co_raw).upper()
+                                    touched_cos.add(co_key)
                             except: pass
 
                     # Re-implementing the loop to handle 'total' and choice properly
@@ -522,8 +527,8 @@ class AttainmentService:
                                         except: pass
                                     elif q_key == 'total':
                                         q_max = tool.max_marks or 30
-                                    else:
-                                        # Fallback to defaults if no custom weight
+                                    # Fallback to total-based calculation if no question-level breakdown
+                                    elif not marks_data or not user_cos:
                                         if tool.max_marks == 30:
                                             q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
                                         elif tool.max_marks == 15:
@@ -533,8 +538,8 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # Threshold: use column average for FA-PR/SA-PR/SA-TH/SLA, else 40% of max for FA-TH
-                                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm or 'SA_TH' in tool_name_norm or 'SATH' in tool_name_norm
+                                    # Threshold: use column average for Practical/SLA, else 40% of max for Theory
+                                    is_practical_tool = any(x in tool_name_norm.replace('-', '_').replace('_', '') for x in ['FAPR', 'PRACTICAL', 'SLA', 'SAPR']) and 'SATH' not in tool_name_norm.replace('_', '')
                                     if q_key not in q_stats:
                                         q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
                                     if is_mark_entered:
@@ -556,9 +561,8 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # FA-PR, SA-PR, SA-TH and SLA: % = (count >= col_avg) / appeared * 100
-                # FA-TH: % = success_count / appeared * 100
-                is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm or 'SA_TH' in tool_name_norm or 'SATH' in tool_name_norm
+                # FA-PR, SA-PR, SA_TH and SLA: % = (count >= col_avg) / appeared * 100
+                is_practical = any(x in tool_name_norm.replace('-', '_').replace('_', '') for x in ['FAPR', 'PRACTICAL', 'SLA', 'SAPR']) and 'SATH' not in tool_name_norm.replace('_', '')
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
                         if is_practical:
