@@ -608,6 +608,10 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
         if total_marks is not None: marks_list.append(total_marks)
         current_row += 1
 
+    # Statistical Footer
+    start_marks_row = next_row + 4
+    end_marks_row = current_row - 1
+    
     stats_rows = [
         ("Average", lambda q_col: f"=IFERROR(ROUND(AVERAGE({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row}), 2), 0)"),
         ("Total Appeared", lambda q_col: f"=COUNT({get_column_letter(q_col)}{start_marks_row}:{get_column_letter(q_col)}{end_marks_row})"),

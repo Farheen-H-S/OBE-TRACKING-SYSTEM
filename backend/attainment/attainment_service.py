@@ -501,8 +501,11 @@ class AttainmentService:
                         
                         if q_key == 'total':
                             if not has_bits:
-                                if is_summative and user_cos: co_vals = user_cos
-                                elif user_cos: co_vals = [user_cos[0]]
+                                if is_summative:
+                                    # Map total mark to all course COs for summative tools
+                                    co_vals = [str(m.co_id.co_number).upper().replace('CO', '') for m in mappings]
+                                elif user_cos:
+                                    co_vals = [user_cos[0]]
                             else:
                                 # Skip total if bits are already providing the CO data
                                 continue
@@ -635,7 +638,7 @@ class AttainmentService:
                                     co_obj = m
                                     break
                                 # Strict numeric suffix matching: "4" matches "CO201.4"
-                                break
+                                pass # Removed break that was causing premature loop exit
                         
                         # Second: if not in tool mapping, search all active COs for this course
                         if not co_obj:
@@ -677,12 +680,20 @@ class AttainmentService:
                         
                         # Record the resolved result
                         if co_id not in tool_co_results: tool_co_results[co_id] = {}
-                        tool_co_results[co_id][tool_key] = {
+                        res_obj = {
                             'level': level,
                             'appeared': stats['appeared'],
                             'success': stats['success'],
                             'percentage': percentage
                         }
+                        tool_co_results[co_id][tool_key] = res_obj
+
+                        # For Summative tools (SA), force the same result to ALL course COs if not already mapped correctly
+                        if is_summative:
+                            for m_alt in mappings:
+                                alt_co_id = m_alt.co_id_id
+                                if alt_co_id not in tool_co_results: tool_co_results[alt_co_id] = {}
+                                tool_co_results[alt_co_id][tool_key] = res_obj
             else:
                 # Fallback to simple whole-tool logic
                 entries = MarksEntry.objects.filter(assessment_id=tool)
@@ -691,8 +702,9 @@ class AttainmentService:
                     avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
                     max_marks = tool.max_marks or 100
 
-                    # Threshold: use column average for FA-PR/SA-PR/SA-TH/SLA, else 40% of max for FA-TH
-                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA_PR' in tool_name_norm or 'SAPR' in tool_name_norm or 'SA_TH' in tool_name_norm or 'SATH' in tool_name_norm
+                    # Threshold: use column average for Practical/SLA, else 40% of max for Theory
+                    tp_norm = tool_name_norm.replace('-', '').replace('_', '')
+                    is_practical_tool = any(x in tp_norm for x in ['PR', 'SLA', 'PRACTICAL']) and 'SATH' not in tp_norm
                     
                     if is_practical_tool:
                         threshold = avg_marks
