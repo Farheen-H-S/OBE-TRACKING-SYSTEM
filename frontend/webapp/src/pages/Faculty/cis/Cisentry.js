@@ -180,20 +180,13 @@ const Cisentry = () => {
       return percent.toFixed(2);
     });
 
-    // 4.5 Total Average
-    const totalAverage = (() => {
-      const validTotals = students.map(s => parseFloat(marksData[s.enrollment_no]?.['total'])).filter(m => !isNaN(m));
-      const totalSum = validTotals.reduce((a, b) => a + b, 0);
-      return validTotals.length ? (totalSum / validTotals.length) : 0;
-    })();
-
     // 5. CO wise Hierarchical Attainment
     const coStats = {}; // { co_num: { totalGot: 0, totalMax: 0 } }
     const studentAppearedInCO = {}; // { enroll: { co: true } }
 
     // Aggregated CO marks to totals
     students.forEach(s => {
-      // Find which COs this student touched
+      // Find which COs this student touched (entered at least one mark)
       const sMarks = marksData[s.enrollment_no] || {};
       const touchedCOs = new Set();
       questions.forEach((_, colIndex) => {
@@ -233,6 +226,20 @@ const Cisentry = () => {
         }
       });
     });
+
+    // 4.5 Total Average (Synced with CO population)
+    const totalAverage = (() => {
+      // Find union of all students who appeared in any CO
+      const allAppearedEnrollments = Object.keys(studentAppearedInCO);
+      if (allAppearedEnrollments.length === 0) return 0;
+      
+      const totalSum = allAppearedEnrollments.reduce((sum, enroll) => {
+        const val = parseFloat(marksData[enroll]?.['total']);
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0);
+      
+      return totalSum / allAppearedEnrollments.length;
+    })();
 
     const coAttainmentLevels = {};
     Object.keys(coStats).forEach(coKey => {
@@ -564,26 +571,47 @@ const Cisentry = () => {
         if (config.minPassingMarks !== undefined) setMinPassingMarks(config.minPassingMarks);
         else setMinPassingMarks(0);
 
-        // Detailed marks breakdown if stored in config
-        if (config.marksData) {
-          const parsedData = { ...config.marksData };
-          if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
-            const colCount = config.columnCount || (selectedTool === 'FA-PR' ? 10 : 4);
+          // Detailed marks breakdown if stored in config
+          if (config.marksData) {
+            const parsedData = { ...config.marksData };
+            
+            // Recalculate totals for all students to ensure choice rule alignment
+            const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
+            
             Object.keys(parsedData).forEach(enroll => {
-              if (enroll !== 'total') {
-                let sum = 0;
-                for (let i = 0; i < colCount; i++) {
-                  const mark = parsedData[enroll][i];
-                  if (mark && !isNaN(parseFloat(mark))) {
-                    sum += parseFloat(mark);
+              if (enroll === 'total') return;
+              const studentMarks = parsedData[enroll];
+              let total = 0;
+              
+              if (isTheoryTest) {
+                const getBest5Sum = (start, end) => {
+                  const vals = [];
+                  for (let i = start; i <= end; i++) {
+                    const v = parseFloat(studentMarks[i]);
+                    if (!isNaN(v)) vals.push(v);
                   }
+                  vals.sort((a, b) => b - a);
+                  return vals.slice(0, 5).reduce((a, c) => a + c, 0);
+                };
+                total = getBest5Sum(0, 6) + getBest5Sum(7, 13);
+              } else if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) {
+                let sum = 0;
+                let count = 0;
+                for (let i = 0; i < (config.columnCount || 10); i++) {
+                  const m = parseFloat(studentMarks[i]);
+                  if (!isNaN(m)) { sum += m; count++; }
                 }
-                const correctTotal = colCount > 0 ? (sum / colCount) : 0;
-                parsedData[enroll]['total'] = correctTotal === 0 ? '0' : (Math.round(correctTotal * 100) / 100).toString();
+                total = count > 0 ? (sum / count) : 0;
+              } else {
+                for (let i = 0; i < (config.columnCount || 14); i++) {
+                  const m = parseFloat(studentMarks[i]);
+                  if (!isNaN(m)) total += m;
+                }
               }
+              parsedData[enroll]['total'] = total.toFixed(2);
             });
-          }
-          setMarksData(parsedData);
+
+            setMarksData(parsedData);
 
           // Populate uploaded files from backend
           if (res.data.evidence) {
@@ -741,7 +769,7 @@ const Cisentry = () => {
           }
         }
       }
-      studentMarks['total'] = total === 0 ? '' : total.toString();
+      studentMarks['total'] = total.toFixed(2);
 
       return {
         ...prev,

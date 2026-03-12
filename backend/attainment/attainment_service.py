@@ -445,9 +445,15 @@ class AttainmentService:
                         
                         # Mapping to CO
                         co_vals = []
+                        has_bits = any(isinstance(k, int) or str(k).isdigit() for k in q_indices)
+                        
                         if q_key == 'total':
-                            if is_summative and user_cos: co_vals = user_cos
-                            elif user_cos: co_vals = [user_cos[0]]
+                            if not has_bits:
+                                if is_summative and user_cos: co_vals = user_cos
+                                elif user_cos: co_vals = [user_cos[0]]
+                            else:
+                                # Skip total if bits are already providing the CO data
+                                continue
                         else:
                             try:
                                 q_idx = int(q_key)
