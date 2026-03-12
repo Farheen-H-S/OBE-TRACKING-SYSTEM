@@ -119,7 +119,8 @@ const Cisentry = () => {
   const slicedUserCos = userCos.slice(0, columnCount);
 
   const isMarkExcluded = (enrollment, colIndex) => {
-    if (!selectedTool.startsWith('FA-TH')) return false;
+    const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
+    if (!isTheoryTest) return false;
 
     // Every group of 7 indices is a separate question (Q1: 0-6, Q2: 7-13, Q3: 14-20, etc.)
     const groupIndex = Math.floor(colIndex / 7);
@@ -175,11 +176,12 @@ const Cisentry = () => {
       }).length;
     });
 
-    // 4. % of Student meeting threshold (50%)
+    // 4. % Attainment (Class Average Percentage per bit)
     const percentMoreAvg = questions.map((_, colIndex) => {
-      const app = appeared[colIndex];
-      const count = equalOrMoreAvg[colIndex];
-      return app ? ((count / app) * 100).toFixed(2) : '0';
+      const avg = averages[colIndex];
+      const weight = parseFloat(weights[colIndex]) || 0;
+      const percent = weight > 0 ? (avg / weight) * 100 : 0;
+      return percent.toFixed(2);
     });
 
     // 4.5 Total Average
@@ -189,48 +191,48 @@ const Cisentry = () => {
       return validTotals.length ? (totalSum / validTotals.length) : 0;
     })();
 
-    // 5. CO wise Hierarchical Attainment (AGGREGATED with Choice Rule)
-    const coStats = {}; // { co_num: { success: 0, appeared: 0 } }
-    questions.forEach((_, colIndex) => {
-      const coVal = userCos[colIndex];
-      if (coVal) {
-        const coKey = coVal.toString();
-        if (!coStats[coKey]) coStats[coKey] = { success: 0, appeared: 0 };
+    // 5. CO wise Hierarchical Attainment (AGGREGATED with Weighted Class Average)
+    const coStats = {}; // { co_num: { totalGot: 0, totalMax: 0, appearedCount: 0 } }
+    const studentAppearedInCO = {}; // { enroll: { co: true } }
 
-        // Count choice-filtered success/appeared for the Aggregate CO value
-        const colSuccess = students.filter(s => {
-          if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
+    students.forEach(s => {
+      questions.forEach((_, colIndex) => {
+        const coVal = userCos[colIndex];
+        if (coVal && !isMarkExcluded(s.enrollment_no, colIndex)) {
+          const coKey = coVal.toString();
           const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
-          const threshold = getSuccessThreshold(colIndex);
-          return !isNaN(mark) && mark >= threshold;
-        }).length;
-
-        const colAppeared = students.filter(s => {
-          if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
-          const mark = marksData[s.enrollment_no]?.[colIndex];
-          return mark !== undefined && mark !== '' && mark !== null && !isNaN(parseFloat(mark));
-        }).length;
-
-        coStats[coKey].success += colSuccess;
-        coStats[coKey].appeared += colAppeared;
-      }
+          const weight = parseFloat(weights[colIndex]) || 0;
+          
+          if (!isNaN(mark)) {
+            if (!coStats[coKey]) coStats[coKey] = { totalGot: 0, totalMax: 0 };
+            coStats[coKey].totalGot += mark;
+            coStats[coKey].totalMax += weight;
+            
+            if (!studentAppearedInCO[s.enrollment_no]) studentAppearedInCO[s.enrollment_no] = {};
+            studentAppearedInCO[s.enrollment_no][coKey] = true;
+          }
+        }
+      });
     });
 
     const coAttainmentLevels = {};
     Object.keys(coStats).forEach(coKey => {
-      const stats = coStats[coKey];
-      const percent = stats.appeared > 0 ? (stats.success / stats.appeared) * 100 : 0;
-      coAttainmentLevels[coKey] = {
-        percent: percent.toFixed(2),
-        level: ((percent / 100) * 3).toFixed(2)
-      };
+        const stats = coStats[coKey];
+        const percent = stats.totalMax > 0 ? (stats.totalGot / stats.totalMax) * 100 : 0;
+        
+        // Appeared count for CO is unique students
+        const appearedCount = Object.keys(studentAppearedInCO).filter(enroll => studentAppearedInCO[enroll][coKey]).length;
+
+        coAttainmentLevels[coKey] = {
+            percent: percent.toFixed(2),
+            level: ((percent / 100) * 3).toFixed(2),
+            appeared: appearedCount
+        };
     });
 
-    // Per-column attainment level (to match Doc bit-wise levels)
+    // Per-column attainment level (Linear scaling of class average %)
     const columnAttainmentLevels = questions.map((_, colIndex) => {
-      const app = appeared[colIndex];
-      const count = equalOrMoreAvg[colIndex];
-      const percent = app ? (count / app) * 100 : 0;
+      const percent = parseFloat(percentMoreAvg[colIndex]) || 0;
       return ((percent / 100) * 3).toFixed(2);
     });
 
@@ -685,7 +687,8 @@ const Cisentry = () => {
 
       // Calculate row total
       let total = 0;
-      if (selectedTool.startsWith('FA-TH')) {
+      const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
+      if (isTheoryTest) {
         // Best 5 of 7 Logic for Q1 (0-6) and Q2 (7-13)
         const getBest5Sum = (start, end) => {
           const vals = [];
@@ -1853,7 +1856,7 @@ const Cisentry = () => {
                             <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{(attainmentStats.totalAverage || 0).toFixed(2)}</td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>% of Student meeting threshold (40%)</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment (%)</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.percentMoreAvg.map((val, i) => (
                               <td key={i} className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>{val}%</td>
@@ -1861,15 +1864,10 @@ const Cisentry = () => {
                             <td className="bg-light"></td>
                             <td className="fw-bold small" style={{ backgroundColor: '#e9f2fb' }}>
                               {(() => {
-                                const totalWeight = weights.reduce((a, b) => a + parseFloat(b) || 0, 0);
-                                const threshold = totalWeight / 2;
-                                const validStudents = students.filter(s => {
-                                  const total = parseFloat(marksData[s.enrollment_no]?.total);
-                                  return !isNaN(total);
-                                });
-                                const app = validStudents.length;
-                                const count = validStudents.filter(s => parseFloat(marksData[s.enrollment_no]?.total || 0) >= threshold).length;
-                                return app > 0 ? ((count / app) * 100).toFixed(2) : '0.00';
+                                const avg = attainmentStats.totalAverage || 0;
+                                const totalWeight = parseFloat(totalMaxMarks) || 30;
+                                const percent = totalWeight > 0 ? (avg / totalWeight) * 100 : 0;
+                                return percent.toFixed(2);
                               })()}%
                             </td>
                           </tr>
@@ -1896,8 +1894,7 @@ const Cisentry = () => {
                           <thead>
                             <tr style={{ backgroundColor: '#1a4e8a', color: 'white' }}>
                               <th className='py-2'>CO Statement</th>
-                              <th className='py-2'>Total Appeared</th>
-                              <th className='py-2'>Total Success</th>
+                              <th className='py-2'>Students Appeared</th>
                               <th className='py-2'>Attainment (%)</th>
                               <th className='py-2'>Attainment Level (0-3)</th>
                             </tr>
@@ -1906,8 +1903,7 @@ const Cisentry = () => {
                             {Object.entries(attainmentStats.coAttainmentLevels).sort().map(([co, stats]) => (
                               <tr key={co}>
                                 <td className='fw-bold'>{formatCO(co)}</td>
-                                <td>{attainmentStats.coStats[co].appeared}</td>
-                                <td>{attainmentStats.coStats[co].success}</td>
+                                <td>{stats.appeared}</td>
                                 <td className='fw-bold text-primary'>{stats.percent}%</td>
                                 <td className='fw-bold' style={{ backgroundColor: '#e9f2fb' }}>{stats.level}</td>
                               </tr>
@@ -2011,10 +2007,8 @@ const Cisentry = () => {
                           <tr className="bg-light">
                             <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                            {attainmentStats.coAttainment.map((val, i) => {
+                            {attainmentStats.columnAttainmentLevels.map((val, i) => {
                               const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
-
-
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
                                   {val} ({percent}%)
@@ -2031,8 +2025,7 @@ const Cisentry = () => {
                           <thead>
                             <tr style={{ backgroundColor: '#1a4e8a', color: 'white' }}>
                               <th className='py-2'>CO Statement</th>
-                              <th className='py-2'>Total Appeared (Choice Filtered)</th>
-                              <th className='py-2'>Total Success (Choice Filtered)</th>
+                              <th className='py-2'>Students Appeared</th>
                               <th className='py-2'>Attainment (%)</th>
                               <th className='py-2'>Attainment Level (0-3)</th>
                             </tr>
@@ -2041,8 +2034,7 @@ const Cisentry = () => {
                             {Object.entries(attainmentStats.coAttainmentLevels).sort().map(([co, stats]) => (
                               <tr key={co}>
                                 <td className='fw-bold'>{formatCO(co)}</td>
-                                <td>{attainmentStats.coStats[co].appeared}</td>
-                                <td>{attainmentStats.coStats[co].success}</td>
+                                <td>{stats.appeared}</td>
                                 <td className='fw-bold text-primary'>{stats.percent}%</td>
                                 <td className='fw-bold' style={{ backgroundColor: '#e9f2fb' }}>{stats.level}</td>
                               </tr>
@@ -2146,7 +2138,7 @@ const Cisentry = () => {
                           <tr className="bg-light">
                             <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                            {attainmentStats.coAttainment.map((val, i) => {
+                            {attainmentStats.columnAttainmentLevels.map((val, i) => {
                               const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
 
 
@@ -2160,6 +2152,28 @@ const Cisentry = () => {
                           </tr>
                         </tbody>
                       </table>
+                      <div className='mt-4 overflow-hidden border rounded shadow-sm'>
+                        <table className='table table-bordered table-sm mb-0'>
+                          <thead>
+                            <tr style={{ backgroundColor: '#1a4e8a', color: 'white' }}>
+                              <th className='py-2'>CO Statement</th>
+                              <th className='py-2'>Students Appeared</th>
+                              <th className='py-2'>Attainment (%)</th>
+                              <th className='py-2'>Attainment Level (0-3)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(attainmentStats.coAttainmentLevels).sort().map(([co, stats]) => (
+                              <tr key={co}>
+                                <td className='fw-bold'>{formatCO(co)}</td>
+                                <td>{stats.appeared}</td>
+                                <td className='fw-bold text-primary'>{stats.percent}%</td>
+                                <td className='fw-bold' style={{ backgroundColor: '#e9f2fb' }}>{stats.level}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                     {renderActionFooter("Please upload practical records as evidence.")}
                   </>
@@ -2220,15 +2234,36 @@ const Cisentry = () => {
                             <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
                               {(() => {
-                                const val = attainmentStats.coAttainment[0] || '0.00';
+                                const val = attainmentStats.columnAttainmentLevels[0] || '0.00';
                                 const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
-
                                 return `${val} (${percent}%)`;
                               })()}
                             </td>
                           </tr>
                         </tbody>
                       </table>
+                      <div className='mt-4 overflow-hidden border rounded shadow-sm'>
+                        <table className='table table-bordered table-sm mb-0'>
+                          <thead>
+                            <tr style={{ backgroundColor: '#1a4e8a', color: 'white' }}>
+                              <th className='py-2'>CO Statement</th>
+                              <th className='py-2'>Students Appeared</th>
+                              <th className='py-2'>Attainment (%)</th>
+                              <th className='py-2'>Attainment Level (0-3)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(attainmentStats.coAttainmentLevels).sort().map(([co, stats]) => (
+                              <tr key={co}>
+                                <td className='fw-bold'>{formatCO(co)}</td>
+                                <td>{stats.appeared}</td>
+                                <td className='fw-bold text-primary'>{stats.percent}%</td>
+                                <td className='fw-bold' style={{ backgroundColor: '#e9f2fb' }}>{stats.level}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                     {renderActionFooter(selectedTool === 'SA-TH' ? "Please upload 3-5 sample theory papers." : "Please upload practical exam records.")}
                   </>

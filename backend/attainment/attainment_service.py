@@ -383,29 +383,32 @@ class AttainmentService:
                 
                 q_stats = {}
                 q_averages = {}
+                # q_averages = {} # This variable was declared but not used in the original snippet.
                 student_list = list(marks_data.keys())
                 # Standardize at 40% for all tools to match reference benchmarks
                 is_fa_th = 'FATH' in tool_name_norm or 'CT' in tool_name_norm or 'TEST' in tool_name_norm
                 threshold_ratio = 0.4
                 
+                # Track aggregate CO performance (Marks-based for summary alignment)
+                co_agg = {} # {co_key: {'total_got': 0, 'total_max': 0, 'students_appeared': set()}}
+
                 for student_enroll, s_marks in marks_data.items():
+                    if not isinstance(s_marks, dict): continue
+                    
                     # Handle Choice questions (Top 5 of 7) for Theory Assessments
                     excluded_indices = set()
                     if is_fa_th:
                         indices = [int(k) for k in s_marks.keys() if k.isdigit()]
                         if indices:
                             max_idx = max(indices)
-                            num_groups = (max_idx // 7) + 1
-                            for g in range(num_groups):
-                                start = g * 7
-                                end = start + 6
+                            for start_idx in range(0, max_idx + 1, 7):
                                 group_marks = []
-                                for i in range(start, end + 1):
-                                    v = s_marks.get(str(i))
-                                    if v not in [None, '']:
-                                        try: group_marks.append({'idx': i, 'val': float(v)})
+                                for i in range(start_idx, start_idx + 7):
+                                    m = s_marks.get(str(i))
+                                    if m not in [None, '', '-']:
+                                        try: group_marks.append({'val': float(m), 'idx': i})
                                         except: pass
-                                if group_marks:
+                                if len(group_marks) > 5:
                                     group_marks.sort(key=lambda x: (x['val'], -x['idx']), reverse=True)
                                     for m in group_marks[5:]:
                                         excluded_indices.add(m['idx'])
@@ -421,67 +424,74 @@ class AttainmentService:
                         # Mapping to CO
                         co_vals = []
                         if q_key == 'total':
-                            if is_summative and user_cos:
-                                # Summative total mark attributes to all COs
-                                co_vals = user_cos
-                            elif user_cos:
-                                co_vals = [user_cos[0]]
+                            if is_summative and user_cos: co_vals = user_cos
+                            elif user_cos: co_vals = [user_cos[0]]
                         else:
                             q_idx = int(q_key)
-                            if q_idx < len(user_cos):
-                                co_vals = [user_cos[q_idx]]
+                            if q_idx < len(user_cos): co_vals = [user_cos[q_idx]]
                         
                         for co_val in co_vals:
                             if co_val:
                                 co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                                if co_key not in co_stats: co_stats[co_key] = {'success': 0, 'appeared': 0}
+                                if co_key not in co_agg: 
+                                    co_agg[co_key] = {'total_got': 0, 'total_max': 0, 'students_appeared': set()}
                                 
                                 # Determine q_max ...
-                                # (Rest of the determinant logic)
-                            
-                            # Determine q_max with priority: 1. customWeights 2. Default logic
-                            q_max = 25 # Fallback
-                            custom_weights = config.get('customWeights', [])
-                            if q_key != 'total' and int(q_key) < len(custom_weights) and custom_weights[int(q_key)] not in [None, '']:
-                                try: q_max = float(custom_weights[int(q_key)])
-                                except: pass
-                            elif q_key == 'total':
-                                q_max = tool.max_marks # Total mark uses tool's max marks
-                            else:
-                                # Default logic replication from frontend (Cisentry.js)
-                                if is_fa_th and tool.max_marks == 30:
-                                    q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
-                                elif 'PR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA' in tool_name_norm:
-                                    q_max = tool.max_marks
-                                elif tool.max_marks:
-                                    q_max = tool.max_marks / (len(user_cos) if len(user_cos) > 0 else 1)
+                                q_max = 2.0 # Standard fallback for bits
+                                custom_weights = config.get('customWeights', [])
+                                if q_key != 'total' and int(q_key) < len(custom_weights) and custom_weights[int(q_key)] not in [None, '']:
+                                    try: q_max = float(custom_weights[int(q_key)])
+                                    except: pass
+                                elif q_key == 'total':
+                                    q_max = tool.max_marks or 30
+                                else:
+                                    # Fallback to defaults if no custom weight
+                                    if tool.max_marks == 30:
+                                        q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
+                                    elif tool.max_marks == 15:
+                                        # For 15 marker tests, usually 1 for sub, 2 for main? 
+                                        # We'll use frontend's max/10 as the baseline
+                                        q_max = tool.max_marks / 10.0
+                                    elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm:
+                                        q_max = tool.max_marks
+                                    else:
+                                        q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                            q_threshold = q_max * threshold_ratio
-                            
-                            # Bit-wise appeared/success (All attempts for difficulty stats)
-                            if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
-                            q_stats[q_key]['appeared'] += 1
-                            q_stats[q_key]['sum'] += mark_val
-                            if mark_val >= q_threshold:
-                                q_stats[q_key]['success'] += 1
-
-                            # CO Aggregation (CHOICE FILTERED for OBE attainment)
-                            if q_key != 'total' and int(q_key) in excluded_indices:
-                                pass # Skip if excluded by choice logic
-                            else:
-                                co_stats[co_key]['appeared'] += 1
+                                q_threshold = q_max * threshold_ratio
+                                
+                                # 1. Bit-wise stats (Success Rate for difficulty row)
+                                if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
+                                q_stats[q_key]['appeared'] += 1
+                                q_stats[q_key]['sum'] += mark_val
                                 if mark_val >= q_threshold:
-                                    co_stats[co_key]['success'] += 1
+                                    q_stats[q_key]['success'] += 1
+
+                                # 2. CO Aggregation (Marks-based for summary table)
+                                if q_key != 'total' and int(q_key) in excluded_indices:
+                                    pass
+                                else:
+                                    co_agg[co_key]['total_got'] += mark_val
+                                    co_agg[co_key]['total_max'] += q_max
+                                    co_agg[co_key]['students_appeared'].add(student_enroll)
+
+                # Finalize CO Summary Stats
+                co_stats = {}
+                for co_key, agg in co_agg.items():
+                    # Reference doc uses Class Average Percentage for the summary levels
+                    percent = (agg['total_got'] / agg['total_max'] * 100) if agg['total_max'] > 0 else 0
+                    co_stats[co_key] = {
+                        'appeared': len(agg['students_appeared']),
+                        'success': round(percent, 2), # Using 'success' field for the final % to avoid schema breakage
+                        'marks_percent': round(percent, 2)
+                    }
 
                 # 2. Convert aggregated CO marks to levels
                 for co_key, stats in co_stats.items():
                     if stats['appeared'] > 0:
-                        percentage = (stats['success'] / stats['appeared']) * 100
+                        percentage = stats['marks_percent'] # Use the Weighted Average % directly
                         
-                        # Use standard OBE attainment levels (e.g., 80%+=3, 70%+=2, etc.)
-                        # Matching frontend logic:
-                        if percentage >= 20: level = round(min((percentage / 100) * 3, 3.00), 2)
-                        else: level = 0.00
+                        # Use standard OBE attainment (linear 0-3 scale)
+                        level = round(min((percentage / 100) * 3, 3.00), 2)
                         
                         # Find actual CO object matching this mapping
                         # Enhanced matching: first look in AssessmentCOMapping for this tool,
