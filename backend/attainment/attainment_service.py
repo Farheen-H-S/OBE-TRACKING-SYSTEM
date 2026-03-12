@@ -500,9 +500,9 @@ class AttainmentService:
                                     if q_key != 'total' and int(q_key) in excluded_indices:
                                         pass
                                     else:
-                                        co_agg[co_key]['total_got'] += mark_val
-                                        co_agg[co_key]['total_max'] += q_max
                                         if is_mark_entered:
+                                            co_agg[co_key]['total_got'] += mark_val
+                                            co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
                 # Finalize CO Summary Stats
