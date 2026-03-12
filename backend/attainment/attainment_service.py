@@ -369,11 +369,19 @@ class AttainmentService:
                 
                 # 1. Calculate average per question
                 q_indices = set()
-                for student_marks in marks_data.values():
+                for student_enroll, student_marks in marks_data.items():
                     if isinstance(student_marks, dict):
-                        for q_idx in student_marks.keys():
-                            if q_idx != 'total': q_indices.add(int(q_idx))
+                        for k, v in student_marks.items():
+                            if v not in [None, '', '-']:
+                                try:
+                                    # Handle both numeric keys and 'total'
+                                    if k == 'total':
+                                        q_indices.add('total')
+                                    else:
+                                        q_indices.add(int(k))
+                                except: pass
                 
+                q_stats = {}
                 q_averages = {}
                 student_list = list(marks_data.keys())
                 # Standardize at 40% for all tools to match reference benchmarks
@@ -381,11 +389,9 @@ class AttainmentService:
                 threshold_ratio = 0.4
                 
                 for student_enroll, s_marks in marks_data.items():
-                    if not isinstance(s_marks, dict): continue
-                    
+                    # Handle Choice questions (Top 5 of 7) for Theory Assessments
                     excluded_indices = set()
                     if is_fa_th:
-                        # Top 5 of 7 sub-questions per group
                         indices = [int(k) for k in s_marks.keys() if k.isdigit()]
                         if indices:
                             max_idx = max(indices)
@@ -404,39 +410,68 @@ class AttainmentService:
                                     for m in group_marks[5:]:
                                         excluded_indices.add(m['idx'])
                     
-                    for q_idx_str, val in s_marks.items():
-                        if q_idx_str == 'total' or not q_idx_str.isdigit(): continue
-                        q_idx = int(q_idx_str)
-                        if q_idx in excluded_indices: continue
-                        if val in [None, '']: continue
+                    # Re-implementing the loop to handle 'total' and choice properly
+                    for q_key in q_indices:
+                        val = s_marks.get(str(q_key))
+                        if val in [None, '', '-']: continue
                         
                         try: mark_val = float(val)
                         except: continue
                         
-                        co_val = user_cos[q_idx] if q_idx < len(user_cos) else None
-                        if co_val:
-                            co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                            if co_key not in co_stats: co_stats[co_key] = {'success': 0, 'appeared': 0}
+                        # Mapping to CO
+                        co_vals = []
+                        if q_key == 'total':
+                            if is_summative and user_cos:
+                                # Summative total mark attributes to all COs
+                                co_vals = user_cos
+                            elif user_cos:
+                                co_vals = [user_cos[0]]
+                        else:
+                            q_idx = int(q_key)
+                            if q_idx < len(user_cos):
+                                co_vals = [user_cos[q_idx]]
+                        
+                        for co_val in co_vals:
+                            if co_val:
+                                co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
+                                if co_key not in co_stats: co_stats[co_key] = {'success': 0, 'appeared': 0}
+                                
+                                # Determine q_max ...
+                                # (Rest of the determinant logic)
                             
                             # Determine q_max with priority: 1. customWeights 2. Default logic
                             q_max = 25 # Fallback
                             custom_weights = config.get('customWeights', [])
-                            if q_idx < len(custom_weights) and custom_weights[q_idx] not in [None, '']:
-                                try: q_max = float(custom_weights[q_idx])
+                            if q_key != 'total' and int(q_key) < len(custom_weights) and custom_weights[int(q_key)] not in [None, '']:
+                                try: q_max = float(custom_weights[int(q_key)])
                                 except: pass
+                            elif q_key == 'total':
+                                q_max = tool.max_marks # Total mark uses tool's max marks
                             else:
                                 # Default logic replication from frontend (Cisentry.js)
                                 if is_fa_th and tool.max_marks == 30:
-                                    q_max = 2.0 if (q_idx % 14 < 7) else 4.0
+                                    q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
                                 elif 'PR' in tool_name_norm or 'SLA' in tool_name_norm or 'SA' in tool_name_norm:
                                     q_max = tool.max_marks
                                 elif tool.max_marks:
                                     q_max = tool.max_marks / (len(user_cos) if len(user_cos) > 0 else 1)
 
                             q_threshold = q_max * threshold_ratio
-                            co_stats[co_key]['appeared'] += 1
+                            
+                            # Bit-wise appeared/success (All attempts for difficulty stats)
+                            if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0}
+                            q_stats[q_key]['appeared'] += 1
+                            q_stats[q_key]['sum'] += mark_val
                             if mark_val >= q_threshold:
-                                co_stats[co_key]['success'] += 1
+                                q_stats[q_key]['success'] += 1
+
+                            # CO Aggregation (CHOICE FILTERED for OBE attainment)
+                            if q_key != 'total' and int(q_key) in excluded_indices:
+                                pass # Skip if excluded by choice logic
+                            else:
+                                co_stats[co_key]['appeared'] += 1
+                                if mark_val >= q_threshold:
+                                    co_stats[co_key]['success'] += 1
 
                 # 2. Convert aggregated CO marks to levels
                 for co_key, stats in co_stats.items():

@@ -120,7 +120,7 @@ const Cisentry = () => {
 
   const isMarkExcluded = (enrollment, colIndex) => {
     if (!selectedTool.startsWith('FA-TH')) return false;
-    
+
     // Every group of 7 indices is a separate question (Q1: 0-6, Q2: 7-13, Q3: 14-20, etc.)
     const groupIndex = Math.floor(colIndex / 7);
     const start = groupIndex * 7;
@@ -148,7 +148,6 @@ const Cisentry = () => {
     // 1. Number of students appeared (filter out absents/non-numeric)
     const appeared = questions.map((_, colIndex) => {
       return students.filter(s => {
-        if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
         const mark = marksData[s.enrollment_no]?.[colIndex];
         return mark !== undefined && mark !== '' && mark !== null && !isNaN(parseFloat(mark));
       }).length;
@@ -171,7 +170,6 @@ const Cisentry = () => {
     const equalOrMoreAvg = questions.map((_, colIndex) => {
       const threshold = getSuccessThreshold(colIndex);
       return students.filter(s => {
-        if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
         const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
         return !isNaN(mark) && mark >= threshold;
       }).length;
@@ -191,30 +189,52 @@ const Cisentry = () => {
       return validTotals.length ? (totalSum / validTotals.length) : 0;
     })();
 
-    // 5. CO wise Hierarchical Attainment (Aggregated by Success/Appearance per CO)
+    // 5. CO wise Hierarchical Attainment (AGGREGATED with Choice Rule)
     const coStats = {}; // { co_num: { success: 0, appeared: 0 } }
     questions.forEach((_, colIndex) => {
       const coVal = userCos[colIndex];
       if (coVal) {
         const coKey = coVal.toString();
         if (!coStats[coKey]) coStats[coKey] = { success: 0, appeared: 0 };
-        coStats[coKey].success += equalOrMoreAvg[colIndex];
-        coStats[coKey].appeared += appeared[colIndex];
+
+        // Count choice-filtered success/appeared for the Aggregate CO value
+        const colSuccess = students.filter(s => {
+          if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
+          const mark = parseFloat(marksData[s.enrollment_no]?.[colIndex]);
+          const threshold = getSuccessThreshold(colIndex);
+          return !isNaN(mark) && mark >= threshold;
+        }).length;
+
+        const colAppeared = students.filter(s => {
+          if (isMarkExcluded(s.enrollment_no, colIndex)) return false;
+          const mark = marksData[s.enrollment_no]?.[colIndex];
+          return mark !== undefined && mark !== '' && mark !== null && !isNaN(parseFloat(mark));
+        }).length;
+
+        coStats[coKey].success += colSuccess;
+        coStats[coKey].appeared += colAppeared;
       }
     });
 
-    const coAttainment = questions.map((_, colIndex) => {
-      const coVal = userCos[colIndex];
-      if (coVal) {
-        const stats = coStats[coVal.toString()];
-        if (stats && stats.appeared > 0) {
-          return ((stats.success / stats.appeared) * 100).toFixed(2);
-        }
-      }
-      return '0.00';
+    const coAttainmentLevels = {};
+    Object.keys(coStats).forEach(coKey => {
+      const stats = coStats[coKey];
+      const percent = stats.appeared > 0 ? (stats.success / stats.appeared) * 100 : 0;
+      coAttainmentLevels[coKey] = {
+        percent: percent.toFixed(2),
+        level: ((percent / 100) * 3).toFixed(2)
+      };
     });
 
-    return { appeared, equalOrMoreAvg, percentMoreAvg, coAttainment, averages, totalAverage, coStats };
+    // Per-column attainment level (to match Doc bit-wise levels)
+    const columnAttainmentLevels = questions.map((_, colIndex) => {
+      const app = appeared[colIndex];
+      const count = equalOrMoreAvg[colIndex];
+      const percent = app ? (count / app) * 100 : 0;
+      return ((percent / 100) * 3).toFixed(2);
+    });
+
+    return { appeared, equalOrMoreAvg, percentMoreAvg, columnAttainmentLevels, averages, totalAverage, coStats, coAttainmentLevels };
   };
 
   const attainmentStats = calculateAttainmentStats();
@@ -1854,24 +1874,48 @@ const Cisentry = () => {
                             </td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
-                            {attainmentStats.coAttainment.map((val, i) => {
-                              const percent = parseFloat(val);
-                              const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
+                            {attainmentStats.columnAttainmentLevels.map((val, i) => {
+                              const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
+
 
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                                  {level.toFixed(2)} ({val}%)
+                                  {val} ({percent}%)
                                 </td>
                               );
                             })}
                             <td colSpan="2" style={{ backgroundColor: '#b4c7e7' }}></td>
                           </tr>
                         </tbody>
+
                       </table>
-                    </div>
-                    {renderActionFooter()}
+                      <div className='mt-4 overflow-hidden border rounded shadow-sm'>
+                        <table className='table table-bordered table-sm mb-0'>
+                          <thead>
+                            <tr style={{ backgroundColor: '#1a4e8a', color: 'white' }}>
+                              <th className='py-2'>CO Statement</th>
+                              <th className='py-2'>Total Appeared</th>
+                              <th className='py-2'>Total Success</th>
+                              <th className='py-2'>Attainment (%)</th>
+                              <th className='py-2'>Attainment Level (0-3)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(attainmentStats.coAttainmentLevels).sort().map(([co, stats]) => (
+                              <tr key={co}>
+                                <td className='fw-bold'>{formatCO(co)}</td>
+                                <td>{attainmentStats.coStats[co].appeared}</td>
+                                <td>{attainmentStats.coStats[co].success}</td>
+                                <td className='fw-bold text-primary'>{stats.percent}%</td>
+                                <td className='fw-bold' style={{ backgroundColor: '#e9f2fb' }}>{stats.level}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div> {renderActionFooter()}
                   </>
                 )}
 
@@ -1965,24 +2009,48 @@ const Cisentry = () => {
                             <td colSpan="2"></td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.coAttainment.map((val, i) => {
-                              const percent = parseFloat(val);
-                              const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
+                              const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
+
 
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                                  {level.toFixed(2)} ({val}%)
+                                  {val} ({percent}%)
                                 </td>
                               );
                             })}
                             <td colSpan="2"></td>
                           </tr>
                         </tbody>
+
                       </table>
-                    </div>
-                    {renderActionFooter()}
+                      <div className='mt-4 overflow-hidden border rounded shadow-sm'>
+                        <table className='table table-bordered table-sm mb-0'>
+                          <thead>
+                            <tr style={{ backgroundColor: '#1a4e8a', color: 'white' }}>
+                              <th className='py-2'>CO Statement</th>
+                              <th className='py-2'>Total Appeared (Choice Filtered)</th>
+                              <th className='py-2'>Total Success (Choice Filtered)</th>
+                              <th className='py-2'>Attainment (%)</th>
+                              <th className='py-2'>Attainment Level (0-3)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(attainmentStats.coAttainmentLevels).sort().map(([co, stats]) => (
+                              <tr key={co}>
+                                <td className='fw-bold'>{formatCO(co)}</td>
+                                <td>{attainmentStats.coStats[co].appeared}</td>
+                                <td>{attainmentStats.coStats[co].success}</td>
+                                <td className='fw-bold text-primary'>{stats.percent}%</td>
+                                <td className='fw-bold' style={{ backgroundColor: '#e9f2fb' }}>{stats.level}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div> {renderActionFooter()}
                   </>
                 )}
 
@@ -2076,15 +2144,15 @@ const Cisentry = () => {
                             <td colSpan="2"></td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.coAttainment.map((val, i) => {
-                              const percent = parseFloat(val);
-                              const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
+                              const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
+
 
                               return (
                                 <td key={i} className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
-                                  {level.toFixed(2)} ({val}%)
+                                  {val} ({percent}%)
                                 </td>
                               );
                             })}
@@ -2149,13 +2217,13 @@ const Cisentry = () => {
                             </tr>
                           ))}
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>CO attainment</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
                             <td className="fw-bold small" style={{ backgroundColor: '#b4c7e7' }}>
                               {(() => {
                                 const val = attainmentStats.coAttainment[0] || '0.00';
-                                const percent = parseFloat(val);
-                                const level = parseFloat(Math.min((percent / 100) * 3, 3).toFixed(2));
-                                return `${level.toFixed(2)} (${val}%)`;
+                                const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
+
+                                return `${val} (${percent}%)`;
                               })()}
                             </td>
                           </tr>
@@ -2221,3 +2289,5 @@ const Cisentry = () => {
 };
 
 export default Cisentry;
+
+
