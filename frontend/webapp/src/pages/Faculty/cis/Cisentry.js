@@ -168,10 +168,10 @@ const Cisentry = () => {
       averages[colIndex] = qAvg;
 
       if (isPractical) {
-        // FA-PR: percentage = (average marks / max marks) * 100
-        const pct = weight > 0 ? (qAvg / weight) * 100 : 0;
+        // FA-PR: marks represent percentage scores directly (0-100)
+        // e.g. a mark of 44 means 44%, so percentage = average mark directly
         equalOrMoreAvg[colIndex] = 0; // not used for PR
-        percentMoreAvg[colIndex] = attemptedMarks.length > 0 ? pct.toFixed(2) : '0.00';
+        percentMoreAvg[colIndex] = attemptedMarks.length > 0 ? qAvg.toFixed(2) : '0.00';
       } else {
         // FA-TH / SLA: percentage = COUNTIF(marks >= threshold) / COUNT * 100
         // Excel uses integer thresholds, rounded down, minimum 1 for small bits
@@ -2045,7 +2045,7 @@ const Cisentry = () => {
                             <td colSpan="2"></td>
                           </tr>
                           <tr className="bg-light">
-                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>Bit-wise Attainment Level</td>
+                            <td colSpan="3" className="text-start ps-3 fw-bold small text-uppercase" style={{ backgroundColor: '#cfe2f3' }}>QUESTION-WISE ATTAINMENT LEVEL</td>
                             <td className="label-col-cell" style={{ backgroundColor: '#cfe2f3' }}></td>
                             {attainmentStats.columnAttainmentLevels.map((val, i) => {
                               const percent = ((parseFloat(val) / 3) * 100).toFixed(2);
