@@ -118,6 +118,31 @@ const Cisentry = () => {
   const weights = (customWeights.map((w, i) => w || defaultWeights[i])).slice(0, columnCount);
   const slicedUserCos = userCos.slice(0, columnCount);
 
+  const isMarkExcluded = (enrollment, colIndex) => {
+    if (!selectedTool.startsWith('FA-TH')) return false;
+    
+    // Every group of 7 indices is a separate question (Q1: 0-6, Q2: 7-13, Q3: 14-20, etc.)
+    const groupIndex = Math.floor(colIndex / 7);
+    const start = groupIndex * 7;
+    const end = start + 6;
+
+    const sMarks = marksData[enrollment] || {};
+    const val = parseFloat(sMarks[colIndex]);
+    if (isNaN(val)) return false;
+
+    const groupMarks = [];
+    for (let i = start; i <= end; i++) {
+      const v = parseFloat(sMarks[i]);
+      if (!isNaN(v)) groupMarks.push({ i, v });
+    }
+    // Sort descending by value, and then by index to keep it stable
+    groupMarks.sort((a, b) => (b.v - a.v) || (a.i - b.i));
+
+    // Included are top 5
+    const included = groupMarks.slice(0, 5).map(m => m.i);
+    return !included.includes(colIndex);
+  };
+
   // Attainment Calculation Logic
   const calculateAttainmentStats = () => {
     // 1. Number of students appeared (filter out absents/non-numeric)
@@ -966,30 +991,6 @@ const Cisentry = () => {
     setViewMode('edit');
   };
 
-  const isMarkExcluded = (enrollment, colIndex) => {
-    if (!selectedTool.startsWith('FA-TH')) return false;
-    
-    // Every group of 7 indices is a separate question (Q1: 0-6, Q2: 7-13, Q3: 14-20, etc.)
-    const groupIndex = Math.floor(colIndex / 7);
-    const start = groupIndex * 7;
-    const end = start + 6;
-
-    const sMarks = marksData[enrollment] || {};
-    const val = parseFloat(sMarks[colIndex]);
-    if (isNaN(val)) return false;
-
-    const groupMarks = [];
-    for (let i = start; i <= end; i++) {
-      const v = parseFloat(sMarks[i]);
-      if (!isNaN(v)) groupMarks.push({ i, v });
-    }
-    // Sort descending by value, and then by index to keep it stable
-    groupMarks.sort((a, b) => (b.v - a.v) || (a.i - b.i));
-
-    // Included are top 5
-    const included = groupMarks.slice(0, 5).map(m => m.i);
-    return !included.includes(colIndex);
-  };
 
   const isBelowMinimum = (enrollment) => {
     const total = parseFloat(marksData[enrollment]?.total);
