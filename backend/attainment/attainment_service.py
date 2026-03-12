@@ -486,8 +486,8 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # Threshold: use column average for FA-PR, else 40% of max for FA-TH/SLA
-                                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm
+                                    # Threshold: use column average for FA-PR/SLA, else 40% of max for FA-TH
+                                    is_practical_tool = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm
                                     if q_key not in q_stats:
                                         q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
                                     if is_mark_entered:
@@ -509,10 +509,9 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # Finalize Question Stats
-                # FA-PR: % = (count ≥ column_avg) / appeared * 100 (matches Excel =AVERAGE of success% row)
-                # FA-TH/SLA: % = success_count / appeared * 100
-                is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm
+                # FA-PR and SLA: % = (count >= col_avg) / appeared * 100
+                # FA-TH: % = success_count / appeared * 100
+                is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm or 'SLA' in tool_name_norm
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
                         if is_practical:

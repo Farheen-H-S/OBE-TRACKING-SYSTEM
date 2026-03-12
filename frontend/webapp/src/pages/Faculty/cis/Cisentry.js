@@ -151,8 +151,8 @@ const Cisentry = () => {
     let studentAppearedInCO = {}; // { enroll: { co_key: true } }
 
     // 1. Question-wise statistics
-    // FA-PR uses Average/Max formula; FA-TH/SLA use COUNTIF >= threshold formula
-    const isPractical = selectedTool === 'FA-PR';
+    // FA-PR and SLA use "count >= col_avg" formula; FA-TH uses COUNTIF >= 40% threshold
+    const isPractical = selectedTool === 'FA-PR' || selectedTool === 'SLA';
 
     questions.forEach((_, colIndex) => {
       // Filter ONLY students who actually entered a mark
