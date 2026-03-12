@@ -504,10 +504,28 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # Finalize Bit-wise Question Stats (True percentage of Total Marks vs Max Marks)
+                # Finalize Bit-wise Question Stats
+                # FA-PR uses Average/Max formula; FA-TH/SLA use COUNTIF >= threshold
+                is_practical = 'FA_PR' in tool_name_norm or 'FAPR' in tool_name_norm
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
-                        stats['success'] = round((stats['success'] / stats['appeared']) * 100, 2)
+                        if is_practical:
+                            # For practicals: percentage = (avg_marks / max_marks) * 100
+                            # We stored marks in 'sum' and count in 'appeared'
+                            avg_mark = stats['sum'] / stats['appeared']
+                            # Calculate the max marks for this question
+                            try:
+                                q_idx = int(q_key)
+                                custom_weights = config.get('customWeights', []) if config else []
+                                if q_idx < len(custom_weights) and custom_weights[q_idx] not in [None, '']:
+                                    q_max_for_pct = float(custom_weights[q_idx])
+                                else:
+                                    q_max_for_pct = tool.max_marks or 100
+                            except:
+                                q_max_for_pct = tool.max_marks or 100
+                            stats['success'] = round((avg_mark / q_max_for_pct) * 100, 2) if q_max_for_pct > 0 else 0.0
+                        else:
+                            stats['success'] = round((stats['success'] / stats['appeared']) * 100, 2)
                     else:
                         stats['success'] = 0.0
 

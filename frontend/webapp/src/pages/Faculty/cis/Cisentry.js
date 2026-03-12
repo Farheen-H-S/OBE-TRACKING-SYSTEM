@@ -150,7 +150,10 @@ const Cisentry = () => {
     let coStats = { /* co_key: { totalGot: 0, totalMax: 0, appearedEnrollments: Set } */ };
     let studentAppearedInCO = {}; // { enroll: { co_key: true } }
 
-    // 1. Question-wise statistics (Attempted-Only, Fixed 40% Threshold)
+    // 1. Question-wise statistics
+    // FA-PR uses Average/Max formula; FA-TH/SLA use COUNTIF >= threshold formula
+    const isPractical = selectedTool === 'FA-PR';
+
     questions.forEach((_, colIndex) => {
       // Filter ONLY students who actually entered a mark
       const attemptedMarks = students
@@ -160,19 +163,26 @@ const Cisentry = () => {
       const qSum = attemptedMarks.reduce((a, b) => a + b, 0);
       const qAvg = attemptedMarks.length ? (qSum / attemptedMarks.length) : 0;
       const weight = parseFloat(weights[colIndex]) || 0;
-      // Excel uses integer thresholds, rounded down, minimum 1 for small bits
-      const threshold = Math.max(1, Math.floor(weight * 0.40));
-      
-      const successCount = attemptedMarks.filter(m => m >= threshold).length;
 
       appeared[colIndex] = attemptedMarks.length;
       averages[colIndex] = qAvg;
-      equalOrMoreAvg[colIndex] = successCount;
-      
-      // Calculate true Success Rate (% of students passing the threshold)
-      percentMoreAvg[colIndex] = attemptedMarks.length > 0 
-        ? ((successCount / attemptedMarks.length) * 100).toFixed(2) 
-        : "0.00";
+
+      if (isPractical) {
+        // FA-PR: percentage = (average marks / max marks) * 100
+        const pct = weight > 0 ? (qAvg / weight) * 100 : 0;
+        equalOrMoreAvg[colIndex] = 0; // not used for PR
+        percentMoreAvg[colIndex] = attemptedMarks.length > 0 ? pct.toFixed(2) : '0.00';
+      } else {
+        // FA-TH / SLA: percentage = COUNTIF(marks >= threshold) / COUNT * 100
+        // Excel uses integer thresholds, rounded down, minimum 1 for small bits
+        const threshold = Math.max(1, Math.floor(weight * 0.40));
+        const successCount = attemptedMarks.filter(m => m >= threshold).length;
+        equalOrMoreAvg[colIndex] = successCount;
+        // Calculate true Success Rate (% of students passing the threshold)
+        percentMoreAvg[colIndex] = attemptedMarks.length > 0 
+          ? ((successCount / attemptedMarks.length) * 100).toFixed(2) 
+          : '0.00';
+      }
     });
 
     // 2. CO-wise and Overall aggregation (Attempted-Only Percentage)
