@@ -121,7 +121,7 @@ const Cescreate = () => {
                 surveyData.forEach(s => {
                     states[s.course_id] = {
                         status: s.status,
-                        duration: '7 Days',
+                        duration: '7',
                         expires_at: s.expires_at,
                         survey_id: s.survey_id
                     };
@@ -329,7 +329,7 @@ const Cescreate = () => {
 
             setSurveyStates(prev => ({
                 ...prev,
-                [courseId]: { status: 'APPROVED', duration: `${durationDays} Days`, expires_at: expiry.toISOString(), survey_id: res.data.survey_id }
+                [courseId]: { status: 'APPROVED', duration: String(durationDays), expires_at: expiry.toISOString(), survey_id: res.data.survey_id }
             }));
             setActiveSurvey({ ...res.data, link });
             alert(`Survey Approved! Expiry: ${expiry.toLocaleDateString()}`);

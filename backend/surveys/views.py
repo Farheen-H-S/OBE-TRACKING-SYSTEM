@@ -66,14 +66,18 @@ class SubmitSurveyResponseView(APIView):
         if not respondent_name:
             if student:
                 respondent_name = student.name
-            elif request.user.is_authenticated and student is None and not enrollment_no:
-                # Only use logged-in user name if no specific student is targeted
-                respondent_name = request.user.name
+            else:
+                # If student object wasn't found but we have an enrollment_no, query for it precisely.
+                student_fallback = Student.objects.filter(enrollment_no=enrollment_no).first() if enrollment_no else None
+                if student_fallback:
+                    respondent_name = student_fallback.name
+                else:
+                    respondent_name = "Guest"
 
         response = SurveyResponse.objects.create(
             survey_id=survey,
             student_id=student,
-            respondent_name=respondent_name or "Guest",
+            respondent_name=respondent_name,
             enrollment_no=enrollment_no or "N/A"
         )
         

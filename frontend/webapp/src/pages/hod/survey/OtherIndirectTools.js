@@ -231,8 +231,11 @@ const OtherIndirectTools = () => {
     };
 
     const updateLinkBoxFromSurvey = (survey) => {
-        const duration = survey.expires_at ?
-            Math.round((new Date(survey.expires_at) - new Date(survey.created_at || new Date())) / 3600000) : 48;
+        let duration = 7;
+        if (survey.expires_at) {
+            const diff = new Date(survey.expires_at) - new Date();
+            duration = Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+        }
 
         const newState = {
             status: survey.status,
@@ -366,8 +369,8 @@ const OtherIndirectTools = () => {
 
         try {
             // Create backend record
-            const duration = parseInt(calcDuration || '48');
-            const expiry = new Date(); expiry.setHours(expiry.getHours() + duration);
+            const duration = parseInt(surveyState?.duration || '7');
+            const expiry = new Date(); expiry.setDate(expiry.getDate() + duration);
 
             // Fetch PO/PSO to create questions
             const [poRes, psoRes] = await Promise.all([
