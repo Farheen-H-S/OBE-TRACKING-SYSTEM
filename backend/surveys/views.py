@@ -63,8 +63,14 @@ class SubmitSurveyResponseView(APIView):
             enrollment_no = student.enrollment_no
         else:
             enrollment_no = enrollment_no_from_payload
+
+        # 4. Check for duplicate submission (only if survey is not anonymous)
+        if enrollment_no and not survey.is_anonymous:
+            duplicate = SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).exists()
+            if duplicate:
+                return Response({"error": "You have already responded to this survey."}, status=400)
             
-        # 4. Determine respondent name
+        # 5. Determine respondent name
         respondent_name = request.data.get('respondent_name')
         if not respondent_name:
             if student:

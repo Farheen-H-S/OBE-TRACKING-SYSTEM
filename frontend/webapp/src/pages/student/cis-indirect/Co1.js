@@ -93,7 +93,8 @@ const Co1 = () => {
                 navigate('/student/thank-you');
             } catch (err) {
                 console.error("Submission failed:", err);
-                alert("Failed to submit survey. Please try again.");
+                const errorMsg = err.response?.data?.error || "Failed to submit survey. Please try again.";
+                alert(errorMsg);
             }
         }
     };

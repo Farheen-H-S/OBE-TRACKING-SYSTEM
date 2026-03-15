@@ -190,7 +190,8 @@ const OITQuestion = () => {
                 navigate('/student/thank-you');
             } catch (err) {
                 console.error('Submission error:', err);
-                alert('Failed to submit. Please try again.');
+                const errorMsg = err.response?.data?.error || 'Failed to submit. Please try again.';
+                alert(errorMsg);
             }
         }
     };
