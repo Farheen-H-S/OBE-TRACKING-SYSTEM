@@ -48,6 +48,20 @@ const Clogin = () => {
             const data = response.data;
             const student = Array.isArray(data) ? data[0] : data;
             if (student && student.enrollment_no) {
+                // Check if already responded to this course's survey
+                if (courseId) {
+                    try {
+                        const eligibility = await api.get('/surveys/check-participation/', { 
+                            params: { enrollment_no: student.enrollment_no, course_id: courseId } 
+                        });
+                        if (eligibility.data.responded) {
+                            setError('You have already responded to this survey.');
+                            return;
+                        }
+                    } catch (e) {
+                         console.error("Eligibility check failed:", e);
+                    }
+                }
                 setError('');
                 localStorage.setItem('student', JSON.stringify(student));
                 if (surveyType === 'expert-talk') {

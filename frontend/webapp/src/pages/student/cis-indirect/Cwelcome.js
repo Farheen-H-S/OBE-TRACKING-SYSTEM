@@ -63,9 +63,7 @@ const Cwelcome = () => {
                     <i className="bi bi-arrow-left fs-5"></i>
                 </button>
                 <div style={{ zIndex: 1 }}>
-                    {studentName && (
-                        <h2 className="cwelcome-title mb-0">Welcome {studentName} to Course Exit Survey (CES)</h2>
-                    )}
+                        <h2 className="cwelcome-title mb-0">Welcome to Course Exit Survey (CES)</h2>
                 </div>
             </div>
 

@@ -1,4 +1,5 @@
 from rest_framework import generics, status, permissions
+from django.db.models import Q
 from audit.utils import log_action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,6 +8,31 @@ from .models import SurveyMaster, SurveyResponse, SurveyAnswer, SurveyQuestion
 from .serializers import SurveyMasterSerializer, SurveyResponseSerializer
 from .report_generator import SurveyExcelReportGenerator
 from django.http import HttpResponse
+
+class CheckSurveyParticipationView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def get(self, request):
+        enrollment_no = request.query_params.get('enrollment_no', '').strip()
+        survey_id = request.query_params.get('survey_id')
+        course_id = request.query_params.get('course_id')
+
+        if not enrollment_no:
+            return Response({"error": "Enrollment number is required"}, status=400)
+
+        filters = Q(enrollment_no=enrollment_no)
+        if survey_id:
+            filters &= Q(survey_id=survey_id)
+        elif course_id:
+            # For CIS, we look for ALL approved surveys for this course
+            approved_surveys = SurveyMaster.objects.filter(course_id=course_id, status='APPROVED')
+            if not approved_surveys.exists():
+                return Response({"responded": False, "message": "No active survey found"})
+            filters &= Q(survey_id__in=approved_surveys)
+        else:
+            return Response({"error": "survey_id or course_id is required"}, status=400)
+
+        exists = SurveyResponse.objects.filter(filters).exists()
+        return Response({"responded": exists})
 
 class SurveyMasterListCreateView(generics.ListCreateAPIView):
     serializer_class = SurveyMasterSerializer
