@@ -107,8 +107,16 @@ const QuestionPage = () => {
                 };
             });
 
+            // Read student from localStorage (set by Clogin.js or OITLogin.js)
+            const storedStudent = (() => {
+                try { return JSON.parse(localStorage.getItem('student') || localStorage.getItem('oit_respondent') || 'null'); }
+                catch { return null; }
+            })();
+            const enrollmentNo = storedStudent?.enrollment_no || storedStudent?.enrollment || null;
+
             const payload = {
                 survey_id: surveyId,
+                enrollment_no: enrollmentNo,
                 answers: responses // Backend SubmitSurveyResponseView expects 'answers'
             };
 

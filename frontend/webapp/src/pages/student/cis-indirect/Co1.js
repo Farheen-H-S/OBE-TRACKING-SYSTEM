@@ -76,7 +76,7 @@ const Co1 = () => {
                 const student = JSON.parse(localStorage.getItem('student'));
                 const payload = {
                     survey_id: cos[0]?.survey_id,
-                    student_id: student?.enrollment,
+                    enrollment_no: student?.enrollment_no || null,
                     answers: Object.entries(answers).map(([qId, val]) => ({
                         question_id: parseInt(qId),
                         answer_value: val

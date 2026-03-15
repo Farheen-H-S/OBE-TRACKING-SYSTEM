@@ -62,7 +62,8 @@ const OITLogin = () => {
                     setError('');
                     localStorage.setItem('oit_respondent', JSON.stringify({
                         type: 'student',
-                        enrollment: student.enrollment_no,
+                        enrollment: student.enrollment_no,       // legacy key kept for compatibility
+                        enrollment_no: student.enrollment_no,    // canonical key
                         rollNo: student.roll_no,
                         respondentName: student.full_name || student.name,
                         ...student,
