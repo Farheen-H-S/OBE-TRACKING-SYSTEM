@@ -75,11 +75,18 @@ const OITWelcome = () => {
     return (
         <div className="container-fluid p-0 oitwelcome-container">
             {/* Red header banner — same as Cwelcome */}
-            <div className="oitwelcome-header-section d-flex align-items-center mb-0">
+            <div className="oitwelcome-header-section d-flex align-items-center mb-0 position-relative">
                 <img src={redbg} alt="Background" className="oitwelcome-bg-img" />
-                <h2 className="oitwelcome-title ms-3">
-                    Welcome to {toolLabel}
-                </h2>
+                <div style={{ zIndex: 1 }} className="ms-3">
+                    {searchParams.get('respondentName') && (
+                        <p className="text-white mb-0 small fw-bold" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                            Welcome, {decodeURIComponent(searchParams.get('respondentName'))}!
+                        </p>
+                    )}
+                    <h2 className="oitwelcome-title mb-0">
+                        Welcome to {toolLabel}
+                    </h2>
+                </div>
             </div>
 
             <div className="container py-3">

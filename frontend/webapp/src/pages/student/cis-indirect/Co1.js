@@ -10,6 +10,7 @@ const Co1 = () => {
     // Enrollment from URL is the freshly-entered value, always reliable.
     // localStorage fallback handles direct navigation edge cases.
     const enrollmentFromUrl = searchParams.get('enrollment');
+    const studentNameFromUrl = decodeURIComponent(searchParams.get('studentName') || '');
     const enrollmentNo = enrollmentFromUrl ||
         (() => { try { return JSON.parse(localStorage.getItem('student'))?.enrollment_no; } catch { return null; } })();
 
@@ -124,6 +125,11 @@ const Co1 = () => {
     return (
         <div className="container-fluid co1-container d-flex flex-column align-items-center justify-content-start pt-5">
             <div className="co1-content w-100" style={{ maxWidth: '600px' }}>
+                <div className="text-center mb-1">
+                    {studentNameFromUrl && (
+                        <p className="text-muted small mb-0 fw-bold">Responding as: <span className="text-danger">{studentNameFromUrl}</span></p>
+                    )}
+                </div>
                 <h2 className="text-center co1-title mb-5">{currentCo.co_number.includes('.') ? currentCo.co_number : `CO${currentCo.co_number.replace(/[^0-9]/g, '')}`}</h2>
 
                 <p className="co1-question mb-4 fw-semibold text-dark fs-5">

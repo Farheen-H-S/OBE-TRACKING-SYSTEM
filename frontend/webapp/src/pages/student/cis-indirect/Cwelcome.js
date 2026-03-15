@@ -64,11 +64,8 @@ const Cwelcome = () => {
                 </button>
                 <div style={{ zIndex: 1 }}>
                     {studentName && (
-                        <p className="text-white mb-0 small fw-bold" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-                            Welcome, {studentName}!
-                        </p>
+                        <h2 className="cwelcome-title mb-0">Welcome {studentName} to Course Exit Survey (CES)</h2>
                     )}
-                    <h2 className="cwelcome-title mb-0">Welcome to Course Exit Survey (CES)</h2>
                 </div>
             </div>
 
@@ -105,6 +102,14 @@ const Cwelcome = () => {
                                                     <td className="fw-bold text-dark">{schemeName} / {course?.class_year || 'N/A'}</td>
                                                 </tr>
                                                 <tr>
+                                                    <td className="secondary-text fw-bold">Student Name</td>
+                                                    <td className="fw-bold text-danger">{studentName || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="secondary-text fw-bold">Enrollment No</td>
+                                                    <td className="fw-bold text-danger">{enrollment || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
                                                     <td className="secondary-text fw-bold">Semester</td>
                                                     <td className="fw-bold text-dark">Sem {course?.semester || 'N/A'}</td>
                                                 </tr>
@@ -137,6 +142,11 @@ const Cwelcome = () => {
                                         </div>
 
                                         <div className="text-end pt-3 mt-auto">
+                                            {studentName && (
+                                                <div className="mb-2 text-muted small">
+                                                    Responding as: <span className="fw-bold text-danger">{studentName}</span>
+                                                </div>
+                                            )}
                                             <button
                                                 className="btn btn-danger btn-lg px-5 fw-bold cwelcome-btn"
                                                 onClick={() => navigate(`/student/co1?course_id=${courseId}&enrollment=${encodeURIComponent(enrollment)}&studentName=${encodeURIComponent(studentName)}`)}

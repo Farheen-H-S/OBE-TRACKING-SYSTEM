@@ -31,10 +31,11 @@ const OITLogin = () => {
     const isAlumni = type === 'alumni';
     const toolLabel = TOOL_LABELS[type] || 'Indirect Survey';
 
-    const buildWelcomeParams = () => {
+    const buildWelcomeParams = (name = '') => {
         const params = new URLSearchParams({ survey, type, program: programId, class: classYear, div: division, year });
         if (activityType) params.set('activity_type', activityType);
         if (activityTitle) params.set('activity_title', activityTitle);
+        if (name) params.set('respondentName', name);
         return params.toString();
     };
 
@@ -46,12 +47,12 @@ const OITLogin = () => {
 
         if (isRP) {
             // Resource Person — store name, no validation needed
-            localStorage.setItem('oit_respondent', JSON.stringify({
-                type: 'resource-person',
-                name: inputVal.trim(),
-                respondentName: inputVal.trim(),
-            }));
-            navigate(`/student/oit-welcome?${buildWelcomeParams()}`);
+                localStorage.setItem('oit_respondent', JSON.stringify({
+                    type: 'resource-person',
+                    name: inputVal.trim(),
+                    respondentName: inputVal.trim(),
+                }));
+                navigate(`/student/oit-welcome?${buildWelcomeParams(inputVal.trim())}`);
         } else {
             // Student / Alumni — validate against backend
             try {
@@ -68,7 +69,7 @@ const OITLogin = () => {
                         respondentName: student.full_name || student.name,
                         ...student,
                     }));
-                    navigate(`/student/oit-welcome?${buildWelcomeParams()}`);
+                    navigate(`/student/oit-welcome?${buildWelcomeParams(student.full_name || student.name)}`);
                 } else {
                     setError('Invalid enrollment number. Please try again.');
                 }

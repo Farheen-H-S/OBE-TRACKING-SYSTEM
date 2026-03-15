@@ -309,10 +309,13 @@ class StudentListCreateAPIView(APIView):
         class_year = request.query_params.get('class_year')
         division = request.query_params.get('division')
         academic_year = request.query_params.get('academic_year')
+        enrollment_no = request.query_params.get('enrollment_no')
         
         from django.db.models.functions import Length
         queryset = Student.objects.filter(is_active=True).order_by(Length('roll_no'), 'roll_no')
         
+        if enrollment_no:
+            queryset = queryset.filter(enrollment_no=enrollment_no)
         if program_id:
             queryset = queryset.filter(program_id=program_id)
         if batch_id:
