@@ -233,6 +233,31 @@ const Cescreate = () => {
         }
     };
 
+    const handleBulkUpload = async (e, surveyId, courseId) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('survey_id', surveyId);
+        
+        try {
+            alert('Uploading test data...');
+            const res = await api.post('bulk_upload/surveys/upload/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert(res.data.message || 'Upload successful');
+            // Refresh stats if open
+            if (showStats[courseId]) {
+                fetchResponses(courseId, surveyId);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Upload failed: ' + (err.response?.data?.error || err.message));
+        }
+        e.target.value = null; // reset input
+    };
+
     const [editingCourseId, setEditingCourseId] = useState(null);
     const [tempQuestions, setTempQuestions] = useState({});
 
@@ -704,6 +729,37 @@ const Cescreate = () => {
                                                 >
                                                     {surveyStates[course.course_id]?.status === 'APPROVED' ? 'Close Early' : 'Approve'}
                                                 </button>
+                                                
+                                                {surveyStates[course.course_id]?.status === 'APPROVED' && (
+                                                    <>
+                                                        <input 
+                                                            type="file" 
+                                                            id={`bulkUpload-${course.course_id}`} 
+                                                            style={{ display: 'none' }} 
+                                                            accept=".xlsx,.xls"
+                                                            onChange={(e) => handleBulkUpload(e, surveyStates[course.course_id].survey_id, course.course_id)}
+                                                        />
+                                                        <button 
+                                                            className="btn btn-sm text-dark bg-warning border border-dark rounded-0 fw-bold px-2 mx-1"
+                                                            style={{ boxShadow: '2px 2px 0px black' }}
+                                                            onClick={() => {
+                                                                if (window.confirm("DATA SEEDING ONLY: This will overwrite existing survey answers. Continue?")) {
+                                                                    document.getElementById(`bulkUpload-${course.course_id}`).click();
+                                                                }
+                                                            }}
+                                                            title="DEVELOPMENT ONLY: Bulk Seed Responses"
+                                                        >
+                                                            [DEV] SEED DATA
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm text-dark bg-info border border-dark rounded-0 fw-bold px-2 mx-1"
+                                                            style={{ boxShadow: '2px 2px 0px black' }}
+                                                            onClick={() => window.open(`${api.defaults.baseURL}bulk_upload/surveys/template/?survey_id=${surveyStates[course.course_id].survey_id}`, '_blank')}
+                                                        >
+                                                            [DEV] TEMPLATE
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     ))

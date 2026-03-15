@@ -1189,3 +1189,251 @@ class BulkUserUploadView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# =====================================================================
+# DATA SEEDING ONLY - REMOVE LATER
+# =====================================================================
+
+class DownloadSurveyTemplateView(APIView):
+    """
+    Generates a pre-filled Excel template for Survey responses (Course Exit / Indirect).
+    Matches the CIS Marks Entry UI exactly: Enrollment, Roll No, Name, and dynamic Survey item columns.
+    """
+    def get(self, request):
+        survey_id = request.query_params.get('survey_id')
+        
+        if not survey_id:
+            return Response({"error": "Survey ID is required"}, status=400)
+            
+        from surveys.models import SurveyMaster, SurveyQuestion
+        survey = get_object_or_404(SurveyMaster, pk=survey_id)
+        
+        output = io.BytesIO()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Survey {survey.survey_category}"
+        
+        from openpyxl.styles import Border, Side
+        # Column Headers - Labels are row-specific for the 4th column
+        ws['A1'] = "ENROLLMENT NO"
+        ws['B1'] = "Roll no."
+        ws['C1'] = "Name of Student"
+        
+        # Merge A-C for the 3 header rows
+        for col_char in ['A', 'B', 'C']:
+            ws.merge_cells(f'{col_char}1:{col_char}3')
+            cell = ws[f'{col_char}1']
+            apply_header_style(cell, fill_color="2F5597", font_color="FFFFFF")
+
+        # Row 1-3 Labels in Column D (Just purely cosmetic spacers to match CIS)
+        ws['D1'] = ""
+        ws['D2'] = ""
+        ws['D3'] = "Survey Item"
+        for r in [1, 2, 3]:
+            apply_header_style(ws.cell(row=r, column=4), fill_color="2F5597", font_color="FFFFFF")
+
+        students = []
+        col_headers = []
+        
+        if survey.survey_category == 'course_exit' and survey.course_id:
+            students = list(Student.objects.filter(program_id=survey.course_id.program_id, is_active=True))
+            cos = CO.objects.filter(course_id=survey.course_id, is_active=True).order_by('co_number')
+            col_headers = [co.co_number for co in cos]
+        elif survey.survey_category == 'indirect' and survey.program_id:
+            students = list(Student.objects.filter(program_id=survey.program_id, is_active=True))
+            from academics.models import PO, PSO
+            pos = PO.objects.filter(program_id=survey.program_id, is_active=True).order_by('po_number')
+            psos = PSO.objects.filter(program_id=survey.program_id, is_active=True).order_by('pso_number')
+            col_headers = [po.po_number for po in pos] + [pso.pso_number for pso in psos]
+        else:
+            # Fallback to existing questions
+            questions = SurveyQuestion.objects.filter(survey_id=survey)
+            col_headers = [f"Q{q.question_id}" for q in questions]
+            
+        students.sort(key=lambda x: natural_sort_key(x.roll_no or ""))
+
+        # Target Items (Row 3) Starting from Col E (5)
+        for i, header in enumerate(col_headers):
+            col_idx = 5 + i
+            ws.cell(row=1, column=col_idx, value="")
+            ws.cell(row=2, column=col_idx, value="")
+            ws.cell(row=3, column=col_idx, value=header)
+            
+            apply_header_style(ws.cell(row=1, column=col_idx), fill_color="FCE4D6", font_color="000000")
+            apply_header_style(ws.cell(row=2, column=col_idx), fill_color="FCE4D6", font_color="000000")
+            apply_header_style(ws.cell(row=3, column=col_idx), fill_color="FCE4D6", font_color="000000")
+
+        # Add Students starting row 4
+        for idx, student in enumerate(students, start=4):
+            ws.cell(row=idx, column=1, value=student.enrollment_no).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            ws.cell(row=idx, column=2, value=student.roll_no).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            ws.cell(row=idx, column=3, value=student.name).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            # Empty Label in Col D for students
+            ws.cell(row=idx, column=4, value="").border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            
+            for i in range(len(col_headers)):
+                 ws.cell(row=idx, column=5+i).border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            
+        wb.save(output)
+        output.seek(0)
+        
+        response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=Survey_Bulk_Upload_Template.xlsx'
+        return response
+
+class BulkSurveyUploadView(APIView):
+    """
+    Bulk uploads survey responses (strictly for Data Seeding).
+    Connects to the specified survey_id and creates SurveyResponse/SurveyAnswer records.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        file_obj = request.FILES.get('file')
+        survey_id = request.data.get('survey_id')
+        
+        if not all([file_obj, survey_id]):
+            return Response({"error": "Missing required fields (file, survey_id)"}, status=400)
+
+        from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse, SurveyAnswer
+        try:
+            survey = get_object_or_404(SurveyMaster, pk=survey_id)
+            df = pd.read_excel(file_obj, header=None)
+            
+            # 1. Orientation: Find Enrollment Row
+            enroll_row = -1
+            enroll_col = -1
+            for r in range(min(10, len(df))): # Look in first 10 rows
+                for c in range(min(5, len(df.columns))):
+                    val = str(df.iloc[r, c]).upper()
+                    if "ENROLLMENT" in val or "ENROLMENT" in val:
+                        enroll_row, enroll_col = r, c
+                        break
+                if enroll_row != -1: break
+
+            if enroll_row == -1:
+                return Response({"error": "Could not find 'ENROLLMENT NO' column header."}, status=400)
+
+            # Define headers directly from row 3 (idx 2) if standard CIS format is used
+            # Default to header being 2 rows below the enrollment NO row
+            header_row_idx = enroll_row + 2
+            if len(df) <= header_row_idx:
+                return Response({"error": "Empty data sheet"}, status=400)
+                
+            q_start_col = enroll_col + 4 # Skip Enrollment, Roll, Name, Label Col
+            header_row = df.iloc[header_row_idx].fillna(method='ffill')
+            
+            # Map columns to question IDs
+            survey_questions = {} # idx (int) -> question_id
+            
+            for c in range(q_start_col, len(df.columns)):
+                col_name = str(header_row[c]).strip().upper()
+                if col_name in ["NAN", "", "NONE"]: continue
+                
+                # Resolve the column to an existing question, or create it
+                question = None
+                
+                if survey.survey_category == 'course_exit':
+                    # Expecting COs
+                    digits = "".join([char for char in col_name if char.isdigit()])
+                    co_number = f"CO{digits}" if digits else col_name
+                    target_co = None
+                    if survey.course_id:
+                        cos = CO.objects.filter(course_id=survey.course_id, is_active=True)
+                        for co in cos:
+                            if str(co.co_number).upper().endswith(digits) or str(co.co_number).upper() == co_number:
+                                target_co = co
+                                break
+                    
+                    if target_co:
+                        question, _ = SurveyQuestion.objects.get_or_create(
+                            survey_id=survey,
+                            co_id_id=target_co.co_id,
+                            defaults={'question_text': f"Evaluation for {target_co.co_number}"}
+                        )
+                elif survey.survey_category == 'indirect':
+                    # Expecting POs and PSOs
+                    from academics.models import PO, PSO
+                    target_obj = None
+                    digits = "".join([char for char in col_name if char.isdigit()])
+                    val_number = f"PO{digits}" if "PO" in col_name and "PSO" not in col_name else (f"PSO{digits}" if "PSO" in col_name else col_name)
+
+                    if survey.program_id:
+                        if "PSO" in col_name:
+                             for p in PSO.objects.filter(program_id=survey.program_id, is_active=True):
+                                 if str(p.pso_number).upper().endswith(digits) or str(p.pso_number).upper() == val_number:
+                                     target_obj = p
+                                     break
+                             if target_obj:
+                                 question, _ = SurveyQuestion.objects.get_or_create(
+                                     survey_id=survey, pso_id=target_obj,
+                                     defaults={'question_text': f"Evaluation for {target_obj.pso_number}"}
+                                 )
+                        else:
+                             for p in PO.objects.filter(program_id=survey.program_id, is_active=True):
+                                 if str(p.po_number).upper().endswith(digits) or str(p.po_number).upper() == val_number:
+                                     target_obj = p
+                                     break
+                             if target_obj:
+                                 question, _ = SurveyQuestion.objects.get_or_create(
+                                     survey_id=survey, po_id=target_obj,
+                                     defaults={'question_text': f"Evaluation for {target_obj.po_number}"}
+                                 )
+                
+                # Generic fallback if no mapping found
+                if not question:
+                    question, _ = SurveyQuestion.objects.get_or_create(
+                        survey_id=survey,
+                        question_text__iexact=f"Evaluation for {col_name}",
+                        defaults={'question_text': f"Evaluation for {col_name}"}
+                    )
+                
+                survey_questions[c] = question.question_id
+                
+            data_start_row_final = header_row_idx + 1
+            results = {"total_processed": 0, "responses_created": 0}
+            
+            with transaction.atomic():
+                for r in range(data_start_row_final, len(df)):
+                    enroll_val = str(df.iloc[r, enroll_col]).strip().replace('.0', '')
+                    name_val = str(df.iloc[r, enroll_col + 2]).strip()
+                    
+                    if enroll_val.upper() in ["AVERAGE", "TOTAL", "CO ATTAINMENT", "NAN", "", "NUMBER OF"]: continue
+                    if not any(char.isdigit() for char in enroll_val): continue
+                    
+                    student = Student.objects.filter(enrollment_no=enroll_val).first()
+                    
+                    response_obj, created = SurveyResponse.objects.update_or_create(
+                        survey_id=survey,
+                        student_id=student,
+                        defaults={
+                            'respondent_name': student.name if student else (name_val if name_val != 'nan' else "Guest"),
+                            'enrollment_no': enroll_val
+                        }
+                    )
+                    
+                    if created: results["responses_created"] += 1
+                    
+                    # Wipe existing answers for this response
+                    SurveyAnswer.objects.filter(response_id=response_obj).delete()
+                    
+                    answers_to_create = []
+                    for c_idx, q_id in survey_questions.items():
+                        try:
+                            m = float(df.iloc[r, c_idx])
+                            if pd.notna(m):
+                                answers_to_create.append(SurveyAnswer(
+                                    response_id=response_obj,
+                                    question_id_id=q_id,
+                                    answer_value=int(m)
+                                ))
+                        except Exception as e:
+                            pass # Blank or invalid answer
+                            
+                    SurveyAnswer.objects.bulk_create(answers_to_create)
+                    results["total_processed"] += 1
+                    
+            return Response({"message": f"Successfully uploaded {results['responses_created']} responses ({results['total_processed']} rows processed)."}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": f"General Error: {str(e)}"}, status=500)
+

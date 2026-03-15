@@ -475,6 +475,31 @@ const OtherIndirectTools = () => {
         setShowStats(true);
     };
 
+    const handleBulkUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !surveyState?.backendId) return;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('survey_id', surveyState.backendId);
+        
+        try {
+            alert('Uploading test data...');
+            const res = await api.post('bulk_upload/surveys/upload/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert(res.data.message || 'Upload successful');
+            // Refresh stats if open
+            if (showStats) {
+                loadResponses(surveyState.backendId);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Upload failed: ' + (err.response?.data?.error || err.message));
+        }
+        e.target.value = null; // reset input
+    };
+
     const fetchAllActiveSurveysLegacy = async () => {
         await fetchAllActiveSurveys(true);
     };
@@ -970,6 +995,37 @@ const OtherIndirectTools = () => {
                                     >
                                         {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
                                     </button>
+                                    
+                                    {surveyState?.status === 'APPROVED' && (
+                                        <>
+                                            <input 
+                                                type="file" 
+                                                id="bulkUpload-oit" 
+                                                style={{ display: 'none' }} 
+                                                accept=".xlsx,.xls"
+                                                onChange={handleBulkUpload}
+                                            />
+                                            <button 
+                                                className="btn btn-sm text-dark bg-warning border border-dark rounded-0 fw-bold px-2 mx-1"
+                                                style={{ boxShadow: '2px 2px 0px black' }}
+                                                onClick={() => {
+                                                    if (window.confirm("DATA SEEDING ONLY: This will overwrite existing survey answers. Continue?")) {
+                                                        document.getElementById('bulkUpload-oit').click();
+                                                    }
+                                                }}
+                                                title="DEVELOPMENT ONLY: Bulk Seed Responses"
+                                            >
+                                                [DEV] SEED DATA
+                                            </button>
+                                            <button
+                                                className="btn btn-sm text-dark bg-info border border-dark rounded-0 fw-bold px-2 mx-1"
+                                                style={{ boxShadow: '2px 2px 0px black' }}
+                                                onClick={() => window.open(`${api.defaults.baseURL}bulk_upload/surveys/template/?survey_id=${surveyState.backendId}`, '_blank')}
+                                            >
+                                                [DEV] TEMPLATE
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
