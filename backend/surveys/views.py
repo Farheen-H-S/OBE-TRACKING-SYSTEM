@@ -43,23 +43,26 @@ class SubmitSurveyResponseView(APIView):
         
         from users.models import Student
         student = None
-        
-        # 1. Try to get student from current logged-in user
-        if request.user.is_authenticated:
+        enrollment_no_from_payload = request.data.get('enrollment_no') or request.data.get('student_id')
+
+        # 1. Always prioritize explicitly provided enrollment number (entered by the student on the login page)
+        #    This prevents logged-in faculty/HOD session from overriding the actual student's identity.
+        if enrollment_no_from_payload:
+            student = Student.objects.filter(enrollment_no=enrollment_no_from_payload).first()
+            if not student:
+                # Hard-fail: enrollment was explicitly provided but not found.
+                # Do NOT fall through to session user — this prevents faculty session contamination.
+                return Response({"error": f"Enrollment number '{enrollment_no_from_payload}' not found."}, status=400)
+
+        # 2. Only fall back to the session user if no enrollment was provided at all
+        if not student and not enrollment_no_from_payload and request.user.is_authenticated:
             student = Student.objects.filter(user_id=request.user).first()
-            
-        # 2. Try lookup by frontend-provided IDs if not found yet
-        if not student:
-            if not student_id and request.data.get('enrollment_no'):
-                student = Student.objects.filter(enrollment_no=request.data.get('enrollment_no')).first()
-            elif student_id:
-                student = Student.objects.filter(enrollment_no=student_id).first()
-        
+
         # 3. Determine enrollment number to store
         if student:
             enrollment_no = student.enrollment_no
         else:
-            enrollment_no = request.data.get('enrollment_no') or student_id
+            enrollment_no = enrollment_no_from_payload
             
         # 4. Determine respondent name
         respondent_name = request.data.get('respondent_name')

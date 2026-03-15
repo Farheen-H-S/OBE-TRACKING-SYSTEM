@@ -8,6 +8,8 @@ const Cwelcome = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const courseId = searchParams.get('course_id');
+    const enrollment = searchParams.get('enrollment') || '';
+    const studentName = decodeURIComponent(searchParams.get('studentName') || '');
     const [course, setCourse] = useState(null);
     const [schemes, setSchemes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -60,9 +62,14 @@ const Cwelcome = () => {
                 >
                     <i className="bi bi-arrow-left fs-5"></i>
                 </button>
-                <h2 className="cwelcome-title mb-0">
-                    Welcome to Course Exit Survey (CES)
-                </h2>
+                <div style={{ zIndex: 1 }}>
+                    {studentName && (
+                        <p className="text-white mb-0 small fw-bold" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                            Welcome, {studentName}!
+                        </p>
+                    )}
+                    <h2 className="cwelcome-title mb-0">Welcome to Course Exit Survey (CES)</h2>
+                </div>
             </div>
 
             <div className="container py-3">
@@ -132,7 +139,7 @@ const Cwelcome = () => {
                                         <div className="text-end pt-3 mt-auto">
                                             <button
                                                 className="btn btn-danger btn-lg px-5 fw-bold cwelcome-btn"
-                                                onClick={() => navigate(`/student/co1?course_id=${courseId}`)}
+                                                onClick={() => navigate(`/student/co1?course_id=${courseId}&enrollment=${encodeURIComponent(enrollment)}&studentName=${encodeURIComponent(studentName)}`)}
                                             >
                                                 START
                                             </button>

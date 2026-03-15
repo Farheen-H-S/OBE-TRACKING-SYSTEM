@@ -53,9 +53,9 @@ const Clogin = () => {
                 if (surveyType === 'expert-talk') {
                     navigate('/student/expert-talk-welcome');
                 } else if (courseId) {
-                    navigate(`/student/cis-welcome?course_id=${courseId}`);
+                    navigate(`/student/cis-welcome?course_id=${courseId}&enrollment=${encodeURIComponent(student.enrollment_no)}&studentName=${encodeURIComponent(student.name || student.full_name || '')}`);
                 } else {
-                    navigate('/student/cis-welcome');
+                    navigate(`/student/cis-welcome?enrollment=${encodeURIComponent(student.enrollment_no)}&studentName=${encodeURIComponent(student.name || student.full_name || '')}`);
                 }
             } else {
                 setError('Invalid enrollment number. Please try again.');

@@ -7,6 +7,11 @@ const Co1 = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const courseId = searchParams.get('course_id');
+    // Enrollment from URL is the freshly-entered value, always reliable.
+    // localStorage fallback handles direct navigation edge cases.
+    const enrollmentFromUrl = searchParams.get('enrollment');
+    const enrollmentNo = enrollmentFromUrl ||
+        (() => { try { return JSON.parse(localStorage.getItem('student'))?.enrollment_no; } catch { return null; } })();
 
     const [cos, setCos] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -76,7 +81,7 @@ const Co1 = () => {
                 const student = JSON.parse(localStorage.getItem('student'));
                 const payload = {
                     survey_id: cos[0]?.survey_id,
-                    enrollment_no: student?.enrollment_no || null,
+                    enrollment_no: enrollmentNo || null,
                     answers: Object.entries(answers).map(([qId, val]) => ({
                         question_id: parseInt(qId),
                         answer_value: val
