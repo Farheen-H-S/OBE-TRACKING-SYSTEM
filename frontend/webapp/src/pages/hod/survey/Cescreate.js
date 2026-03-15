@@ -118,13 +118,20 @@ const Cescreate = () => {
                 // forcing the user to select from the dropdown.
 
                 const states = {};
+                // Process newest to oldest (default sort from API)
+                // But prioritize APPROVED status: only overwrite if current is not APPROVED
+                // or if we found a more recent APPROVED one.
                 surveyData.forEach(s => {
-                    states[s.course_id] = {
-                        status: s.status,
-                        duration: '7',
-                        expires_at: s.expires_at,
-                        survey_id: s.survey_id
-                    };
+                    const existing = states[s.course_id];
+                    if (!existing || (existing.status !== 'APPROVED' && s.status === 'APPROVED') || 
+                        (existing.status === s.status && s.survey_id > existing.survey_id)) {
+                        states[s.course_id] = {
+                            status: s.status,
+                            duration: '7',
+                            expires_at: s.expires_at,
+                            survey_id: s.survey_id
+                        };
+                    }
                 });
                 setSurveyStates(states);
             }

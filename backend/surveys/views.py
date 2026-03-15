@@ -200,20 +200,32 @@ class SurveyStatsView(APIView):
         unique_statements = []
         teacher_names = set()
         
-        # Deduplication for cumulative stats: Map repeating questions (same text/CO) to a canonical ID
+        # Deduplication for cumulative stats: Priority Grouping by CO ID, falling back to text
         canonical_questions = []
-        text_to_canonical_id = {} # text -> first_question_id seen
+        co_id_to_canon = {} # co_id_id -> canon_question
+        text_to_canon = {}  # text -> canon_question
         q_id_to_canonical_id = {} # every_q_id -> canonical_id
         
         for q in questions:
             text = q.question_text.strip()
-            if text not in text_to_canonical_id:
-                text_to_canonical_id[text] = q.question_id
-                canonical_questions.append(q)
+            canon_q = None
             
-            q_id_to_canonical_id[q.question_id] = text_to_canonical_id[text]
+            if q.co_id_id:
+                if q.co_id_id not in co_id_to_canon:
+                    co_id_to_canon[q.co_id_id] = q
+                    canonical_questions.append(q)
+                canon_q = co_id_to_canon[q.co_id_id]
+            else:
+                if text not in text_to_canon:
+                    text_to_canon[text] = q
+                    canonical_questions.append(q)
+                canon_q = text_to_canon[text]
+            
+            q_id_to_canonical_id[q.question_id] = canon_q.question_id
 
-            # Matrix handling (if any)
+        # Identify unique statements and teacher names from CANONICAL questions
+        for q in canonical_questions:
+            text = q.question_text.strip()
             parts = text.split('|')
             if len(parts) >= 2:
                 t_name = parts[0].strip()
@@ -229,11 +241,12 @@ class SurveyStatsView(APIView):
 
         q_map = {} # question_id -> {statement, teacher}
         for q in questions:
-             parts = q.question_text.split('|')
+             text = q.question_text.strip()
+             parts = text.split('|')
              if len(parts) >= 2:
                  q_map[q.question_id] = {'statement': parts[1].strip(), 'teacher': parts[0].strip()}
              else:
-                 q_map[q.question_id] = {'statement': q.question_text.strip(), 'teacher': 'General'}
+                 q_map[q.question_id] = {'statement': text, 'teacher': 'General'}
 
         # Aggregate scores
         from collections import defaultdict
