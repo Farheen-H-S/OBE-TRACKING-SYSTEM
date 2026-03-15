@@ -1320,7 +1320,7 @@ class BulkSurveyUploadView(APIView):
                 return Response({"error": "Empty data sheet"}, status=400)
                 
             q_start_col = enroll_col + 4 # Skip Enrollment, Roll, Name, Label Col
-            header_row = df.iloc[header_row_idx].fillna(method='ffill')
+            header_row = df.iloc[header_row_idx].ffill()
             
             # Map columns to question IDs
             survey_questions = {} # idx (int) -> question_id
