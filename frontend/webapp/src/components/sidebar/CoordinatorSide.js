@@ -77,6 +77,10 @@ const CoordinatorSide = ({ isOpen, onClose, user: propUser }) => {
                 { name: "Attainment Backtracking", path: "/attainment-backtracking" }
             ]
         },
+        {
+            title: "NBA Remarks",
+            path: "/nba-remarks"
+        },
     ];
 
     const handleNavigation = (path) => {

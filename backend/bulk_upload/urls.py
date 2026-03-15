@@ -5,7 +5,7 @@ from .views import (
     DownloadCourseTemplateView, DownloadCISTemplateView,
     DownloadCISMultiSheetTemplateView, BulkCISApplyView,
     DownloadUserTemplateView, BulkUserUploadView, DownloadTeachingPlanTemplateView,
-    UploadTeachingPlanExcelView
+    UploadTeachingPlanExcelView, BulkSurveyUploadView, DownloadSurveyTemplateView
 )
 
 urlpatterns = [
@@ -23,5 +23,9 @@ urlpatterns = [
     path('users/template/', DownloadUserTemplateView.as_view(), name='download-user-template'),
     path('teaching-plan/template/', DownloadTeachingPlanTemplateView.as_view(), name='download-teaching-plan-template'),
     path('teaching-plan/upload/', UploadTeachingPlanExcelView.as_view(), name='upload-teaching-plan'),
+    
+    # DATA SEEDING ONLY - REMOVE LATER
+    path('surveys/template/', DownloadSurveyTemplateView.as_view(), name='download-survey-template'),
+    path('surveys/upload/', BulkSurveyUploadView.as_view(), name='bulk-survey-upload'),
 ]
 

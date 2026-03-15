@@ -66,7 +66,8 @@ class SubmitSurveyResponseView(APIView):
         if not respondent_name:
             if student:
                 respondent_name = student.name
-            elif request.user.is_authenticated:
+            elif request.user.is_authenticated and student is None and not enrollment_no:
+                # Only use logged-in user name if no specific student is targeted
                 respondent_name = request.user.name
 
         response = SurveyResponse.objects.create(
