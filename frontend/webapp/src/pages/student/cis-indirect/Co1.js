@@ -11,8 +11,7 @@ const Co1 = () => {
     // localStorage fallback handles direct navigation edge cases.
     const enrollmentFromUrl = searchParams.get('enrollment');
     const studentNameFromUrl = decodeURIComponent(searchParams.get('studentName') || '');
-    const enrollmentNo = enrollmentFromUrl ||
-        (() => { try { return JSON.parse(localStorage.getItem('student'))?.enrollment_no; } catch { return null; } })();
+    const enrollmentNo = enrollmentFromUrl;
 
     const [cos, setCos] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -28,10 +27,15 @@ const Co1 = () => {
     ];
 
     useEffect(() => {
+        // Strict Identity Enforcement: If enrollment is missing, force redirect to login
+        if (!enrollmentFromUrl) {
+            navigate(`/student/cis-login?course_id=${courseId}`);
+            return;
+        }
         if (courseId) {
             fetchCOs();
         }
-    }, [courseId]);
+    }, [courseId, enrollmentFromUrl]);
 
     const fetchCOs = async () => {
         try {

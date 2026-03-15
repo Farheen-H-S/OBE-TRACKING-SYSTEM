@@ -80,11 +80,16 @@ class SubmitSurveyResponseView(APIView):
                 # Do NOT fall through to session user — this prevents faculty session contamination.
                 return Response({"error": f"Enrollment number '{enrollment_no_from_payload}' not found."}, status=400)
 
-        # 2. Only fall back to the session user if no enrollment was provided at all
+        # 2. STRICT: For student/indirect surveys, enrollment must be provided
+        if not student and survey.survey_category in ['course_exit', 'indirect']:
+             return Response({"error": "Enrollment number is required for this survey."}, status=400)
+
+        # 3. Only fall back to the session user for non-student surveys (if any exist) 
+        # or if it's explicitly allowed (anonymous surveys usually don't need this anyway)
         if not student and not enrollment_no_from_payload and request.user.is_authenticated:
             student = Student.objects.filter(user_id=request.user).first()
 
-        # 3. Determine enrollment number to store
+        # 4. Determine enrollment number to store
         if student:
             enrollment_no = student.enrollment_no
         else:
@@ -160,11 +165,19 @@ class SurveyStatsView(APIView):
         
         from users.models import Student
         
-        # 1. Get responders
-        responses = SurveyResponse.objects.filter(survey_id=survey).select_related('student_id')
+        from users.models import Student
+        
+        # 1. Get responders: CUMULATIVE Logic
+        # Instead of just this survey, look for all surveys in the same academic context
+        related_surveys = SurveyMaster.objects.filter(
+            course_id=survey.course_id,
+            academic_year=survey.academic_year,
+            semester=survey.semester,
+            survey_category=survey.survey_category
+        )
         
         # 2. Fetch responses with filters
-        responses = SurveyResponse.objects.filter(survey_id=survey_id)
+        responses = SurveyResponse.objects.filter(survey_id__in=related_surveys)
         
         batch_id = request.query_params.get('batch_id')
         academic_year = request.query_params.get('academic_year')
@@ -180,29 +193,47 @@ class SurveyStatsView(APIView):
             if division: responses = responses.filter(student_id__division=division)
 
         # 3. Process Matrix Data (Teachers x Statements)
-        questions = SurveyQuestion.objects.filter(survey_id=survey_id)
+        # Questions should also be cumulative / consistent across these surveys
+        questions = SurveyQuestion.objects.filter(survey_id__in=related_surveys)
         
         # Identify unique statements and teacher names
         unique_statements = []
         teacher_names = set()
         
-        q_map = {} # question_id -> {statement, teacher}
+        # Deduplication for cumulative stats: Map repeating questions (same text/CO) to a canonical ID
+        canonical_questions = []
+        text_to_canonical_id = {} # text -> first_question_id seen
+        q_id_to_canonical_id = {} # every_q_id -> canonical_id
+        
         for q in questions:
-            parts = q.question_text.split('|')
+            text = q.question_text.strip()
+            if text not in text_to_canonical_id:
+                text_to_canonical_id[text] = q.question_id
+                canonical_questions.append(q)
+            
+            q_id_to_canonical_id[q.question_id] = text_to_canonical_id[text]
+
+            # Matrix handling (if any)
+            parts = text.split('|')
             if len(parts) >= 2:
                 t_name = parts[0].strip()
                 stmt = parts[1].strip()
                 teacher_names.add(t_name)
                 if stmt not in unique_statements:
                     unique_statements.append(stmt)
-                q_map[q.question_id] = {'statement': stmt, 'teacher': t_name}
             else:
-                # Handle non-matrix questions if any
-                stmt = q.question_text.strip()
+                stmt = text
                 if stmt not in unique_statements:
                     unique_statements.append(stmt)
-                q_map[q.question_id] = {'statement': stmt, 'teacher': 'General'}
                 teacher_names.add('General')
+
+        q_map = {} # question_id -> {statement, teacher}
+        for q in questions:
+             parts = q.question_text.split('|')
+             if len(parts) >= 2:
+                 q_map[q.question_id] = {'statement': parts[1].strip(), 'teacher': parts[0].strip()}
+             else:
+                 q_map[q.question_id] = {'statement': q.question_text.strip(), 'teacher': 'General'}
 
         # Aggregate scores
         from collections import defaultdict
@@ -214,23 +245,29 @@ class SurveyStatsView(APIView):
                 q_info = q_map.get(ans.question_id_id)
                 if q_info:
                     teacher_scores[q_info['teacher']][q_info['statement']].append(ans.answer_value)
-
-        # Build Individual Responses List for simple viewing (like Course Exit Survey)
         responses_list = []
         for res in responses.prefetch_related('answers'):
+            # Group answers by CANONICAL question ID to unify responses across survey records
+            unified_answers = {}
+            for ans in res.answers.all():
+                canon_id = q_id_to_canonical_id.get(ans.question_id_id)
+                if canon_id:
+                    unified_answers[canon_id] = ans.answer_value
+
             res_item = {
                 'id': res.response_id,
                 'enrollment': res.enrollment_no or (res.student_id.enrollment_no if res.student_id else "N/A"),
                 'roll_no': res.student_id.roll_no if res.student_id else "N/A",
                 'name': res.respondent_name or (res.student_id.name if res.student_id else "Guest"),
                 'submitted_at': res.submitted_at,
-                'answers': {ans.question_id_id: ans.answer_value for ans in res.answers.all()}
+                'answers': unified_answers
             }
             responses_list.append(res_item)
 
-        # Build Teacher Matrix (only if it looks like a teacher feedback survey)
+        # Build Teacher Matrix (only if it looks like a matrix/indirect survey)
         teacher_data = []
-        if any('|' in q.question_text for q in questions):
+        has_matrix = any('|' in q.question_text for q in canonical_questions)
+        if has_matrix:
             for t_name in teacher_names:
                 row = {'teacher': t_name, 'scores': {}, 'achieved_score': 0}
                 total_sum = 0
@@ -247,20 +284,20 @@ class SurveyStatsView(APIView):
                 
                 if count > 0:
                     row['achieved_score'] = round(total_sum / count, 2)
-                else:
-                    row['achieved_score'] = 0
-                
                 teacher_data.append(row)
-
-            # Sort teachers descending by achieved score
             teacher_data.sort(key=lambda x: x['achieved_score'], reverse=True)
 
         return Response({
             'survey': SurveyMasterSerializer(survey).data,
-            'statements': unique_statements if teacher_data else [
-                {'id': q.question_id, 'co_id': q.co_id_id, 'co_number': q.co_id.co_number if q.co_id else f"Q{q.question_id}"} 
-                for q in questions
-            ],
+            'statements': [
+                {
+                    "id": q.question_id,
+                    "co_id": q.co_id_id,
+                    "co_number": q.co_id.co_number if q.co_id else f"Q{q.question_id}",
+                    "question_text": q.question_text,
+                    "question_id": q.question_id
+                } for q in canonical_questions
+            ] if not has_matrix else unique_statements,
             'responses': responses_list,
             'teachers': teacher_data,
             'total_responses': responses.count()

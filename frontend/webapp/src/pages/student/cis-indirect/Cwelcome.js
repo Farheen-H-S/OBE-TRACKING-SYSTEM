@@ -16,13 +16,18 @@ const Cwelcome = () => {
 
     useEffect(() => {
         const init = async () => {
+            // Strict Identity Enforcement: If enrollment is missing, force redirect to login
+            if (!enrollment) {
+                navigate(`/student/cis-login?course_id=${courseId}`);
+                return;
+            }
             await fetchSchemes();
             if (courseId) {
                 fetchCourseDetails();
             }
         };
         init();
-    }, [courseId]);
+    }, [courseId, enrollment]);
 
     const fetchSchemes = async () => {
         try {
