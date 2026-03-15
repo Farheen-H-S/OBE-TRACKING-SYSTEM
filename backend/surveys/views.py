@@ -258,24 +258,41 @@ class SurveyStatsView(APIView):
                 q_info = q_map.get(ans.question_id_id)
                 if q_info:
                     teacher_scores[q_info['teacher']][q_info['statement']].append(ans.answer_value)
-        responses_list = []
+        # 4. Aggregate Responses (Deduplicated by Student Enrollment)
+        responses_dict = {} # enrollment_no -> res_item
+        
         for res in responses.prefetch_related('answers'):
-            # Group answers by CANONICAL question ID to unify responses across survey records
-            unified_answers = {}
+            # Determine student identity
+            enrollment = res.enrollment_no or (res.student_id.enrollment_no if res.student_id else "N/A")
+            name = res.respondent_name or (res.student_id.name if res.student_id else "Guest")
+            roll_no = res.student_id.roll_no if res.student_id else "N/A"
+            
+            # Use enrollment as unique key (if available)
+            identity_key = enrollment if enrollment != "N/A" else f"guest_{res.response_id}"
+            
+            # Map existing answers to canonical versions
+            current_answers = {}
             for ans in res.answers.all():
                 canon_id = q_id_to_canonical_id.get(ans.question_id_id)
                 if canon_id:
-                    unified_answers[canon_id] = ans.answer_value
-
-            res_item = {
-                'id': res.response_id,
-                'enrollment': res.enrollment_no or (res.student_id.enrollment_no if res.student_id else "N/A"),
-                'roll_no': res.student_id.roll_no if res.student_id else "N/A",
-                'name': res.respondent_name or (res.student_id.name if res.student_id else "Guest"),
-                'submitted_at': res.submitted_at,
-                'answers': unified_answers
-            }
-            responses_list.append(res_item)
+                    current_answers[canon_id] = ans.answer_value
+            
+            if identity_key in responses_dict:
+                # Merge answers into existing row
+                responses_dict[identity_key]['answers'].update(current_answers)
+            else:
+                responses_dict[identity_key] = {
+                    'id': res.response_id,
+                    'enrollment': enrollment,
+                    'roll_no': roll_no,
+                    'name': name,
+                    'submitted_at': res.submitted_at,
+                    'answers': current_answers
+                }
+        
+        # Sort by enrollment or roll number if possible
+        responses_list = list(responses_dict.values())
+        responses_list.sort(key=lambda x: (x['roll_no'] if str(x['roll_no']).isdigit() else 999, x['enrollment']))
 
         # Build Teacher Matrix (only if it looks like a matrix/indirect survey)
         teacher_data = []
@@ -313,7 +330,7 @@ class SurveyStatsView(APIView):
             ] if not has_matrix else unique_statements,
             'responses': responses_list,
             'teachers': teacher_data,
-            'total_responses': responses.count()
+            'total_responses': len(responses_list)
         }, status=status.HTTP_200_OK)
 
 
