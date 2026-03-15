@@ -262,9 +262,18 @@ class ReportService:
         for co in all_cos:
             tools = tool_data.get(co.co_id, {})
 
-            def get_level(key):
-                # Search tools dictionary for any key ending with the requested type (e.g. _FA_TH_1)
-                # and matching the category logic
+            def get_level(key, prefix=None):
+                if prefix:
+                    k = f"{prefix}_{key}"
+                    if k in tools:
+                        v = tools[k]
+                        return v.get('level', '-') if isinstance(v, dict) else (v if v is not None else '-')
+                    return '-'
+                
+                if key in tools:
+                    v = tools[key]
+                    return v.get('level', '-') if isinstance(v, dict) else (v if v is not None else '-')
+                
                 for full_key, v in tools.items():
                     if full_key.endswith(f"_{key}"):
                         if isinstance(v, dict):
@@ -273,13 +282,13 @@ class ReportService:
                 return '-'
 
             # Use dynamic category-aware lookups
-            ct1      = get_level('FA_TH_1')
-            ct2      = get_level('FA_TH_2')
+            ct1      = get_level('FA_TH_1', 'INTERNAL')
+            ct2      = get_level('FA_TH_2', 'INTERNAL')
             sla      = get_level('SLA')
-            fa_pr    = get_level('FA_PR')
-            sa_pr_i  = get_level('SA_PR')  # Will find INTERNAL_SA_PR if exists
-            sa_th    = get_level('SA_TH')
-            sa_pr_e  = '-'                 # Logic remains similar for split-tool lookup
+            fa_pr    = get_level('FA_PR', 'INTERNAL')
+            sa_pr_i  = get_level('SA_PR', 'INTERNAL')
+            sa_th    = get_level('SA_TH', 'EXTERNAL')
+            sa_pr_e  = get_level('SA_PR', 'EXTERNAL')
 
             # Redefine logic for Avg(I) and Avg(E) based on tool dictionary keys
             internal_vals = [v['level'] for k, v in tools.items() if k.startswith('INTERNAL_') and isinstance(v, dict)]

@@ -293,6 +293,7 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
                 if k in tools:
                     val = tools[k]
                     return val.get('level', "-") if isinstance(val, dict) else val
+                return "-"
             
             for p in ['INTERNAL', 'EXTERNAL']:
                 k = f"{p}_{base_key}"
@@ -301,6 +302,8 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
                     return val.get('level', "-") if isinstance(val, dict) else val
             
             raw = tools.get(base_key, "-")
+            if raw == "-":
+                return "-"
             return raw.get('level', "-") if isinstance(raw, dict) else raw
 
         ct1 = get_t_val('FA_TH_1', 'INTERNAL')
@@ -388,12 +391,15 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
                     if k in t_data:
                         val = t_data[k]
                         return val.get('level', 0) if isinstance(val, dict) else val
+                    return 0
                 for p in ['INTERNAL', 'EXTERNAL']:
                     k = f"{p}_{base_key}"
                     if k in t_data:
                         val = t_data[k]
                         return val.get('level', 0) if isinstance(val, dict) else val
                 raw = t_data.get(base_key, 0)
+                if raw == 0:
+                    return 0
                 return raw.get('level', 0) if isinstance(raw, dict) else (raw if isinstance(raw, (int, float)) else 0)
 
             # Re-calculate exactly as in the loop
