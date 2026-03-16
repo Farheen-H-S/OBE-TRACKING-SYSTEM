@@ -394,11 +394,8 @@ const Cescreate = () => {
             const countAboveAvg = coAnswers.filter(v => v >= parseFloat(avg)).length;
             const percentAboveAvg = coAnswers.length > 0 ? ((countAboveAvg / coAnswers.length) * 100).toFixed(2) : 0;
 
-            // CO Attainment Logic (Simplified: 1: <50%, 2: 50-70%, 3: >70%)
-            let attainment = 0;
-            if (percentAboveAvg > 70) attainment = 3;
-            else if (percentAboveAvg > 50) attainment = 2;
-            else if (percentAboveAvg > 0) attainment = 1;
+            // CO Attainment formula: (% students >= average) * 3 / 100
+            const attainment = coAnswers.length > 0 ? (parseFloat(percentAboveAvg) * 3 / 100).toFixed(2) : 0;
 
             return { avg, countAboveAvg, total: coAnswers.length, percentAboveAvg, attainment };
         });
@@ -437,25 +434,25 @@ const Cescreate = () => {
                                         ))}
                                     </tr>
                                 ))}
-                                {/* FA-TH Summary Rows */}
+                                {/* FA-TH Summary Rows - Ordered as per expected Excel result */}
                                 <tr className="bg-fath-summary-light fw-bold border-top-2">
-                                    <td colSpan="3" className="text-uppercase ps-3">Number of Students Appeared</td>
-                                    {stats.map((s, i) => <td key={i} className="text-center">{s.total}</td>)}
+                                    <td colSpan="3" className="text-uppercase ps-3">Average</td>
+                                    {stats.map((s, i) => <td key={i} className="text-center text-fath-blue">{s.avg}</td>)}
                                 </tr>
                                 <tr className="bg-fath-summary-light fw-bold">
                                     <td colSpan="3" className="text-uppercase ps-3">Number of Students getting equal and more than average</td>
                                     {stats.map((s, i) => <td key={i} className="text-center">{s.countAboveAvg}</td>)}
                                 </tr>
                                 <tr className="bg-fath-summary-light fw-bold">
-                                    <td colSpan="3" className="text-uppercase ps-3">% of Student scored more than average</td>
-                                    {stats.map((s, i) => <td key={i} className="text-center">{s.percentAboveAvg}%</td>)}
+                                    <td colSpan="3" className="text-uppercase ps-3">No. of students feedback taken</td>
+                                    {stats.map((s, i) => <td key={i} className="text-center text-success">{s.total}</td>)}
                                 </tr>
-                                <tr className="bg-fath-summary-light fw-bold footer-attainment-row">
-                                    <td colSpan="3" className="text-uppercase ps-3">CO Wise % Average of Course Outcome</td>
-                                    {stats.map((s, i) => <td key={i} className="text-center text-fath-blue">{s.avg}</td>)}
+                                <tr className="bg-fath-summary-light fw-bold">
+                                    <td colSpan="3" className="text-uppercase ps-3">% of Student scored more than average</td>
+                                    {stats.map((s, i) => <td key={i} className="text-center">{s.percentAboveAvg}</td>)}
                                 </tr>
                                 <tr className="bg-fath-summary-footer fw-bold border-top-2">
-                                    <td colSpan="3" className="text-uppercase ps-3 text-fath-blue">CO Attainment Level</td>
+                                    <td colSpan="3" className="text-uppercase ps-3 text-fath-blue">CO Attainment</td>
                                     {stats.map((s, i) => <td key={i} className="text-center text-fath-blue fs-5">{s.attainment}</td>)}
                                 </tr>
                             </>

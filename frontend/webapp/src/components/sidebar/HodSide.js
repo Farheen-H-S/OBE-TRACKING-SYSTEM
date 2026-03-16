@@ -80,10 +80,6 @@ const HodSide = ({ isOpen, onClose, user: propUser }) => {
             ]
         },
         {
-            title: "NBA Remarks",
-            path: "/nba-remarks"
-        },
-        {
             title: "Stress & Feedback",
             items: [
                 {

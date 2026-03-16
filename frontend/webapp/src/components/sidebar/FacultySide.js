@@ -122,16 +122,6 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                 <li className="nav-item">
                     <div
                         className="menu-item d-flex align-items-center text-white"
-                        onClick={() => navigate("/nba-remarks")}
-                        style={{ cursor: "pointer" }}
-                    >
-                        <FaCircle className="me-2" style={{ fontSize: '0.5rem' }} /> NBA Remarks
-                    </div>
-                </li>
-
-                <li className="nav-item">
-                    <div
-                        className="menu-item d-flex align-items-center text-white"
                         onClick={() => navigate("/stress-report")}
                         style={{ cursor: "pointer" }}
                     >
