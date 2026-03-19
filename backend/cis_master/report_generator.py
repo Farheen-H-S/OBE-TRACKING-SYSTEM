@@ -381,17 +381,17 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
     start_data_row = current_row + 1
     end_data_row = row - 1
     
-        att_avg_cell = ws.cell(row=row, column=16, value=round(sum(row_attainments)/len(row_attainments), 2) if row_attainments else 0)
-        gap_avg_cell = ws.cell(row=row, column=18, value=round(sum(row_gaps)/len(row_gaps), 2) if row_gaps else 0)
-        
-        for c_idx in [16, 17, 18, 19]:
-            cell = ws.cell(row=row, column=c_idx)
-            cell.border = get_border()
-            cell.font = Font(bold=True)
-            cell.fill = PatternFill(start_color=CT_YELLOW, end_color=CT_YELLOW, fill_type="solid")
-            cell.alignment = Alignment(horizontal="center")
-            if c_idx == 17: cell.value = "" # Gap spacing
-            if c_idx == 19: cell.value = "" # Target spacing
+    att_avg_cell = ws.cell(row=row, column=16, value=round(sum(row_attainments)/len(row_attainments), 2) if row_attainments else 0)
+    gap_avg_cell = ws.cell(row=row, column=18, value=round(sum(row_gaps)/len(row_gaps), 2) if row_gaps else 0)
+    
+    for c_idx in [16, 17, 18, 19]:
+        cell = ws.cell(row=row, column=c_idx)
+        cell.border = get_border()
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color=CT_YELLOW, end_color=CT_YELLOW, fill_type="solid")
+        cell.alignment = Alignment(horizontal="center")
+        if c_idx == 17: cell.value = "" # Gap spacing
+        if c_idx == 19: cell.value = "" # Target spacing
     
     row += 1
         
