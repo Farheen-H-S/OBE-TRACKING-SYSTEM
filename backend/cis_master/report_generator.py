@@ -1301,16 +1301,45 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
         survey = SurveyMaster.objects.filter(
             course_id=course, 
             survey_category='course_exit'
-        ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
-    questions = SurveyQuestion.objects.filter(survey_id=survey).order_by('question_id') if survey else []
+        ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()    
+    all_questions = list(SurveyQuestion.objects.filter(survey_id=survey).order_by('question_id')) if survey else []
     
+    # Group questions by CO to handle multiple questions/version tags per CO
+    from collections import defaultdict
+    co_groups = defaultdict(list)
+    for q in all_questions:
+        if q.co_id:
+            co_groups[q.co_id_id].append(q)
+    
+    # For each CO, pick the "best" header and check for answers
+    questions_to_show = [] # List of tuples (CO_ID, [questions], co_obj)
+    for co_id_val, q_list in co_groups.items():
+        # Check if ANY question in this group has answers
+        has_answers = False
+        for q in q_list:
+            if SurveyAnswer.objects.filter(question_id=q).exists():
+                has_answers = True
+                break
+        
+        if has_answers:
+            # Pick the "best" question text (avoiding "Evaluation for...")
+            best_q = q_list[0]
+            for q in q_list:
+                if "Evaluation for" not in q.question_text:
+                    best_q = q
+                    break
+            questions_to_show.append((co_id_val, q_list, best_q))
+
+    # Sort groups by CO number if possible
+    questions_to_show.sort(key=lambda x: x[2].co_id.co_number if x[2].co_id else "")
+
     headers_row1 = ["ENROLLMENT NO.", "Roll no.", "Name of Student"]
     headers_row2 = ["", "", ""]
     
-    for q in questions:
-        co_num = q.co_id.co_number if q.co_id else "N/A"
+    for _, _, best_q in questions_to_show:
+        co_num = best_q.co_id.co_number if best_q.co_id else "N/A"
         headers_row1.append(str(co_num))
-        headers_row2.append(q.question_text)
+        headers_row2.append(best_q.question_text)
     
     headers_row1.append("Total")
     headers_row2.append("")
@@ -1331,7 +1360,8 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
 
     current_row = next_row + 2
     marks_list = []
-    q_marks_collector = {i: [] for i in range(len(questions))} # For CO-wise stats
+    # Collector indexed by the group index in questions_to_show
+    q_marks_collector = {i: [] for i in range(len(questions_to_show))} 
     
     for student in students:
         ws.cell(row=current_row, column=1, value=student.enrollment_no).border = get_border()
@@ -1341,10 +1371,15 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
         
         row_total = 0
         row_count = 0
-        for i, q in enumerate(questions):
-            ans = SurveyAnswer.objects.filter(question_id=q, response_id__student_id=student).first()
-            val = ans.answer_value if ans else "-"
-            ws.cell(row=current_row, column=4+i, value=val).border = get_border()
+        for i, (co_id_val, q_list, _) in enumerate(questions_to_show):
+            # Aggregate answers for this CO for this student
+            ans_values = []
+            for q in q_list:
+                ans = SurveyAnswer.objects.filter(question_id=q, response_id__student_id=student).first()
+                if ans: ans_values.append(ans.answer_value)
+            
+            val = sum(ans_values) / len(ans_values) if ans_values else "-"
+            ws.cell(row=current_row, column=4+i, value=round(val, 2) if isinstance(val, (int, float)) else val).border = get_border()
             ws.cell(row=current_row, column=4+i).alignment = Alignment(horizontal="center")
             if isinstance(val, (int, float)):
                 q_marks_collector[i].append(val)
@@ -1352,72 +1387,69 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
                 row_count += 1
         
         row_avg = row_total / row_count if row_count > 0 else "-"
-        ws.cell(row=current_row, column=4+len(questions), value=round(row_avg, 2) if isinstance(row_avg, float) else row_avg).border = get_border()
-        ws.cell(row=current_row, column=4+len(questions)).alignment = Alignment(horizontal="center")
+        ws.cell(row=current_row, column=4+len(questions_to_show), value=round(row_avg, 2) if isinstance(row_avg, float) else row_avg).border = get_border()
+        ws.cell(row=current_row, column=4+len(questions_to_show)).alignment = Alignment(horizontal="center")
         
         if isinstance(row_avg, (int, float)): marks_list.append(row_avg)
         current_row += 1
 
-    # Statistical Footer
-    start_answers_row = next_row + 1
-    end_answers_row = current_row - 1
-    
-    # Calculate stats in Python
-    appeared_count = len(marks_list)
-    
-    # Average Rating Row
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
-    lbl_cell = ws.cell(row=current_row, column=1, value="Average Rating")
-    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
-    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
-    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
-
-    for i in range(len(questions)):
-        q_col = 4 + i
-        q_list = q_marks_collector[i]
-        q_avg = sum(q_list) / len(q_list) if q_list else 0
-        ws.cell(row=current_row, column=q_col, value=round(q_avg, 2)).border = get_border()
-        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
-    current_row += 1
-
-    # Total Responses Row
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
-    lbl_cell = ws.cell(row=current_row, column=1, value="Total Responses")
-    lbl_cell.fill = PatternFill(start_color=STAT_ORANGE, end_color=STAT_ORANGE, fill_type="solid")
-    lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
-    lbl_cell.alignment = Alignment(horizontal="right", indent=1)
-
-    for i in range(len(questions)):
-        q_col = 4 + i
-        ws.cell(row=current_row, column=q_col, value=len(q_marks_collector[i])).border = get_border()
-        ws.cell(row=current_row, column=q_col).alignment = Alignment(horizontal="center")
-    current_row += 1
-    
-    current_row += 1
-    # CO Summary Table for CES
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
-    ws.cell(row=current_row, column=2, value="CO attainment through CES").fill = PatternFill(start_color=CT_YELLOW, end_color=CT_YELLOW, fill_type="solid")
-    current_row += 1
-    
-    ws.cell(row=current_row, column=2, value="Course Outcome").border = get_border()
-    ws.merge_cells(start_row=current_row, start_column=3, end_row=current_row, end_column=4)
-    ws.cell(row=current_row, column=3, value="Avg Rating").border = get_border()
-    current_row += 1
-
-    for i, q in enumerate(questions):
-        q_marks = q_marks_collector[i]
-        q_avg = sum(q_marks)/len(q_marks) if q_marks else 0
-        # Survey rating is typically 1-5, scaling to 3
-        q_level = round((q_avg / 5) * 3, 2)
-        ws.cell(row=current_row, column=2, value=f"CO{i+1}").border = get_border()
-        ws.cell(row=current_row, column=3, value=round(q_avg, 2)).border = get_border()
-        ws.cell(row=current_row, column=3).fill = PatternFill(start_color=STAT_GREEN_MEDIUM, end_color=STAT_GREEN_MEDIUM, fill_type="solid")
-        ws.cell(row=current_row, column=4, value=q_level).border = get_border()
+    # Statistical Footer (Matching image 2 & 3 requirements)
+    def add_footer_row(label, values, color=STAT_ORANGE):
+        nonlocal current_row
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+        lbl_cell = ws.cell(row=current_row, column=1, value=label)
+        lbl_cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+        lbl_cell.border = get_border(); lbl_cell.font = Font(bold=True)
+        lbl_cell.alignment = Alignment(horizontal="right", indent=1)
+        
+        for i, val in enumerate(values):
+            cell = ws.cell(row=current_row, column=4+i, value=val)
+            cell.border = get_border()
+            cell.alignment = Alignment(horizontal="center")
+            if color == STAT_GREEN_MEDIUM: cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
         current_row += 1
+
+    # 1. Average Rating
+    averages = []
+    for i in range(len(questions_to_show)):
+        q_list = q_marks_collector[i]
+        averages.append(round(sum(q_list) / len(q_list), 2) if q_list else 0)
+    add_footer_row("Average", averages)
+
+    # 2. Number of Students getting equal and more than average
+    success_counts = []
+    for i in range(len(questions_to_show)):
+        q_list = q_marks_collector[i]
+        avg = averages[i]
+        success_counts.append(len([v for v in q_list if v >= avg]) if q_list else 0)
+    add_footer_row("Number of Students getting equal and more than average", success_counts)
+
+    # 3. No. of students feedback taken
+    total_counts = []
+    for i in range(len(questions_to_show)):
+        total_counts.append(len(q_marks_collector[i]))
+    add_footer_row("No. of students feedback taken", total_counts, color=STAT_GREEN_MEDIUM)
+
+    # 4. % of Student scored more than average
+    percentages = []
+    for i in range(len(questions_to_show)):
+        total = total_counts[i]
+        success = success_counts[i]
+        percentages.append(round((success / total * 100), 2) if total > 0 else 0)
+    add_footer_row("% of Student scored more than average", percentages)
+
+    # 5. CO Attainment (Using Avg/5*3 to match summary sheets)
+    attainments = []
+    for i in range(len(questions_to_show)):
+        avg = averages[i]
+        attainments.append(round((avg / 5) * 3, 2))
+    add_footer_row("CO Attainment", attainments)
+
+    # Styling and Column Widths
     ws.column_dimensions['A'].width = 18
     ws.column_dimensions['B'].width = 10
     ws.column_dimensions['C'].width = 35
-    for i in range(4, 4+len(questions)+1): ws.column_dimensions[get_column_letter(i)].width = 10
+    for i in range(4, 4+len(questions_to_show)+1): ws.column_dimensions[get_column_letter(i)].width = 12
 
 def create_mapping_sheet(wb, course, academic_year, faculty_name, index=9):
     ws = wb.create_sheet("CO-PO-PSO Mapping & PO-PSO Att.", index)
