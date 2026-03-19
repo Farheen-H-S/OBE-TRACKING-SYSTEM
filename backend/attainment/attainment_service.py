@@ -759,33 +759,48 @@ class AttainmentService:
     def _calculate_indirect_co_attainment(course_id, academic_year):
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
+        ay_short = ay_clean
+        if len(ay_clean) == 9 and ay_clean[4] == '-': # 2025-2026
+            ay_short = ay_clean[:5] + ay_clean[7:] # 2025-26
+        
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = models.Q(academic_year__icontains=academic_year) | \
+                   models.Q(academic_year__icontains=ay_clean) | \
+                   models.Q(academic_year__icontains=ay_short) | \
+                   models.Q(academic_year__icontains=ay_spaced)
 
         ces_surveys = SurveyMaster.objects.filter(
             ay_query,
             course_id=course_id, 
             survey_category='course_exit'
         )
-        indirect_cos = {}
+        
+        # Aggregate multiple questions for same CO
+        co_ratings = {} # {co_id: [list of ratings]}
+        
         for survey in ces_surveys:
             questions = SurveyQuestion.objects.filter(survey_id=survey, co_id__isnull=False)
             for q in questions:
                 co_id = q.co_id_id
-                # Survey returns answer_value in SurveyAnswer
                 from surveys.models import SurveyAnswer
-                if not SurveyAnswer.objects.filter(question_id=q).exists(): continue
                 
+                # Get average for this specific question
                 ans_stats = SurveyAnswer.objects.filter(question_id=q).aggregate(Avg('answer_value'))
-                avg_rating = ans_stats['answer_value__avg'] or 0
+                avg_rating = ans_stats['answer_value__avg']
                 
-                if avg_rating > 0:
-                    # Linear scaling for survey (Avg / 5 * 3)
-                    level = round((avg_rating / 5) * 3, 2)
-                else:
-                    level = 0
-                
+                if avg_rating is not None:
+                    if co_id not in co_ratings:
+                        co_ratings[co_id] = []
+                    co_ratings[co_id].append(avg_rating)
+        
+        indirect_cos = {}
+        for co_id, ratings in co_ratings.items():
+            if ratings:
+                final_avg = sum(ratings) / len(ratings)
+                # Linear scaling for survey (Avg / 5 * 3)
+                level = round((final_avg / 5) * 3, 2)
                 indirect_cos[co_id] = level
+        
         return indirect_cos
 
     @staticmethod

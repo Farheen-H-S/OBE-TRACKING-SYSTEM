@@ -1277,9 +1277,16 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
     next_row = add_info_block(ws, course, academic_year, faculty_name)
     
     # Flexible survey lookup
-    ay_clean = academic_year.replace(' ', '')
+    ay_clean = academic_year.replace(' ', '') if academic_year else ""
+    ay_short = ay_clean
+    if len(ay_clean) == 9 and ay_clean[4] == '-': # 2025-2026
+        ay_short = ay_clean[:5] + ay_clean[7:] # 2025-26
+        
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = models.Q(academic_year__icontains=academic_year) | \
+               models.Q(academic_year__icontains=ay_clean) | \
+               models.Q(academic_year__icontains=ay_short) | \
+               models.Q(academic_year__icontains=ay_spaced)
     
     survey = SurveyMaster.objects.filter(
         ay_query,
@@ -1288,15 +1295,32 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
     ).first()
     questions = SurveyQuestion.objects.filter(survey_id=survey).order_by('question_id') if survey else []
     
-    headers = ["ENROLLMENT NO.", "Roll no.", "Name of Student"]
-    for i, q in enumerate(questions): headers.append(f"CO{i+1}")
-    headers.append("Total")
-
-    for col, h in enumerate(headers, start=1):
-        cell = ws.cell(row=next_row, column=col, value=h)
-        apply_header_style(cell, fill_color=STAT_GREEN_MEDIUM if col > 3 else HEADER_LIGHT_BLUE, font_color=BLACK_TEXT)
+    headers_row1 = ["ENROLLMENT NO.", "Roll no.", "Name of Student"]
+    headers_row2 = ["", "", ""]
     
-    current_row = next_row + 1
+    for q in questions:
+        co_num = q.co_id.co_number if q.co_id else "N/A"
+        headers_row1.append(str(co_num))
+        headers_row2.append(q.question_text)
+    
+    headers_row1.append("Total")
+    headers_row2.append("")
+
+    # Apply Header Styles (2 rows)
+    for col, (h1, h2) in enumerate(zip(headers_row1, headers_row2), start=1):
+        if col <= 3:
+            ws.merge_cells(start_row=next_row, start_column=col, end_row=next_row+1, end_column=col)
+            cell = ws.cell(row=next_row, column=col, value=h1)
+            apply_header_style(cell, fill_color=HEADER_LIGHT_BLUE, font_color=BLACK_TEXT)
+        else:
+            cell1 = ws.cell(row=next_row, column=col, value=h1)
+            cell2 = ws.cell(row=next_row+1, column=col, value=h2)
+            apply_header_style(cell1, fill_color=STAT_GREEN_MEDIUM if h1 != "Total" else HEADER_DARK_BLUE, font_color=BLACK_TEXT if h1 != "Total" else WHITE_TEXT)
+            apply_header_style(cell2, fill_color=STAT_GREEN_MEDIUM if h1 != "Total" else HEADER_DARK_BLUE, font_color=BLACK_TEXT if h1 != "Total" else WHITE_TEXT)
+            if h1 == "Total":
+                ws.merge_cells(start_row=next_row, start_column=col, end_row=next_row+1, end_column=col)
+
+    current_row = next_row + 2
     marks_list = []
     q_marks_collector = {i: [] for i in range(len(questions))} # For CO-wise stats
     
