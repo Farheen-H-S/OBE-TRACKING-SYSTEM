@@ -813,7 +813,7 @@ class AttainmentService:
                 if all_answers:
                     avg_val = sum(all_answers) / len(all_answers)
                     success_count = len([v for v in all_answers if v >= avg_val])
-                    percent = (success_count / len(all_answers)) * 100
+                    percent = round((success_count / len(all_answers)) * 100, 2)
                     
                     # Formula from user's correct CES sheet: (% >= Avg) * 3 / 100
                     level = round((percent * 3) / 100, 2)

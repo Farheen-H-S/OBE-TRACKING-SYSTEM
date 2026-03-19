@@ -281,6 +281,9 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
     tool_data = AttainmentService._calculate_detailed_tool_attainment(course.course_id, academic_year)
     co_indirect = AttainmentService._calculate_indirect_co_attainment(course.course_id, academic_year)
     
+    row_attainments = []
+    row_gaps = []
+    
     for co in cos:
         tools = tool_data.get(co.co_id, {})
         ws.cell(row=row, column=2, value=co.co_number).border = get_border()
@@ -362,6 +365,9 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
         ws.cell(row=row, column=19, value=t_val).border = get_border()
         ws.cell(row=row, column=19).fill = PatternFill(start_color=STAT_GREEN_MEDIUM, end_color=STAT_GREEN_MEDIUM, fill_type="solid")
         
+        row_attainments.append(total_att)
+        row_gaps.append(gap)
+        
         row += 1
     
     # Summary Average Row (Attainment of CO)
@@ -375,62 +381,8 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
     start_data_row = current_row + 1
     end_data_row = row - 1
     
-    if end_data_row >= start_data_row:
-        # Formulas for Total Attainment Average and Gap Average
-        total_att_range = f"{get_column_letter(16)}{start_data_row}:{get_column_letter(16)}{end_data_row}"
-        gap_range = f"{get_column_letter(18)}{start_data_row}:{get_column_letter(18)}{end_data_row}"
-        
-        
-        all_att = []
-        all_gaps = []
-        for co_item in cos:
-            t_data = tool_data.get(co_item.co_id, {})
-            def local_get_t_val(base_key, preferred_prefix=None):
-                if preferred_prefix:
-                    k = f"{preferred_prefix}_{base_key}"
-                    if k in t_data:
-                        val = t_data[k]
-                        return val.get('level', 0) if isinstance(val, dict) else val
-                    return 0
-                for p in ['INTERNAL', 'EXTERNAL']:
-                    k = f"{p}_{base_key}"
-                    if k in t_data:
-                        val = t_data[k]
-                        return val.get('level', 0) if isinstance(val, dict) else val
-                raw = t_data.get(base_key, 0)
-                if raw == 0:
-                    return 0
-                return raw.get('level', 0) if isinstance(raw, dict) else (raw if isinstance(raw, (int, float)) else 0)
-
-            # Re-calculate exactly as in the loop
-            l_ct1 = local_get_t_val('FA_TH_1', 'INTERNAL')
-            l_ct2 = local_get_t_val('FA_TH_2', 'INTERNAL')
-            l_sla = local_get_t_val('SLA')
-            l_fa_pr = local_get_t_val('FA_PR', 'INTERNAL')
-            l_sa_pr_int = local_get_t_val('SA_PR', 'INTERNAL')
-            l_int_vals = [v for v in [l_ct1, l_ct2, l_sla, l_fa_pr, l_sa_pr_int] if isinstance(v, (int, float))]
-            l_avg_i = sum(l_int_vals)/len(l_int_vals) if l_int_vals else 0
-            
-            l_sa_th = local_get_t_val('SA_TH', 'EXTERNAL')
-            l_sa_pr_ext = local_get_t_val('SA_PR', 'EXTERNAL')
-            l_ext_vals = [v for v in [l_sa_th, l_sa_pr_ext] if isinstance(v, (int, float))]
-            l_avg_b = sum(l_ext_vals)/len(l_ext_vals) if l_ext_vals else 0
-            
-            l_direct_att = 0.4 * l_avg_i + 0.6 * l_avg_b
-            l_ces_val = co_indirect.get(co_item.co_id, 0)
-            if not isinstance(l_ces_val, (int, float)): l_ces_val = 0
-            l_total_att = 0.8 * l_direct_att + 0.2 * l_ces_val
-            all_att.append(l_total_att)
-            
-            l_target = COTarget.objects.filter(ay_query, course_id=course, co_id=co_item).first()
-            l_t_val = l_target.target_value if l_target else 2.86
-            all_gaps.append(l_t_val - l_total_att)
-
-        avg_total_att = sum(all_att) / len(all_att) if all_att else 0
-        avg_gap = sum(all_gaps) / len(all_gaps) if all_gaps else 0
-        
-        att_avg_cell = ws.cell(row=row, column=16, value=round(avg_total_att, 2))
-        gap_avg_cell = ws.cell(row=row, column=18, value=round(avg_gap, 2))
+        att_avg_cell = ws.cell(row=row, column=16, value=round(sum(row_attainments)/len(row_attainments), 2) if row_attainments else 0)
+        gap_avg_cell = ws.cell(row=row, column=18, value=round(sum(row_gaps)/len(row_gaps), 2) if row_gaps else 0)
         
         for c_idx in [16, 17, 18, 19]:
             cell = ws.cell(row=row, column=c_idx)
