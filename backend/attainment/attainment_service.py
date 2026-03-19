@@ -3,7 +3,7 @@ from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
 from indirect_attainment.models import CourseIndirectAttainment, ActivityIndirectAttainment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse
 from .models import COAttainment, POAttainment, PSOAttainment
-from django.db.models import Avg
+from django.db.models import Avg, Count
 from django.db import models
 import re
 import numpy as np
@@ -769,11 +769,22 @@ class AttainmentService:
                    models.Q(academic_year__icontains=ay_short) | \
                    models.Q(academic_year__icontains=ay_spaced)
 
-        ces_surveys = SurveyMaster.objects.filter(
-            ay_query,
+        # Find approved CES survey for this course, prioritized by number of responses
+        # (This reliably finds the 'actual' survey among test surveys)
+        best_survey = SurveyMaster.objects.filter(
             course_id=course_id, 
-            survey_category='course_exit'
-        )
+            survey_category='course_exit',
+            status='APPROVED'
+        ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
+        
+        # Fallback to latest if none approved
+        if not best_survey:
+            best_survey = SurveyMaster.objects.filter(
+                course_id=course_id, 
+                survey_category='course_exit'
+            ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
+
+        ces_surveys = [best_survey] if best_survey else []
         
         # Aggregate multiple questions for same CO
         co_ratings = {} # {co_id: [list of ratings]}

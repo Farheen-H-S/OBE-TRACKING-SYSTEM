@@ -5,7 +5,7 @@ from openpyxl.drawing.image import Image
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 from django.db import models
-from django.db.models import Avg
+from django.db.models import Avg, Count
 from academics.models import Course, CO, COPOMapping, COPSOMapping, PO, PSO, AcademicSetup, COTarget
 from attainment.models import COAttainment, POAttainment
 from attainment.attainment_service import AttainmentService
@@ -1288,11 +1288,20 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
                models.Q(academic_year__icontains=ay_short) | \
                models.Q(academic_year__icontains=ay_spaced)
     
+    # Find approved CES survey for this course, prioritized by number of responses
+    # (This reliably finds the 'actual' survey among test surveys)
     survey = SurveyMaster.objects.filter(
-        ay_query,
         course_id=course, 
-        survey_category='course_exit'
-    ).first()
+        survey_category='course_exit',
+        status='APPROVED'
+    ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
+    
+    # Fallback to latest if none approved
+    if not survey:
+        survey = SurveyMaster.objects.filter(
+            course_id=course, 
+            survey_category='course_exit'
+        ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
     questions = SurveyQuestion.objects.filter(survey_id=survey).order_by('question_id') if survey else []
     
     headers_row1 = ["ENROLLMENT NO.", "Roll no.", "Name of Student"]
