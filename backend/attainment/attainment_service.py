@@ -370,7 +370,13 @@ class AttainmentService:
             
             # Default classification fallback
             tool_category = 'Internal'
-            if 'SA' in tool_name_norm: tool_category = 'External'
+            if 'SA' in tool_name_norm:
+                if any(x in tool_name_norm for x in ['INTERNAL', '(INT', ' INT']):
+                    tool_category = 'Internal'
+                else:
+                    tool_category = 'External'
+            elif any(x in tool_name_norm for x in ['EXTERNAL', '(EXT', ' EXT']):
+                tool_category = 'External'
             
             # Check course config for explicit user selection
             for cfg_key, cfg_val in course_tools_config.items():
@@ -542,7 +548,8 @@ class AttainmentService:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
                                     # Threshold: use column average for Practical/SLA, else 40% of max for Theory
-                                    is_practical_tool = any(x in tool_name_norm.replace('-', '_').replace('_', '') for x in ['FAPR', 'PRACTICAL', 'SLA', 'SAPR']) and 'SATH' not in tool_name_norm.replace('_', '')
+                                    # Threshold: use column average for all tools to match MSBTE reference standards
+                                    is_practical_tool = True 
                                     if q_key not in q_stats:
                                         q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
                                     if is_mark_entered:
@@ -564,8 +571,8 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # FA-PR, SA-PR, SA_TH and SLA: % = (count >= col_avg) / appeared * 100
-                is_practical = any(x in tool_name_norm.replace('-', '_').replace('_', '') for x in ['FAPR', 'PRACTICAL', 'SLA', 'SAPR']) and 'SATH' not in tool_name_norm.replace('_', '')
+                # All tools (FA-PR, SA-PR, SA_TH, CT, SLA): % = (count >= col_avg) / appeared * 100
+                is_practical = True
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
                         if is_practical:
@@ -704,7 +711,8 @@ class AttainmentService:
 
                     # Threshold: use column average for Practical/SLA, else 40% of max for Theory
                     tp_norm = tool_name_norm.replace('-', '').replace('_', '')
-                    is_practical_tool = any(x in tp_norm for x in ['PR', 'SLA', 'PRACTICAL']) and 'SATH' not in tp_norm
+                    # Standardize threshold logic to use column average for all tools
+                    is_practical_tool = True
                     
                     if is_practical_tool:
                         threshold = avg_marks
