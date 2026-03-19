@@ -1438,11 +1438,11 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
         percentages.append(round((success / total * 100), 2) if total > 0 else 0)
     add_footer_row("% of Student scored more than average", percentages)
 
-    # 5. CO Attainment (Using Avg/5*3 to match summary sheets)
+    # 5. CO Attainment (Reverted to Success-based formula %*3/100 as per user requirement)
     attainments = []
     for i in range(len(questions_to_show)):
-        avg = averages[i]
-        attainments.append(round((avg / 5) * 3, 2))
+        p = percentages[i]
+        attainments.append(round((p * 3) / 100, 2))
     add_footer_row("CO Attainment", attainments)
 
     # Styling and Column Widths

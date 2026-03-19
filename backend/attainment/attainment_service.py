@@ -795,22 +795,29 @@ class AttainmentService:
                 co_id = q.co_id_id
                 from surveys.models import SurveyAnswer
                 
-                # Get average for this specific question
-                ans_stats = SurveyAnswer.objects.filter(question_id=q).aggregate(Avg('answer_value'))
-                avg_rating = ans_stats['answer_value__avg']
-                
-                if avg_rating is not None:
+                # Get all answers for this question to calculate success percentage
+                answers = list(SurveyAnswer.objects.filter(question_id=q).values_list('answer_value', flat=True))
+                if answers:
                     if co_id not in co_ratings:
                         co_ratings[co_id] = []
-                    co_ratings[co_id].append(avg_rating)
+                    co_ratings[co_id].append(answers)
         
         indirect_cos = {}
-        for co_id, ratings in co_ratings.items():
-            if ratings:
-                final_avg = sum(ratings) / len(ratings)
-                # Linear scaling for survey (Avg / 5 * 3)
-                level = round((final_avg / 5) * 3, 2)
-                indirect_cos[co_id] = level
+        for co_id, groups_of_answers in co_ratings.items():
+            if groups_of_answers:
+                # Combine all answers if multiple questions/surveys for same CO
+                all_answers = []
+                for group in groups_of_answers:
+                    all_answers.extend(group)
+                
+                if all_answers:
+                    avg_val = sum(all_answers) / len(all_answers)
+                    success_count = len([v for v in all_answers if v >= avg_val])
+                    percent = (success_count / len(all_answers)) * 100
+                    
+                    # Formula from user's correct CES sheet: (% >= Avg) * 3 / 100
+                    level = round((percent * 3) / 100, 2)
+                    indirect_cos[co_id] = level
         
         return indirect_cos
 
