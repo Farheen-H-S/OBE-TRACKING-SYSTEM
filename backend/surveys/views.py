@@ -185,12 +185,18 @@ class SurveyStatsView(APIView):
         semester = request.query_params.get('semester')
         division = request.query_params.get('division')
         
-        if any([batch_id, academic_year, class_year, semester, division]):
+        if survey.survey_category in ['indirect', 'course_exit']:
+            # Student Profile fields like academic_year or class_year often signify admission year or current state,
+            # which mismatch the OIT dashboard's contextual filters. Only filter by true grouping constraints.
             if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
-            if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
-            if class_year: responses = responses.filter(student_id__class_year=class_year)
-            if semester: responses = responses.filter(student_id__semester=semester)
             if division: responses = responses.filter(student_id__division=division)
+        else:
+            if any([batch_id, academic_year, class_year, semester, division]):
+                if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
+                if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
+                if class_year: responses = responses.filter(student_id__class_year=class_year)
+                if semester: responses = responses.filter(student_id__semester=semester)
+                if division: responses = responses.filter(student_id__division=division)
 
         # 3. Process Matrix Data (Teachers x Statements)
         # Questions should also be cumulative / consistent across these surveys
@@ -380,8 +386,13 @@ class SurveyExportView(APIView):
         batch_id = request.query_params.get('batch_id')
         academic_year = request.query_params.get('academic_year')
         
-        if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
-        if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
+        if survey.survey_category in ['indirect', 'course_exit']:
+            if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
+            # Do NOT filter student_id__academic_year for OIT/CES 
+             # because student records represent their admission/latest state, which differs from survey context year
+        else:
+            if batch_id: responses = responses.filter(student_id__batch_id=batch_id)
+            if academic_year: responses = responses.filter(student_id__academic_year=academic_year)
 
         # 3. Process Matrix Data (Teachers x Statements)
         questions = SurveyQuestion.objects.filter(survey_id=pk)

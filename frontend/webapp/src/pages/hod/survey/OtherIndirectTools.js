@@ -481,11 +481,11 @@ const OtherIndirectTools = () => {
     const handleBulkUpload = async (e) => {
         const file = e.target.files[0];
         if (!file || !surveyState?.backendId) return;
-        
+
         const formData = new FormData();
         formData.append('file', file);
         formData.append('survey_id', surveyState.backendId);
-        
+
         try {
             alert('Uploading test data...');
             const res = await api.post('bulk_upload/surveys/upload/', formData, {
@@ -547,10 +547,10 @@ const OtherIndirectTools = () => {
                                 </>
                             )}
                             {currentStatements.map(s => (
-                                <th key={s.id} className="oit-blue-header" style={{ minWidth: 90 }}>
+                                <th key={s.id} className="oit-blue-header" style={{ minWidth: 140 }}>
                                     <div>{s.number}</div>
                                     {s.description && (
-                                        <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.65rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 110 }}>
+                                        <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.7rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 160, margin: '0 auto' }}>
                                             {getSurveyInquiry(s, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry(s, programName).split(' ').length > 5 ? '…' : ''}
                                         </div>
                                     )}
@@ -989,7 +989,6 @@ const OtherIndirectTools = () => {
                                         <option value="3">3 Days</option>
                                         <option value="7">7 Days</option>
                                         <option value="15">15 Days</option>
-                                        <option value="30">30 Days</option>
                                     </select>
                                     <button
                                         className={`btn btn-sm px-5 ${surveyState?.status === 'APPROVED' ? 'btn-danger' : 'btn-primary'}`}
@@ -998,17 +997,17 @@ const OtherIndirectTools = () => {
                                     >
                                         {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
                                     </button>
-                                    
+
                                     {surveyState?.status === 'APPROVED' && (
                                         <>
-                                            <input 
-                                                type="file" 
-                                                id="bulkUpload-oit" 
-                                                style={{ display: 'none' }} 
+                                            <input
+                                                type="file"
+                                                id="bulkUpload-oit"
+                                                style={{ display: 'none' }}
                                                 accept=".xlsx,.xls"
                                                 onChange={handleBulkUpload}
                                             />
-                                            <button 
+                                            <button
                                                 className="btn btn-sm text-dark bg-warning border border-dark rounded-0 fw-bold px-2 mx-1"
                                                 style={{ boxShadow: '2px 2px 0px black' }}
                                                 onClick={() => {

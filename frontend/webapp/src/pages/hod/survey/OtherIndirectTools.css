@@ -210,10 +210,11 @@
 }
 
 .oit-blue-header {
-    background: #312e81;
+    background-color: #312e81 !important;
     color: #fff !important;
     text-align: center;
     min-width: 72px;
+    box-shadow: none !important;
 }
 
 .oit-summary-row td {
