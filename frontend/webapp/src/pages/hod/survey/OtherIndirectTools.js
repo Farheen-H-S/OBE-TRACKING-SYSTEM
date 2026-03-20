@@ -222,6 +222,14 @@ const OtherIndirectTools = () => {
                 const latest = indirect[0]; // Assuming sorted by ID desc from backend
                 setSelectedSurveyId(latest.survey_id);
                 updateLinkBoxFromSurvey(latest);
+                
+                if (latest.activity_type) setActivityType(latest.activity_type);
+                setActivityDetail(latest.activity_title || '');
+                setConductedDate(latest.activity_date || '');
+                setRpName(latest.rp_name || '');
+                setRpDesignation(latest.rp_designation || '');
+                setRpCompany(latest.rp_company || '');
+                setRpAddress(latest.rp_address || '');
             }
         } catch (err) {
             console.error('Failed to fetch active surveys:', err);
@@ -252,11 +260,31 @@ const OtherIndirectTools = () => {
         setSelectedSurveyId(surveyId);
         if (!surveyId) {
             setSurveyState(null);
+            setActivityDetail('');
+            setConductedDate('');
+            setRpName('');
+            setRpDesignation('');
+            setRpCompany('');
+            setRpAddress('');
             return;
         }
         const survey = activeSurveys.find(s => s.survey_id === parseInt(surveyId));
         if (survey) {
             updateLinkBoxFromSurvey(survey);
+            
+            // Populate form fields from survey metadata
+            if (survey.activity_type) setActivityType(survey.activity_type);
+            setActivityDetail(survey.activity_title || '');
+            setConductedDate(survey.activity_date || '');
+            setRpName(survey.rp_name || '');
+            setRpDesignation(survey.rp_designation || '');
+            setRpCompany(survey.rp_company || '');
+            setRpAddress(survey.rp_address || '');
+            
+            // Auto refresh stats if dashboard is open
+            if (showStats) {
+                loadResponses(survey.survey_id);
+            }
         }
     };
     useEffect(() => {

@@ -192,7 +192,11 @@ class SurveyStatsView(APIView):
                 if str(batch_id).isdigit():
                     responses = responses.filter(student_id__batch_id=batch_id)
                 else:
-                    responses = responses.filter(student_id__batch_id__batch_name=batch_id)
+                    try:
+                        start_year = int(str(batch_id).replace(" ", "").split("-")[0])
+                        responses = responses.filter(student_id__batch_id__batch_year=start_year)
+                    except ValueError:
+                        pass
             if division and str(division).lower() != 'all': 
                 responses = responses.filter(student_id__division=division)
         else:
@@ -201,7 +205,11 @@ class SurveyStatsView(APIView):
                     if str(batch_id).isdigit():
                         responses = responses.filter(student_id__batch_id=batch_id)
                     else:
-                        responses = responses.filter(student_id__batch_id__batch_name=batch_id)
+                        try:
+                            start_year = int(str(batch_id).replace(" ", "").split("-")[0])
+                            responses = responses.filter(student_id__batch_id__batch_year=start_year)
+                        except ValueError:
+                            pass
                 if academic_year and str(academic_year).lower() != 'all': responses = responses.filter(student_id__academic_year=academic_year)
                 if class_year and str(class_year).lower() != 'all': responses = responses.filter(student_id__class_year=class_year)
                 if semester and str(semester).lower() != 'all': responses = responses.filter(student_id__semester=semester)
@@ -400,7 +408,11 @@ class SurveyExportView(APIView):
                 if str(batch_id).isdigit():
                     responses = responses.filter(student_id__batch_id=batch_id)
                 else:
-                    responses = responses.filter(student_id__batch_id__batch_name=batch_id)
+                    try:
+                        start_year = int(str(batch_id).replace(" ", "").split("-")[0])
+                        responses = responses.filter(student_id__batch_id__batch_year=start_year)
+                    except ValueError:
+                        pass
             # Do NOT filter student_id__academic_year for OIT/CES 
              # because student records represent their admission/latest state, which differs from survey context year
         else:
@@ -408,7 +420,11 @@ class SurveyExportView(APIView):
                 if str(batch_id).isdigit():
                     responses = responses.filter(student_id__batch_id=batch_id)
                 else:
-                    responses = responses.filter(student_id__batch_id__batch_name=batch_id)
+                    try:
+                        start_year = int(str(batch_id).replace(" ", "").split("-")[0])
+                        responses = responses.filter(student_id__batch_id__batch_year=start_year)
+                    except ValueError:
+                        pass
             if academic_year and str(academic_year).lower() != 'all': responses = responses.filter(student_id__academic_year=academic_year)
 
         # 3. Process Matrix Data (Teachers x Statements)
