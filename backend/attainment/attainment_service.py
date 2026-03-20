@@ -547,18 +547,27 @@ class AttainmentService:
                                         else:
                                             q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # Threshold: use column average for Practical/SLA, else 40% of max for Theory
-                                    # Threshold: use column average for all tools to match MSBTE reference standards
-                                    is_practical_tool = True 
+                                    # Threshold logic
+                                    # Standardize threshold logic to use column average for most tools, but explicitly NOT for CT1/CT2
+                                    tp_norm = tool_name_norm.replace('-', '').replace('_', '')
+                                    
+                                    # If the tool is Internal Theory (CT1, CT2), we use 40% of max marks.
+                                    # For all other tools (FA-PR, SA-PR, SLA, SA-TH), we use the class average threshold.
+                                    if 'CT' in tp_norm or 'FATH' in tp_norm:
+                                        is_practical_tool = False
+                                    else:
+                                        is_practical_tool = True
+                                        
                                     if q_key not in q_stats:
                                         q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
+                                        
                                     if is_mark_entered:
                                         q_stats[q_key]['appeared'] += 1
                                         q_stats[q_key]['sum'] += mark_val
                                         q_stats[q_key]['marks'].append(mark_val)
                                         if not is_practical_tool:
-                                            # FA-TH/SLA: COUNTIF >= 40% threshold
-                                            q_threshold = max(1, int(q_max * threshold_ratio))
+                                            # Match the exact truncated MSBTE internal theory threshold
+                                            q_threshold = max(1, int(q_max * 0.4))
                                             if mark_val >= q_threshold:
                                                 q_stats[q_key]['success'] += 1
 
@@ -571,16 +580,23 @@ class AttainmentService:
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # All tools (FA-PR, SA-PR, SA_TH, CT, SLA): % = (count >= col_avg) / appeared * 100
-                is_practical = True
+                # All tools (FA-PR, SA-PR, SA_TH, CT, SLA): % = (count >= threshold) / appeared * 100
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
-                        if is_practical:
+                        # For practical/avg-based tools, we calculate the threshold dynamically after collecting all marks
+                        tp_norm = tool_name_norm.replace('-', '').replace('_', '')
+                        if 'CT' in tp_norm or 'FATH' in tp_norm:
+                            is_practical_tool = False
+                        else:
+                            is_practical_tool = True
+                            
+                        if is_practical_tool:
                             # Use >= column average threshold
                             avg_mark = stats['sum'] / stats['appeared']
                             success_count = sum(1 for m in stats['marks'] if m >= avg_mark)
                             stats['success'] = round((success_count / stats['appeared']) * 100, 2)
                         else:
+                            # Theory tools already computed pure count, just convert to percentage
                             stats['success'] = round((stats['success'] / stats['appeared']) * 100, 2)
                     else:
                         stats['success'] = 0.0
@@ -711,13 +727,16 @@ class AttainmentService:
 
                     # Threshold: use column average for Practical/SLA, else 40% of max for Theory
                     tp_norm = tool_name_norm.replace('-', '').replace('_', '')
-                    # Standardize threshold logic to use column average for all tools
-                    is_practical_tool = True
+                    
+                    if 'CT' in tp_norm or 'FATH' in tp_norm:
+                        is_practical_tool = False
+                    else:
+                        is_practical_tool = True
                     
                     if is_practical_tool:
                         threshold = avg_marks
                     else:
-                        threshold = max_marks * 0.4
+                        threshold = max(1, int(max_marks * 0.4))
                     
                     count_ge_avg = entries.filter(marks_obtained__gte=threshold).count()
                     percentage = (count_ge_avg / total_students * 100) if total_students > 0 else 0
