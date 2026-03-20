@@ -196,13 +196,12 @@ const OtherIndirectTools = () => {
         }
     }, [surveyKey]);
 
+    // Remove legacy localStorage restoring for survey state to allow multiple concurrent surveys
     useEffect(() => {
-        const saved = localStorage.getItem(surveyKey);
-        const parsed = saved ? JSON.parse(saved) : null;
-        setSurveyState(parsed);
-        if (parsed?.backendId) {
-            setSelectedSurveyId(parsed.backendId);
-        }
+        // Just reset selection when tool/program context changes if we don't have matching surveys
+        // The active surveys list will auto-select if needed via fetchAllActiveSurveys
+        setSurveyState(null);
+        setSelectedSurveyId("");
         setShowStats(false);
     }, [surveyKey]);
 
@@ -348,9 +347,13 @@ const OtherIndirectTools = () => {
     const handleApprove = async () => {
         if (surveyState?.status === 'APPROVED') {
             if (window.confirm('Close this survey early?')) {
-                const u = { ...surveyState, status: 'CLOSED' };
-                localStorage.setItem(surveyKey, JSON.stringify(u));
-                setSurveyState(u);
+                try {
+                    await api.patch(`/surveys/${surveyState.backendId}/`, { status: 'CLOSED' });
+                    setSurveyState(prev => ({ ...prev, status: 'CLOSED' }));
+                    fetchAllActiveSurveys();
+                } catch (err) {
+                    alert('Failed to close survey');
+                }
             }
             return;
         }
@@ -412,10 +415,13 @@ const OtherIndirectTools = () => {
                 expires_at: expiry.toISOString(),
                 duration: String(duration),
                 link: buildLink(backendId),
-                backendId: backendId
+                backendId: backendId,
+                survey_name: surveyPayload.survey_name,
+                activity_title: surveyPayload.activity_title
             };
-            localStorage.setItem(surveyKey, JSON.stringify(newState));
             setSurveyState(newState);
+            setSelectedSurveyId(backendId);
+            fetchAllActiveSurveys();
             alert(`Survey approved and saved to backend! Expires: ${expiry.toLocaleString()}`);
         } catch (err) {
             console.error('Approval failed:', err);
@@ -685,7 +691,7 @@ const OtherIndirectTools = () => {
                                     value={selectedSurveyId}
                                     onChange={(e) => handleSurveyChange(e.target.value)}
                                 >
-                                    <option value="">-- Select Created Survey --</option>
+                                    <option value="">-- Create New Survey --</option>
                                     {activeSurveys.map(s => (
                                         <option key={s.survey_id} value={s.survey_id}>
                                             {s.survey_name} ({s.activity_title || s.academic_year})
