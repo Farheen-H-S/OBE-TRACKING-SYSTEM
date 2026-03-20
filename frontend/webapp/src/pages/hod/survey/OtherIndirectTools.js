@@ -225,11 +225,11 @@ const OtherIndirectTools = () => {
                 
                 if (latest.activity_type) setActivityType(latest.activity_type);
                 setActivityDetail(latest.activity_title || '');
-                setConductedDate(latest.activity_date || '');
-                setRpName(latest.rp_name || '');
-                setRpDesignation(latest.rp_designation || '');
-                setRpCompany(latest.rp_company || '');
-                setRpAddress(latest.rp_address || '');
+                setConductedDate(latest.conducted_date || '');
+                setRpName(latest.resource_person_name || '');
+                setRpDesignation(latest.resource_person_designation || '');
+                setRpCompany(latest.resource_person_company || '');
+                setRpAddress(latest.resource_person_address || '');
             }
         } catch (err) {
             console.error('Failed to fetch active surveys:', err);
@@ -275,11 +275,11 @@ const OtherIndirectTools = () => {
             // Populate form fields from survey metadata
             if (survey.activity_type) setActivityType(survey.activity_type);
             setActivityDetail(survey.activity_title || '');
-            setConductedDate(survey.activity_date || '');
-            setRpName(survey.rp_name || '');
-            setRpDesignation(survey.rp_designation || '');
-            setRpCompany(survey.rp_company || '');
-            setRpAddress(survey.rp_address || '');
+            setConductedDate(survey.conducted_date || '');
+            setRpName(survey.resource_person_name || '');
+            setRpDesignation(survey.resource_person_designation || '');
+            setRpCompany(survey.resource_person_company || '');
+            setRpAddress(survey.resource_person_address || '');
             
             // Auto refresh stats if dashboard is open
             if (showStats) {
@@ -582,10 +582,10 @@ const OtherIndirectTools = () => {
                             )}
                             {currentStatements.map(s => (
                                 <th key={s.id} className="oit-blue-header" style={{ minWidth: 140 }}>
-                                    <div>{s.number}</div>
-                                    {s.description && (
+                                    <div>{s.co_number || s.number || `Q${s.id}`}</div>
+                                    {(s.question_text || s.description) && (
                                         <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.7rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 160, margin: '0 auto' }}>
-                                            {getSurveyInquiry(s, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry(s, programName).split(' ').length > 5 ? '…' : ''}
+                                            {getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').length > 5 ? '…' : ''}
                                         </div>
                                     )}
                                 </th>
