@@ -760,6 +760,11 @@ const OtherIndirectTools = () => {
                                                         disabled={surveyState?.status === 'APPROVED'}
                                                         readOnly={isRP && activityDetail !== ''}
                                                     />
+                                                    {isRP && (
+                                                        <small className="text-info d-block mt-1" style={{ fontSize: '0.75rem', lineHeight: '1.2' }}>
+                                                            Note: This survey skips login. The person can update their response by re-submitting.
+                                                        </small>
+                                                    )}
                                                 </div>
                                                 <div className="col-md-4">
                                                     <label className="small fw-bold text-muted mb-1">DESIGNATION</label>

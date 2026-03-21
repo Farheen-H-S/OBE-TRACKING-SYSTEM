@@ -93,22 +93,32 @@ class SubmitSurveyResponseView(APIView):
         if student:
             enrollment_no = student.enrollment_no
         else:
-            enrollment_no = enrollment_no_from_payload
+            # Special handling for Resource Person Feedback
+            if survey.survey_category == 'indirect' and 'Resource Person' in survey.survey_name:
+                enrollment_no = f"RP_{survey.survey_id}"
+            else:
+                enrollment_no = enrollment_no_from_payload
 
-        # 4. Check for duplicate submission (only if survey is not anonymous)
+        # 4b. Check for duplicate/overwrite submission
         if enrollment_no and not survey.is_anonymous:
-            duplicate = SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).exists()
-            if duplicate:
-                return Response({"error": "You have already responded to this survey."}, status=400)
+            # For Resource Person, we allow overwriting (delete previous)
+            if enrollment_no.startswith("RP_"):
+                 SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).delete()
+            else:
+                duplicate = SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).exists()
+                if duplicate:
+                    return Response({"error": "You have already responded to this survey."}, status=400)
             
         # 5. Determine respondent name
         respondent_name = request.data.get('respondent_name')
         if not respondent_name:
             if student:
                 respondent_name = student.name
+            elif survey.survey_category == 'indirect' and 'Resource Person' in survey.survey_name:
+                respondent_name = survey.resource_person_name or "Resource Person"
             else:
                 # If student object wasn't found but we have an enrollment_no, query for it precisely.
-                student_fallback = Student.objects.filter(enrollment_no=enrollment_no).first() if enrollment_no else None
+                student_fallback = Student.objects.filter(enrollment_no=enrollment_no).first() if (enrollment_no and not str(enrollment_no).startswith("RP_")) else None
                 if student_fallback:
                     respondent_name = student_fallback.name
                 else:

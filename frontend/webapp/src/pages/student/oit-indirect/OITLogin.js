@@ -31,6 +31,31 @@ const OITLogin = () => {
     const isAlumni = type === 'alumni';
     const toolLabel = TOOL_LABELS[type] || 'Indirect Survey';
 
+    useEffect(() => {
+        if (isRP && survey) {
+            autoLoginResourcePerson();
+        }
+    }, [isRP, survey]);
+
+    const autoLoginResourcePerson = async () => {
+        try {
+            const res = await api.get(`/surveys/${survey}/`);
+            const surveyData = res.data;
+            const name = surveyData.resource_person_name || 'Resource Person';
+            
+            localStorage.setItem('oit_respondent', JSON.stringify({
+                type: 'resource-person',
+                name: name,
+                respondentName: name,
+            }));
+            
+            navigate(`/student/oit-welcome?${buildWelcomeParams(name)}`);
+        } catch (err) {
+            console.error('Auto-login failed:', err);
+            setError('Failed to load survey details.');
+        }
+    };
+
     const buildWelcomeParams = (name = '') => {
         const params = new URLSearchParams({ survey, type, program: programId, class: classYear, div: division, year });
         if (activityType) params.set('activity_type', activityType);
