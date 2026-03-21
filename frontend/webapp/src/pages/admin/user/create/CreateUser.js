@@ -102,29 +102,6 @@ const CreateUser = () => {
         }
     };
 
-    const handleBulkUpload = async () => {
-        if (!bulkFile) return alert("Please select a file first.");
-        setLoading(true);
-        setError('');
-        try {
-            const data = new FormData();
-            data.append('file', bulkFile);
-            const response = await api.post('/bulk_upload/users/', data);
-            setBulkResults(response.data);
-            alert(`Bulk Upload Complete: ${response.data.success} created, ${response.data.updated} updated, ${response.data.skipped} skipped.`);
-            if (response.data.success > 0 || response.data.updated > 0) {
-                navigate('/view-user');
-            }
-        } catch (err) {
-            console.error('Error in bulk upload:', err);
-            setError(err.response?.data?.error || 'Failed to upload file.');
-        } finally {
-            setLoading(false);
-            setShowBulkModal(false);
-        }
-    };
-
-
     const closePopup = () => {
         setShowPopup(false);
         navigate('/view-user');
@@ -145,14 +122,6 @@ const CreateUser = () => {
                             </div>
                             <h2 className="fs-5 fw-bold m-0" style={{ color: '#1a237e' }}>Enter valid credentials to create new user.</h2>
                         </div>
-                        <button
-                            className="btn btn-outline-primary d-flex align-items-center gap-2"
-                            style={{ fontSize: '14px', borderRadius: '4px' }}
-                            onClick={() => setShowBulkModal(true)}
-                        >
-                            <FaUpload size={14} />
-                            Bulk Upload
-                        </button>
 
                     </div>
 
@@ -280,27 +249,6 @@ const CreateUser = () => {
                 </div>
             )}
 
-            {/* Bulk Upload Modal */}
-            {showBulkModal && (
-                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="bg-white p-4 rounded shadow" style={{ maxWidth: '500px', width: '90%' }}>
-                        <h4 className="mb-3 text-primary">User Bulk Upload</h4>
-                        <p className="small text-muted mb-4">Upload an Excel file with Name, Email, Role, and Department. Download the template from the Header menu first.</p>
-                        <input
-                            type="file"
-                            className="form-control mb-4"
-                            accept=".xlsx, .xls"
-                            onChange={(e) => setBulkFile(e.target.files[0])}
-                        />
-                        <div className="d-flex justify-content-end gap-2">
-                            <button className="btn btn-secondary" onClick={() => setShowBulkModal(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleBulkUpload} disabled={loading}>
-                                {loading ? 'Uploading...' : 'Start Upload'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

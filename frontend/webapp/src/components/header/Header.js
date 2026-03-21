@@ -189,25 +189,6 @@ const Header = ({ onToggleSidebar }) => {
           </div>
         </div>
 
-        {/* DEPARTMENT (New section)
-        {['faculty', 'hod', 'coordinator'].includes(userRole) && user?.department_name && (
-          <div
-            className="header-dept text-white mx-auto d-none d-xl-flex align-items-center justify-content-center"
-            style={{
-              maxWidth: '350px',
-              fontSize: '16px',
-              fontWeight: '500',
-              textAlign: 'center',
-              lineHeight: '1.2',
-              padding: '0 20px',
-              borderLeft: '1px solid rgba(255,255,255,0.3)',
-              marginLeft: '20px'
-            }}
-          >
-            Department: {user.department_name}
-          </div>
-        )} */}
-
         {/* CENTER */}
         <div
           className="header-title text-center text-white cursor-pointer d-none d-md-block ms-auto me-auto"
@@ -257,7 +238,7 @@ const Header = ({ onToggleSidebar }) => {
           {/* Global Filters - Moved to GlobalFilterBar in Layout.js */}
 
 
-          {userRole !== 'auditor' && (
+          {userRole == !['auditor', 'admin'].includes(userRole) && (
             <div className="notification-container" ref={downloadRef}>
               <FaDownload
                 size={22}
@@ -274,10 +255,10 @@ const Header = ({ onToggleSidebar }) => {
                     <FaTimes className="cursor-pointer text-muted" onClick={() => setShowDownloads(false)} />
                   </div>
                   <div className="p-0">
-                    {userRole === 'admin' ? (
-                      <button onClick={() => handleDownloadTemplate('user')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                        <div className="fw-bold small text-primary">User Bulk Upload Template</div>
-                        <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for HOD, Faculty, etc.</div>
+                    {userRole === 'faculty' ? (
+                      <button onClick={() => handleDownloadTemplate('teaching-plan')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                        <div className="fw-bold small text-primary">Teaching Plan Template</div>
+                        <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for Teaching Plan entry</div>
                       </button>
                     ) : (
                       <>
@@ -293,12 +274,6 @@ const Header = ({ onToggleSidebar }) => {
                             <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for CIS marks entry</div>
                           </button>
                         )}
-                        {['faculty'].includes(userRole) && (
-                          <button onClick={() => handleDownloadTemplate('teaching-plan')} className="d-block w-100 text-start p-3 border-bottom border-0 bg-transparent text-dark download-item-btn" style={{ transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                            <div className="fw-bold small text-primary">Teaching Plan Template</div>
-                            <div className="text-muted mt-1" style={{ fontSize: '11px' }}>Excel (.xlsx) format for Teaching Plan entry</div>
-                          </button>
-                        )}
                       </>
                     )}
                   </div>
@@ -307,7 +282,7 @@ const Header = ({ onToggleSidebar }) => {
             </div>
           )}
 
-          {userRole !== 'auditor' && (
+          {userRole == !['auditor', 'admin'].includes(userRole) && (
             <div className="notification-container" ref={bellRef}>
               <FaBell
                 size={24}
