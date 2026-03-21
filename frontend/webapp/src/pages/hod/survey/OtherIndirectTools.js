@@ -582,7 +582,7 @@ const OtherIndirectTools = () => {
                             )}
                             {currentStatements.map(s => (
                                 <th key={s.id} className="oit-blue-header" style={{ minWidth: 140 }}>
-                                    <div>{s.co_number || s.number || `Q${s.id}`}</div>
+                                    <div>{s.co_number || s.number || `PO ${s.id}`}</div>
                                     {(s.question_text || s.description) && (
                                         <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.7rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 160, margin: '0 auto' }}>
                                             {getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').length > 5 ? '…' : ''}
@@ -595,7 +595,15 @@ const OtherIndirectTools = () => {
                     <tbody>
                         {responses.length > 0 ? (
                             <>
-                                {responses.map((r, i) => (
+                                {[...responses].sort((a, b) => {
+                                    const aRoll = parseInt(a.rollNo, 10);
+                                    const bRoll = parseInt(b.rollNo, 10);
+                                    if (!isNaN(aRoll) && !isNaN(bRoll)) return aRoll - bRoll;
+                                    // Fallback: sort by enrollment number
+                                    const aEnroll = a.enrollment || '';
+                                    const bEnroll = b.enrollment || '';
+                                    return aEnroll.localeCompare(bEnroll);
+                                }).map((r, i) => (
                                     <tr key={i} className="align-middle">
                                         {isRP ? (
                                             <td className="ps-3 fw-semibold text-muted">{r.respondentName || `Respondent ${i + 1}`}</td>

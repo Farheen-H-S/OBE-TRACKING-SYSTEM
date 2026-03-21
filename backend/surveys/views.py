@@ -313,9 +313,15 @@ class SurveyStatsView(APIView):
                     'answers': current_answers
                 }
         
-        # Sort by enrollment or roll number if possible
+        # Sort by roll number numerically, then by enrollment as fallback
         responses_list = list(responses_dict.values())
-        responses_list.sort(key=lambda x: (x['roll_no'] if str(x['roll_no']).isdigit() else 999, x['enrollment']))
+        def sort_key(x):
+            rn = str(x.get('roll_no', '') or '')
+            try:
+                return (int(rn), x.get('enrollment', ''))
+            except (ValueError, TypeError):
+                return (99999, x.get('enrollment', ''))
+        responses_list.sort(key=sort_key)
 
         # Build Teacher Matrix (only if it looks like a matrix/indirect survey)
         teacher_data = []
@@ -346,7 +352,18 @@ class SurveyStatsView(APIView):
                 {
                     "id": q.question_id,
                     "co_id": q.co_id_id,
-                    "co_number": q.co_id.co_number if q.co_id else f"Q{q.question_id}",
+                    "co_number": q.co_id.co_number if q.co_id else None,
+                    "number": (
+                        q.po_id.po_number if q.po_id else
+                        (q.pso_id.pso_number if q.pso_id else
+                         (q.co_id.co_number if q.co_id else f"Q{q.question_id}"))
+                    ),
+                    "type": 'PO' if q.po_id else ('PSO' if q.pso_id else 'CO'),
+                    "description": (
+                        q.po_id.description if q.po_id else
+                        (q.pso_id.description if q.pso_id else
+                         (q.co_id.description if q.co_id else ''))
+                    ),
                     "question_text": q.question_text,
                     "question_id": q.question_id
                 } for q in canonical_questions
