@@ -139,14 +139,21 @@ class IndirectReportService:
             
             row_vals = []
             for col_idx, outcome in enumerate(outcomes, 3):
-                query = {'question_id__survey_id__in': survey_ids}
-                if isinstance(outcome, PO):
-                    query['question_id__po_id'] = outcome
-                else:
-                    query['question_id__pso_id'] = outcome
+                # FIX: Step 2 should be simple average of survey averages, not global mean
+                survey_avgs = []
+                for sid in survey_ids:
+                    ans_filter = {'question_id__survey_id': sid}
+                    if isinstance(outcome, PO):
+                        ans_filter['question_id__po_id'] = outcome
+                    else:
+                        ans_filter['question_id__pso_id'] = outcome
                     
-                avg = SurveyAnswer.objects.filter(**query).aggregate(Avg('answer_value'))['answer_value__avg']
-                val = round(avg, 2) if avg is not None else ""
+                    s_avg = SurveyAnswer.objects.filter(**ans_filter).aggregate(Avg('answer_value'))['answer_value__avg']
+                    if s_avg is not None:
+                        survey_avgs.append(s_avg)
+                
+                cat_avg = sum(survey_avgs) / len(survey_avgs) if survey_avgs else None
+                val = round(cat_avg, 2) if cat_avg is not None else ""
                 cell = ws_sum.cell(row=next_row, column=col_idx, value=val)
                 cell.border = border
                 cell.alignment = center_align
@@ -298,15 +305,22 @@ class IndirectReportService:
                     models.Q(survey_name__iregex=r'|'.join(keywords))
                 ).values_list('survey_id', flat=True)
                 
-                query = {'question_id__survey_id__in': survey_ids}
-                if isinstance(outcome, PO):
-                    query['question_id__po_id'] = outcome
-                else:
-                    query['question_id__pso_id'] = outcome
+                # FIX: Step 2 should be simple average of survey averages
+                survey_avgs = []
+                for sid in survey_ids:
+                    ans_filter = {'question_id__survey_id': sid}
+                    if isinstance(outcome, PO):
+                        ans_filter['question_id__po_id'] = outcome
+                    else:
+                        ans_filter['question_id__pso_id'] = outcome
                     
-                avg = SurveyAnswer.objects.filter(**query).aggregate(Avg('answer_value'))['answer_value__avg']
-                if avg is not None and avg > 0:
-                    category_vals.append(avg)
+                    s_avg = SurveyAnswer.objects.filter(**ans_filter).aggregate(Avg('answer_value'))['answer_value__avg']
+                    if s_avg is not None:
+                        survey_avgs.append(s_avg)
+                
+                if survey_avgs:
+                    cat_avg = sum(survey_avgs) / len(survey_avgs)
+                    category_vals.append(cat_avg)
             
             outcome_final_avg = sum(category_vals) / len(category_vals) if len(category_vals) > 0 else 0
             
