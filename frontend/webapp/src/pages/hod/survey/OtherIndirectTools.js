@@ -203,6 +203,8 @@ const OtherIndirectTools = () => {
         setSurveyState(null);
         setSelectedSurveyId("");
         setShowStats(false);
+        setResponses([]);
+        setFetchedStatements([]);
     }, [surveyKey]);
 
     useEffect(() => {
@@ -216,10 +218,9 @@ const OtherIndirectTools = () => {
             setActiveSurveys(indirect);
             if (showModal) setShowActiveModal(true);
 
-            // If we have auto-selected or saved survey, ensure it's in the link box
-            if (!selectedSurveyId && indirect.length > 0) {
-                // Find most recent approved for this tool/program if possible, or just most recent
-                const latest = indirect[0]; // Assuming sorted by ID desc from backend
+            // Auto-select ONLY if no selection has been made yet (initial load)
+            if (activeSurveys.length === 0 && !selectedSurveyId && indirect.length > 0) {
+                const latest = indirect[0];
                 setSelectedSurveyId(latest.survey_id);
                 updateLinkBoxFromSurvey(latest);
                 
@@ -266,8 +267,15 @@ const OtherIndirectTools = () => {
             setRpDesignation('');
             setRpCompany('');
             setRpAddress('');
+            setShowStats(false);
+            setResponses([]);
+            setFetchedStatements([]);
             return;
         }
+        // Reset stats state before loading new survey to prevent data leaking
+        setShowStats(false);
+        setResponses([]);
+        setFetchedStatements([]);
         const survey = activeSurveys.find(s => s.survey_id === parseInt(surveyId));
         if (survey) {
             updateLinkBoxFromSurvey(survey);
@@ -281,8 +289,11 @@ const OtherIndirectTools = () => {
             setRpCompany(survey.resource_person_company || '');
             setRpAddress(survey.resource_person_address || '');
             
-            // Auto refresh stats if dashboard is open
+            // If showStats was active, clear it or load new ones
             if (showStats) {
+                // Clear immediately to show loading or empty
+                setResponses([]);
+                setFetchedStatements([]);
                 loadResponses(survey.survey_id);
             }
         }
@@ -450,6 +461,11 @@ const OtherIndirectTools = () => {
             setSurveyState(newState);
             setSelectedSurveyId(backendId);
             fetchAllActiveSurveys();
+
+            // Reset stats when moving from creation to approved status 
+            setShowStats(false);
+            setResponses([]);
+            setFetchedStatements([]);
             alert(`Survey approved and saved to backend! Expires: ${expiry.toLocaleString()}`);
         } catch (err) {
             console.error('Approval failed:', err);
@@ -464,6 +480,9 @@ const OtherIndirectTools = () => {
     };
 
     const loadResponses = async (specificBackendId = null) => {
+        // Clear previous stats to prevent leaking during load
+        setResponses([]);
+        setFetchedStatements([]);
         const id = specificBackendId || surveyState?.backendId;
         if (!id) {
             // Fallback to local storage if no backend ID (legacy)
@@ -515,6 +534,10 @@ const OtherIndirectTools = () => {
     const handleBulkUpload = async (e) => {
         const file = e.target.files[0];
         if (!file || !surveyState?.backendId) return;
+
+        // Clear previous stats to prevent leaking during load
+        setResponses([]);
+        setFetchedStatements([]);
 
         const formData = new FormData();
         formData.append('file', file);
@@ -644,6 +667,8 @@ const OtherIndirectTools = () => {
                                                 setRpCompany('');
                                                 setRpAddress('');
                                                 setShowStats(false);
+                                                setResponses([]);
+                                                setFetchedStatements([]);
                                             }}
                                         >
                                             {tool.label}
@@ -662,6 +687,7 @@ const OtherIndirectTools = () => {
                                                 className="form-select form-select-sm"
                                                 value={activityType}
                                                 onChange={e => setActivityType(e.target.value)}
+                                                disabled={surveyState?.status === 'APPROVED'}
                                             >
                                                 {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
@@ -695,6 +721,7 @@ const OtherIndirectTools = () => {
                                                         }
                                                         value={activityDetail}
                                                         onChange={e => setActivityDetail(e.target.value)}
+                                                        disabled={surveyState?.status === 'APPROVED'}
                                                     />
                                                 </div>
                                             )}
@@ -715,6 +742,7 @@ const OtherIndirectTools = () => {
                                                 className="form-control form-control-sm"
                                                 value={conductedDate}
                                                 onChange={e => setConductedDate(e.target.value)}
+                                                disabled={surveyState?.status === 'APPROVED'}
                                                 readOnly={isRP && activityDetail !== ''}
                                             />
                                         </div>
@@ -729,6 +757,7 @@ const OtherIndirectTools = () => {
                                                         placeholder="Name"
                                                         value={rpName}
                                                         onChange={e => setRpName(e.target.value)}
+                                                        disabled={surveyState?.status === 'APPROVED'}
                                                         readOnly={isRP && activityDetail !== ''}
                                                     />
                                                 </div>
@@ -740,6 +769,7 @@ const OtherIndirectTools = () => {
                                                         placeholder="Designation"
                                                         value={rpDesignation}
                                                         onChange={e => setRpDesignation(e.target.value)}
+                                                        disabled={surveyState?.status === 'APPROVED'}
                                                         readOnly={isRP && activityDetail !== ''}
                                                     />
                                                 </div>
@@ -754,6 +784,7 @@ const OtherIndirectTools = () => {
                                                 placeholder="Company"
                                                 value={rpCompany}
                                                 onChange={e => setRpCompany(e.target.value)}
+                                                disabled={surveyState?.status === 'APPROVED'}
                                                 readOnly={isRP && activityDetail !== ''}
                                             />
                                         </div>
@@ -766,6 +797,7 @@ const OtherIndirectTools = () => {
                                                 placeholder="Address / Venue"
                                                 value={rpAddress}
                                                 onChange={e => setRpAddress(e.target.value)}
+                                                disabled={surveyState?.status === 'APPROVED'}
                                                 readOnly={isRP && activityDetail !== ''}
                                             />
                                         </div>
