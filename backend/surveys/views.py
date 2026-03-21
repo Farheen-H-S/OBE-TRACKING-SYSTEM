@@ -167,17 +167,8 @@ class SurveyStatsView(APIView):
         
         from users.models import Student
         
-        # 1. Get responders: CUMULATIVE Logic
-        # Instead of just this survey, look for all surveys in the same academic context
-        related_surveys = SurveyMaster.objects.filter(
-            course_id=survey.course_id,
-            academic_year=survey.academic_year,
-            semester=survey.semester,
-            survey_category=survey.survey_category
-        )
-        
-        # 2. Fetch responses with filters
-        responses = SurveyResponse.objects.filter(survey_id__in=related_surveys)
+        # 1. Get responses: Strict Scope to this specific survey
+        responses = SurveyResponse.objects.filter(survey_id=survey)
         
         batch_id = request.query_params.get('batch_id')
         academic_year = request.query_params.get('academic_year')
@@ -215,9 +206,8 @@ class SurveyStatsView(APIView):
                 if semester and str(semester).lower() != 'all': responses = responses.filter(student_id__semester=semester)
                 if division and str(division).lower() != 'all': responses = responses.filter(student_id__division=division)
 
-        # 3. Process Matrix Data (Teachers x Statements)
-        # Questions should also be cumulative / consistent across these surveys
-        questions = SurveyQuestion.objects.filter(survey_id__in=related_surveys)
+        # 2. Get questions: Specifically for this survey
+        questions = SurveyQuestion.objects.filter(survey_id=survey)
         
         # Identify unique statements and teacher names
         unique_statements = []
