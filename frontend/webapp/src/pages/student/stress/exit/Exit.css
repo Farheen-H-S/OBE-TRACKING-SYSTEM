@@ -4,10 +4,11 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    padding: 2rem 1rem;
+    padding: 1rem 1rem;
     box-sizing: border-box;
+    overflow-y: auto;
 }
 
 /* Logo Section */
@@ -50,7 +51,7 @@
 .mission-completed {
     font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
     font-weight: bold;
-    font-size: clamp(2rem, 2.5vw, 4rem);
+    font-size: clamp(1.8rem, 2.2vw, 3rem);
     font-style: italic;
     color: #4A90E2;
     margin: 0.2rem 0;
@@ -58,17 +59,17 @@
 
 /* Emoji & Mood */
 .emoji-medium {
-    font-size: clamp(4rem, 8vw, 10rem);
+    font-size: clamp(3.5rem, 7vw, 8rem);
     line-height: 1;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
 }
 
 .mood-text {
     color: #FF6B6B;
     font-weight: bold;
-    font-size: clamp(2rem, 4vw, 3rem);
-    margin: 0.5rem 0;
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    margin: 0.2rem 0;
 }
 
 /* Score */
@@ -85,15 +86,15 @@
     margin: 0.3rem 0;
 }
 
-/* Exit Button */
-.exit-btn-wrapper {
+/* Message Container */
+.exit-message-container {
+    max-width: 800px;
     width: 100%;
-    display: flex;
-    justify-content: center;
-    position: sticky;
-    bottom: 1rem;
-    z-index: 10;
-    padding: 0 1rem;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .exit-btn {
