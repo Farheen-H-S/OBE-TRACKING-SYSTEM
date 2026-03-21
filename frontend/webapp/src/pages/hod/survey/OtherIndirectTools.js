@@ -555,164 +555,18 @@ const OtherIndirectTools = () => {
     };
 
 
-    // ── Stats table ──────────────────────────────────────────────────────
-    const StatsTable = () => {
-        const currentStatements = fetchedStatements.length > 0 ? fetchedStatements : allStatements;
-        const stats = currentStatements.map(stmt => {
-            const vals = responses.map(r => r.answers?.[stmt.id]).filter(v => v !== undefined && v !== null);
-            const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-            const countAbove = avg !== null ? vals.filter(v => v >= avg).length : 0;
-            const pctAbove = vals.length ? ((countAbove / vals.length) * 100).toFixed(1) : '0.0';
-            return { ...stmt, vals, avg: avg !== null ? avg.toFixed(2) : '-', countAbove, pctAbove, attainment: getAttainmentLevel(avg) };
-        });
-
-        return (
-            <div className="oit-stats-wrapper mt-4 overflow-auto rounded">
-                <table className="table table-sm table-bordered oit-stats-table mb-0">
-                    <thead>
-                        <tr className="align-middle text-center">
-                            {isRP ? (
-                                <th className="px-3" style={{ minWidth: 180 }}>Name</th>
-                            ) : (
-                                <>
-                                    <th style={{ minWidth: 150 }}>Enrollment No.</th>
-                                    <th style={{ minWidth: 80 }}>Roll No.</th>
-                                    <th style={{ minWidth: 180 }}>Name</th>
-                                </>
-                            )}
-                            {currentStatements.map(s => (
-                                <th key={s.id} className="oit-blue-header" style={{ minWidth: 140 }}>
-                                    <div>{s.co_number || s.number || `PO ${s.id}`}</div>
-                                    {(s.question_text || s.description) && (
-                                        <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.7rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 160, margin: '0 auto' }}>
-                                            {getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').length > 5 ? '…' : ''}
-                                        </div>
-                                    )}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {responses.length > 0 ? (
-                            <>
-                                {[...responses].sort((a, b) => {
-                                    const aRoll = parseInt(a.rollNo, 10);
-                                    const bRoll = parseInt(b.rollNo, 10);
-                                    if (!isNaN(aRoll) && !isNaN(bRoll)) return aRoll - bRoll;
-                                    // Fallback: sort by enrollment number
-                                    const aEnroll = a.enrollment || '';
-                                    const bEnroll = b.enrollment || '';
-                                    return aEnroll.localeCompare(bEnroll);
-                                }).map((r, i) => (
-                                    <tr key={i} className="align-middle">
-                                        {isRP ? (
-                                            <td className="ps-3 fw-semibold text-muted">{r.respondentName || `Respondent ${i + 1}`}</td>
-                                        ) : (
-                                            <>
-                                                <td className="ps-3 fw-semibold text-muted">{r.enrollment || '—'}</td>
-                                                <td className="text-center">{r.rollNo || '—'}</td>
-                                                <td>{r.respondentName || '—'}</td>
-                                            </>
-                                        )}
-                                        {currentStatements.map(s => (
-                                            <td key={s.id} className="text-center fw-bold">
-                                                {r.answers?.[s.id] !== undefined ? r.answers[s.id] : <span className="text-muted opacity-50">-</span>}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))}
-                                <tr className="oit-summary-row fw-bold border-top-2">
-                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">No. of Respondents</td>
-                                    {stats.map(s => <td key={s.id} className="text-center">{s.vals.length}</td>)}
-                                </tr>
-                                <tr className="oit-summary-row fw-bold">
-                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">Average Rating</td>
-                                    {stats.map(s => <td key={s.id} className="text-center text-primary fw-bold">{s.avg}</td>)}
-                                </tr>
-                                <tr className="oit-summary-row fw-bold">
-                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">% At or Above Average</td>
-                                    {stats.map(s => <td key={s.id} className="text-center">{s.pctAbove}%</td>)}
-                                </tr>
-                                <tr className="oit-attainment-row fw-bold">
-                                    <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small text-primary">PO/PSO Attainment Level</td>
-                                    {stats.map(s => (
-                                        <td key={s.id} className="text-center">
-                                            {s.attainment
-                                                ? <span className={`attainment-badge al-${s.attainment.level}`}>{s.attainment.level} – {s.attainment.label}</span>
-                                                : '-'}
-                                        </td>
-                                    ))}
-                                </tr>
-                            </>
-                        ) : (
-                            <tr>
-                                <td colSpan={(isRP ? 1 : 3) + (allStatements.length || 0)} className="text-center py-4 text-muted">
-                                    No responses collected yet.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        );
-    };
-
-    const ViewAllModal = () => {
-        if (!showActiveModal) return null;
-        return (
-            <div className="custom-modal-overlay">
-                <div className="custom-modal-content p-4">
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                        <h4 className="mb-0 fw-bold">Active OIT Surveys</h4>
-                        <button className="btn-close" onClick={() => setShowActiveModal(false)}></button>
-                    </div>
-                    <div className="active-surveys-list">
-                        {activeSurveys.length > 0 ? (
-                            <table className="table table-hover">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Survey Details</th>
-                                        <th>Expiry</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {activeSurveys.map(s => {
-                                        const fullLink = `${window.location.origin}/student/oit-login?survey=${s.survey_id}&type=${s.activity_type ? 'co-curricular' : 'program-exit'}&program=${s.program_id}&year=${s.academic_year}&activity_type=${s.activity_type || ''}&activity_title=${s.activity_title || ''}`;
-                                        return (
-                                            <tr key={s.survey_id} className="align-middle">
-                                                <td>
-                                                    <div className="fw-bold">{s.survey_name}</div>
-                                                    <div className="small text-muted">{s.activity_title || s.academic_year}</div>
-                                                </td>
-                                                <td>{new Date(s.expires_at).toLocaleString()}</td>
-                                                <td><span className={`status-badge-compact ${s.status === 'APPROVED' ? 'approved' : 'closed'}`}>{s.status}</span></td>
-                                                <td>
-                                                    <div className="d-flex gap-2">
-                                                        <button className="btn btn-sm btn-outline-primary" onClick={() => { navigator.clipboard.writeText(fullLink); alert('Link copied!'); }}>Link</button>
-                                                        <button className="btn btn-sm btn-outline-info" onClick={() => { setShowActiveModal(false); loadResponses(s.survey_id); }}>Stats</button>
-                                                        {s.status === 'APPROVED' && <button className="btn btn-sm btn-outline-danger" onClick={() => handleCloseFromModal(s)}>Close</button>}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-center py-4 text-muted">No surveys found.</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    // ── Stats Table logic was here ──────────────────────────────────────
 
     // ── Render ───────────────────────────────────────────────────────────
     return (
         <div className="oit-wrapper">
-            <ViewAllModal />
+            <ViewAllModal 
+                showActiveModal={showActiveModal} 
+                setShowActiveModal={setShowActiveModal} 
+                activeSurveys={activeSurveys} 
+                loadResponses={loadResponses} 
+                handleCloseFromModal={handleCloseFromModal} 
+            />
             <div className="oit-main">
                 <div className="oit-card">
 
@@ -1085,7 +939,15 @@ const OtherIndirectTools = () => {
                                 </div>
                             </div>
 
-                            {showStats && <StatsTable />}
+                            {showStats && (
+                                <StatsTable 
+                                    isRP={isRP} 
+                                    fetchedStatements={fetchedStatements} 
+                                    allStatements={allStatements} 
+                                    responses={responses} 
+                                    programName={programName} 
+                                />
+                            )}
                         </>
                     )}
                 </div>
@@ -1093,5 +955,160 @@ const OtherIndirectTools = () => {
         </div>
     );
 };
+
+// ── Stats table component (defined outside to prevent scroll reset on re-render) ────────────────
+const StatsTable = ({ isRP, fetchedStatements, allStatements, responses, programName }) => {
+    const currentStatements = fetchedStatements.length > 0 ? fetchedStatements : allStatements;
+    const stats = currentStatements.map(stmt => {
+        const vals = responses.map(r => r.answers?.[stmt.id]).filter(v => v !== undefined && v !== null);
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+        const countAbove = avg !== null ? vals.filter(v => v >= avg).length : 0;
+        const pctAbove = vals.length ? ((countAbove / vals.length) * 100).toFixed(1) : '0.0';
+        return { ...stmt, vals, avg: avg !== null ? avg.toFixed(2) : '-', countAbove, pctAbove, attainment: getAttainmentLevel(avg) };
+    });
+
+    return (
+        <div className="oit-stats-wrapper mt-4 overflow-auto rounded">
+            <table className="table table-sm table-bordered oit-stats-table mb-0">
+                <thead>
+                    <tr className="align-middle text-center">
+                        {isRP ? (
+                            <th className="px-3" style={{ minWidth: 180 }}>Name</th>
+                        ) : (
+                            <>
+                                <th style={{ minWidth: 150 }}>Enrollment No.</th>
+                                <th style={{ minWidth: 80 }}>Roll No.</th>
+                                <th style={{ minWidth: 180 }}>Name</th>
+                            </>
+                        )}
+                        {currentStatements.map(s => (
+                            <th key={s.id} className="oit-blue-header" style={{ minWidth: 140 }}>
+                                <div>{s.co_number || s.number || `PO ${s.id}`}</div>
+                                {(s.question_text || s.description) && (
+                                    <div className="fw-normal text-white-50 mt-1" style={{ fontSize: '.7rem', lineHeight: 1.3, whiteSpace: 'normal', maxWidth: 160, margin: '0 auto' }}>
+                                        {getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').slice(0, 5).join(' ')}{getSurveyInquiry({ number: s.co_number || s.number, description: s.question_text || s.description }, programName).split(' ').length > 5 ? '…' : ''}
+                                    </div>
+                                )}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {responses.length > 0 ? (
+                        <>
+                            {[...responses].sort((a, b) => {
+                                const aRoll = parseInt(a.rollNo, 10);
+                                const bRoll = parseInt(b.rollNo, 10);
+                                if (!isNaN(aRoll) && !isNaN(bRoll)) return aRoll - bRoll;
+                                const aEnroll = a.enrollment || '';
+                                const bEnroll = b.enrollment || '';
+                                return aEnroll.localeCompare(bEnroll);
+                            }).map((r, i) => (
+                                <tr key={i} className="align-middle">
+                                    {isRP ? (
+                                        <td className="ps-3 fw-semibold text-muted">{r.respondentName || `Respondent ${i + 1}`}</td>
+                                    ) : (
+                                        <>
+                                            <td className="ps-3 fw-semibold text-muted">{r.enrollment || '—'}</td>
+                                            <td className="text-center">{r.rollNo || '—'}</td>
+                                            <td>{r.respondentName || '—'}</td>
+                                        </>
+                                    )}
+                                    {currentStatements.map(s => (
+                                        <td key={s.id} className="text-center fw-bold">
+                                            {r.answers?.[s.id] !== undefined ? r.answers[s.id] : <span className="text-muted opacity-50">-</span>}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                            <tr className="oit-summary-row fw-bold border-top-2">
+                                <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">No. of Respondents</td>
+                                {stats.map(s => <td key={s.id} className="text-center">{s.vals.length}</td>)}
+                            </tr>
+                            <tr className="oit-summary-row fw-bold">
+                                <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">Average Rating</td>
+                                {stats.map(s => <td key={s.id} className="text-center text-primary fw-bold">{s.avg}</td>)}
+                            </tr>
+                            <tr className="oit-summary-row fw-bold">
+                                <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small">% At or Above Average</td>
+                                {stats.map(s => <td key={s.id} className="text-center">{s.pctAbove}%</td>)}
+                            </tr>
+                            <tr className="oit-attainment-row fw-bold">
+                                <td colSpan={isRP ? 1 : 3} className="ps-3 text-uppercase small text-primary">PO/PSO Attainment Level</td>
+                                {stats.map(s => (
+                                    <td key={s.id} className="text-center">
+                                        {s.attainment
+                                            ? <span className={`attainment-badge al-${s.attainment.level}`}>{s.attainment.level} – {s.attainment.label}</span>
+                                            : '-'}
+                                    </td>
+                                ))}
+                            </tr>
+                        </>
+                    ) : (
+                        <tr>
+                            <td colSpan={(isRP ? 1 : 3) + (currentStatements.length || 0)} className="text-center py-4 text-muted">
+                                No responses collected yet.
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+
+// ── ViewAllModal component (defined outside) ──────────────────────────────────
+const ViewAllModal = ({ showActiveModal, setShowActiveModal, activeSurveys, loadResponses, handleCloseFromModal }) => {
+    if (!showActiveModal) return null;
+    return (
+        <div className="custom-modal-overlay">
+            <div className="custom-modal-content p-4">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h4 className="mb-0 fw-bold">Active OIT Surveys</h4>
+                    <button className="btn-close" onClick={() => setShowActiveModal(false)}></button>
+                </div>
+                <div className="active-surveys-list">
+                    {activeSurveys.length > 0 ? (
+                        <table className="table table-hover">
+                            <thead className="table-light">
+                                <tr>
+                                    <th>Survey Details</th>
+                                    <th>Expiry</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeSurveys.map(s => {
+                                    const fullLink = `${window.location.origin}/student/oit-login?survey=${s.survey_id}&type=${s.activity_type ? 'co-curricular' : 'program-exit'}&program=${s.program_id}&year=${s.academic_year}&activity_type=${s.activity_type || ''}&activity_title=${s.activity_title || ''}`;
+                                    return (
+                                        <tr key={s.survey_id} className="align-middle">
+                                            <td>
+                                                <div className="fw-bold">{s.survey_name}</div>
+                                                <div className="small text-muted">{s.activity_title || s.academic_year}</div>
+                                            </td>
+                                            <td>{new Date(s.expires_at).toLocaleString()}</td>
+                                            <td><span className={`status-badge-compact ${s.status === 'APPROVED' ? 'approved' : 'closed'}`}>{s.status}</span></td>
+                                            <td>
+                                                <div className="d-flex gap-2">
+                                                    <button className="btn btn-sm btn-outline-primary" onClick={() => { navigator.clipboard.writeText(fullLink); alert('Link copied!'); }}>Link</button>
+                                                    <button className="btn btn-sm btn-outline-info" onClick={() => { setShowActiveModal(false); loadResponses(s.survey_id); }}>Stats</button>
+                                                    {s.status === 'APPROVED' && <button className="btn btn-sm btn-outline-danger" onClick={() => handleCloseFromModal(s)}>Close</button>}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p className="text-center py-4 text-muted">No surveys found.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 export default OtherIndirectTools;
