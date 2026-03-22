@@ -56,25 +56,23 @@ class IndirectReportService:
         return title
 
     @staticmethod
-    def _get_batch_years(batch_obj):
-        """Returns 3 academic years starting from the batch's admission year (FY, SY, TY)."""
+    def _get_batch_years(batch_raw):
+        """Helper to get list of years corresponding to a batch. The frontend sends the graduation year (TY)."""
+        years = []
         try:
-            if isinstance(batch_obj, Batch):
-                start_yr = batch_obj.batch_year
+            if isinstance(batch_raw, Batch):
+                grad_start = batch_raw.batch_year
             else:
-                # Fallback if it's already a year string
-                cleaned_year = str(batch_obj).replace(" ", "")
-                start_yr = int(cleaned_year.split("-")[0])
+                grad_start = int(str(batch_raw).split('-')[0].strip())
             
-            years = []
             for i in range(3): # FY, SY, TY
-                y = start_yr + i
+                y = grad_start - 2 + i
                 next_yr_short = (y + 1) % 100
                 years.append(f"{y} - {next_yr_short:02d}")
                 years.append(f"{y}-{next_yr_short:02d}")
             return years
         except Exception:
-            return [str(batch_obj)]
+            return []
 
     @staticmethod
     def _get_survey_category(survey):
