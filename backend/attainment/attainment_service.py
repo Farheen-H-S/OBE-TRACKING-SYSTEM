@@ -771,8 +771,10 @@ class AttainmentService:
                 indirect_pos = AttainmentService._calculate_indirect_po_attainment(first_course.course_id, ay)
                 indirect_val = indirect_pos.get(po.po_id, 0)
             normalized_value = (direct_val * 0.8) + (indirect_val * 0.2)
-            target_obj = POTarget.objects.filter(po_id=po).order_by('-academic_year').first()
-            target_val = target_obj.target_value if target_obj else 3.0
+            target_obj = POTarget.objects.filter(po_id=po, academic_year=ay, is_active=True).first()
+            if not target_obj:
+                target_obj = POTarget.objects.filter(po_id=po, is_active=True).order_by('-academic_year').first()
+            target_val = target_obj.target_value if (target_obj and target_obj.target_value) else 2.5
             gap = target_val - normalized_value
             POBatchAttainment.objects.update_or_create(po_id=po, batch_id=batch, defaults={'direct_value': direct_val, 'indirect_value': indirect_val, 'normalized_value': normalized_value, 'gap': gap})
         psos = PSO.objects.filter(program_id=program, is_active=True)
@@ -789,7 +791,9 @@ class AttainmentService:
                 indirect_psos = AttainmentService._calculate_indirect_pso_attainment(first_course.course_id, ay)
                 indirect_val = indirect_psos.get(pso.pso_id, 0)
             normalized_value = (direct_val * 0.8) + (indirect_val * 0.2)
-            target_obj = PSOTarget.objects.filter(pso_id=pso).order_by('-academic_year').first()
-            target_val = target_obj.target_value if target_obj else 3.0
+            target_obj = PSOTarget.objects.filter(pso_id=pso, academic_year=ay, is_active=True).first()
+            if not target_obj:
+                target_obj = PSOTarget.objects.filter(pso_id=pso, is_active=True).order_by('-academic_year').first()
+            target_val = target_obj.target_value if (target_obj and target_obj.target_value) else 2.5
             gap = target_val - normalized_value
             PSOBatchAttainment.objects.update_or_create(pso_id=pso, batch_id=batch, defaults={'direct_value': direct_val, 'indirect_value': indirect_val, 'normalized_value': normalized_value, 'gap': gap})

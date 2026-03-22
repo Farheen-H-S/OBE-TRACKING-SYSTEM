@@ -123,7 +123,7 @@ const Cescreate = () => {
                 // or if we found a more recent APPROVED one.
                 surveyData.forEach(s => {
                     const existing = states[s.course_id];
-                    if (!existing || (existing.status !== 'APPROVED' && s.status === 'APPROVED') || 
+                    if (!existing || (existing.status !== 'APPROVED' && s.status === 'APPROVED') ||
                         (existing.status === s.status && s.survey_id > existing.survey_id)) {
                         states[s.course_id] = {
                             status: s.status,
@@ -243,11 +243,11 @@ const Cescreate = () => {
     const handleBulkUpload = async (e, surveyId, courseId) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const formData = new FormData();
         formData.append('file', file);
         formData.append('survey_id', surveyId);
-        
+
         try {
             alert('Uploading test data...');
             const res = await api.post('bulk_upload/surveys/upload/', formData, {
@@ -733,17 +733,17 @@ const Cescreate = () => {
                                                 >
                                                     {surveyStates[course.course_id]?.status === 'APPROVED' ? 'Close Early' : 'Approve'}
                                                 </button>
-                                                
+
                                                 {surveyStates[course.course_id]?.status === 'APPROVED' && (
                                                     <>
-                                                        <input 
-                                                            type="file" 
-                                                            id={`bulkUpload-${course.course_id}`} 
-                                                            style={{ display: 'none' }} 
+                                                        <input
+                                                            type="file"
+                                                            id={`bulkUpload-${course.course_id}`}
+                                                            style={{ display: 'none' }}
                                                             accept=".xlsx,.xls"
                                                             onChange={(e) => handleBulkUpload(e, surveyStates[course.course_id].survey_id, course.course_id)}
                                                         />
-                                                        <button 
+                                                        {/* <button 
                                                             className="btn btn-sm text-dark bg-warning border border-dark rounded-0 fw-bold px-2 mx-1"
                                                             style={{ boxShadow: '2px 2px 0px black' }}
                                                             onClick={() => {
@@ -761,7 +761,7 @@ const Cescreate = () => {
                                                             onClick={() => window.open(`${api.defaults.baseURL}bulk_upload/surveys/template/?survey_id=${surveyStates[course.course_id].survey_id}`, '_blank')}
                                                         >
                                                             [DEV] TEMPLATE
-                                                        </button>
+                                                        </button> */}
                                                     </>
                                                 )}
                                             </div>

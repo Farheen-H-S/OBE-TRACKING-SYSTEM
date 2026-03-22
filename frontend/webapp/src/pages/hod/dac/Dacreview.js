@@ -37,12 +37,7 @@ const Dacreview = () => {
 
     const availableSemesters = getAvailableSemesters(selectedClass);
 
-    // Reset semester if class changes and selected semester is no longer valid
-    useEffect(() => {
-        if (selectedClass && selectedSemester && !availableSemesters.includes(selectedSemester)) {
-            setSelectedSemester('');
-        }
-    }, [selectedClass]);
+
 
     useEffect(() => {
         loadReports();
