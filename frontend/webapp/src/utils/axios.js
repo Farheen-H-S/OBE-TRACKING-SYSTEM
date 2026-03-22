@@ -7,13 +7,13 @@ const api = axios.create({
     },
 });
 
-// Interceptor to attach JWT except for public endpoints
 api.interceptors.request.use(
     (config) => {
-        // Skip auth headers for login/logout endpoints
+        // Skip auth headers for public/auth routes
         const isPublic =
             config.url.includes("/users/login") ||
-            config.url.includes("/users/logout");
+            config.url.includes("/users/logout") ||
+            config.url.includes("/users/token/refresh");
 
         if (!isPublic) {
             const token =
@@ -23,22 +23,91 @@ api.interceptors.request.use(
                 config.headers.Authorization = `Bearer ${token}`;
             }
         }
-
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle 401 errors globally
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            console.error("Unauthorized access, redirecting to login...");
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = "/";
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes("/users/login")) {
+            
+            if (isRefreshing) {
+                return new Promise(function(resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = 'Bearer ' + token;
+                    return api(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            const refreshToken = localStorage.getItem("refresh") || sessionStorage.getItem("refresh");
+
+            if (!refreshToken) {
+                console.error("No refresh token available. Logging out.");
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "/";
+                return Promise.reject(error);
+            }
+
+            try {
+                // Call token refresh endpoint directly using pure axios to avoid interceptor loop
+                const res = await axios.post("http://127.0.0.1:8000/api/users/token/refresh/", {
+                    refresh: refreshToken
+                });
+
+                const newAccessToken = res.data.access;
+                
+                // Update storage where the refresh token was originally found
+                if (localStorage.getItem("refresh")) {
+                    localStorage.setItem("access", newAccessToken);
+                    if (res.data.refresh) localStorage.setItem("refresh", res.data.refresh);
+                } else {
+                    sessionStorage.setItem("access", newAccessToken);
+                    if (res.data.refresh) sessionStorage.setItem("refresh", res.data.refresh);
+                }
+
+                api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+                processQueue(null, newAccessToken);
+                return api(originalRequest);
+
+            } catch (refreshError) {
+                processQueue(refreshError, null);
+                console.error("Refresh token expired. Logging out.");
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "/";
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
         }
+
         return Promise.reject(error);
     }
 );
