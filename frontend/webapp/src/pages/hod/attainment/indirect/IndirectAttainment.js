@@ -164,7 +164,11 @@ export default function IndirectAttainment() {
     const handleGenerateReport = async () => {
         try {
             const response = await api.get('/attainment/indirect-report/', {
-                params: { batch_id: selectedBatch, program_id: selectedDept },
+                params: { 
+                    batch_id: selectedBatch, 
+                    program_id: selectedDept,
+                    academic_year: selectedYear.replace(/\s/g, '')
+                },
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));

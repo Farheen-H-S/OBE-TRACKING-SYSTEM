@@ -66,7 +66,11 @@ export default function POPSOAttainment() {
         setDownloading(true);
         try {
             const response = await api.get('/attainment/batch-report/', {
-                params: { program_id: selectedDept, batch_id: batch.batch_id },
+                params: { 
+                    program_id: selectedDept, 
+                    batch_id: batch.batch_id,
+                    academic_year: selectedYear.replace(/\s/g, '')
+                },
                 responseType: 'blob'
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));

@@ -201,12 +201,15 @@ class BatchEvaluationReportView(APIView):
             if not batch:
                  return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             
+            academic_year = request.query_params.get('academic_year')
+            if not academic_year:
+                academic_year = f"{batch.start_year}-{batch.end_year}"
+
             excel_data = ReportService.generate_batch_evaluation_report(program_id, batch)
             
             # Save to database
             user = request.user if request.user and not request.user.is_anonymous else None
             program = Program.objects.get(pk=program_id)
-            academic_year = f"{batch.start_year}-{batch.end_year}"
             
             filename = f'PO_Attainment_Report_Batch_{batch.batch_id}.xlsx'
             save_generated_report(
@@ -246,12 +249,15 @@ class IndirectAttainmentReportView(APIView):
             batch = resolve_batch(batch_id)
             if not batch:
                  return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            academic_year = request.query_params.get('academic_year')
+            if not academic_year:
+                academic_year = f"{batch.start_year}-{batch.end_year}"
                  
             excel_data = IndirectReportService.generate_indirect_attainment_report(program_id, batch_id)
             # Save to database
             user = request.user if request.user and not request.user.is_anonymous else None
             program = Program.objects.get(pk=program_id)
-            academic_year = f"{batch.start_year}-{batch.end_year}"
             
             filename = f'Indirect_Attainment_Report_{batch.batch_id}.xlsx'
             save_generated_report(
