@@ -70,6 +70,9 @@ class SubmitSurveyResponseView(APIView):
         from users.models import Student
         student = None
         enrollment_no_from_payload = request.data.get('enrollment_no') or request.data.get('student_id')
+        respondent_type = request.data.get('type')
+        is_rp = (respondent_type == 'resource-person' or 
+                 (survey.survey_category == 'indirect' and 'Resource Person' in survey.survey_name))
 
         # 1. Always prioritize explicitly provided enrollment number (entered by the student on the login page)
         #    This prevents logged-in faculty/HOD session from overriding the actual student's identity.
@@ -81,8 +84,10 @@ class SubmitSurveyResponseView(APIView):
                 return Response({"error": f"Enrollment number '{enrollment_no_from_payload}' not found."}, status=400)
 
         # 2. STRICT: For student/indirect surveys, enrollment must be provided
+        # Exception: Resource Person Feedback does not require an enrollment number.
         if not student and survey.survey_category in ['course_exit', 'indirect']:
-             return Response({"error": "Enrollment number is required for this survey."}, status=400)
+            if not is_rp:
+                 return Response({"error": "Enrollment number is required for this survey."}, status=400)
 
         # 3. Only fall back to the session user for non-student surveys (if any exist) 
         # or if it's explicitly allowed (anonymous surveys usually don't need this anyway)
@@ -93,8 +98,7 @@ class SubmitSurveyResponseView(APIView):
         if student:
             enrollment_no = student.enrollment_no
         else:
-            # Special handling for Resource Person Feedback
-            if survey.survey_category == 'indirect' and 'Resource Person' in survey.survey_name:
+            if is_rp:
                 enrollment_no = f"RP_{survey.survey_id}"
             else:
                 enrollment_no = enrollment_no_from_payload
@@ -102,7 +106,7 @@ class SubmitSurveyResponseView(APIView):
         # 4b. Check for duplicate/overwrite submission
         if enrollment_no and not survey.is_anonymous:
             # For Resource Person, we allow overwriting (delete previous)
-            if enrollment_no.startswith("RP_"):
+            if str(enrollment_no).startswith("RP_"):
                  SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).delete()
             else:
                 duplicate = SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).exists()
@@ -114,7 +118,7 @@ class SubmitSurveyResponseView(APIView):
         if not respondent_name:
             if student:
                 respondent_name = student.name
-            elif survey.survey_category == 'indirect' and 'Resource Person' in survey.survey_name:
+            elif is_rp:
                 respondent_name = survey.resource_person_name or "Resource Person"
             else:
                 # If student object wasn't found but we have an enrollment_no, query for it precisely.
