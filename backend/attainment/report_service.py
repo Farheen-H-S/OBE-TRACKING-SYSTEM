@@ -103,20 +103,31 @@ class ReportService:
             avg_row[h] = round(eval_df[h].mean(), 2) if not eval_df.empty else 0.0
         
         # Indirect Attainment (from surveys)
-        # Category='indirect' surveys for this program
-        indirect_atts = {h: 3.0 for h in po_pso_headers} # Default 3.0 as per image
+        # Category='indirect' surveys for this program and cohort years
+        indirect_atts = {h: 3.0 for h in po_pso_headers} # Default 3.0
         
-        # Fetch actual survey data if available
-        # Find surveys for this program and cohort years
-        # (Mocking actual logic for now, but connecting to models)
+        from attainment.indirect_report_service import IndirectReportService
+        batch_years = IndirectReportService._get_batch_years(batch)
+
         for po in pos:
             ans_avg = SurveyAnswer.objects.filter(
+                question_id__survey_id__academic_year__in=batch_years,
                 question_id__survey_id__program_id=program,
                 question_id__survey_id__survey_category='indirect',
                 question_id__po_id=po
             ).aggregate(Avg('answer_value'))['answer_value__avg']
             if ans_avg:
                 indirect_atts[po.po_number] = round(ans_avg, 2)
+        
+        for pso in psos:
+            ans_avg = SurveyAnswer.objects.filter(
+                question_id__survey_id__academic_year__in=batch_years,
+                question_id__survey_id__program_id=program,
+                question_id__survey_id__survey_category='indirect',
+                question_id__pso_id=pso
+            ).aggregate(Avg('answer_value'))['answer_value__avg']
+            if ans_avg:
+                indirect_atts[pso.pso_number] = round(ans_avg, 2)
 
         # Final calc
         # Final PO attainment = 0.8*direct attainment + 0.2*indirect attainment

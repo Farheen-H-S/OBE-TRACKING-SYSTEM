@@ -689,6 +689,16 @@ class MappingListCreateAPIView(APIView):
                 if pso_id: COPSOMapping.objects.update_or_create(co_id_id=co_id, pso_id_id=pso_id, defaults={'weightage': w})
             mapping_status_val = request.data.get('status')
             if mapping_status_val: Course.objects.filter(course_id=course_id).update(mapping_status=mapping_status_val)
+        # Trigger 3: CO-PO/PSO mapping changed — recalculate attainment so PO/PSO values stay fresh
+        try:
+            from attainment.attainment_service import AttainmentService
+            from academics.models import AcademicSetup
+            setup = AcademicSetup.objects.first()
+            academic_year = setup.academic_year if setup else None
+            if academic_year:
+                AttainmentService.calculate_attainment(course_id, academic_year)
+        except Exception as e:
+            print(f"[Attainment] Mapping save trigger failed: {e}")
         return Response({"message": "mapping saved"}, status=201)
 
 # ---------------- CO TARGETS ----------------

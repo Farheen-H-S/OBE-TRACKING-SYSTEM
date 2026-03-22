@@ -44,10 +44,10 @@ class POAttainment(models.Model):
         db_table = 'attainment_poattainment'
         verbose_name = "PO Attainment"
         verbose_name_plural = "PO Attainments"
-        unique_together = ('po_id', 'academic_year')
+        unique_together = ('po_id', 'course_id', 'academic_year')
 
     def __str__(self):
-        return f"PO: {self.po_id} - {self.academic_year}"
+        return f"PO: {self.po_id} - Course: {self.course_id} - {self.academic_year}"
 
 class PSOAttainment(models.Model):
     attainment_id = models.AutoField(primary_key=True)
@@ -64,10 +64,50 @@ class PSOAttainment(models.Model):
         db_table = 'attainment_psoattainment'
         verbose_name = "PSO Attainment"
         verbose_name_plural = "PSO Attainments"
-        unique_together = ('pso_id', 'academic_year')
+        unique_together = ('pso_id', 'course_id', 'academic_year')
 
     def __str__(self):
-        return f"PSO: {self.pso_id} - {self.academic_year}"
+        return f"PSO: {self.pso_id} - Course: {self.course_id} - {self.academic_year}"
+
+class POBatchAttainment(models.Model):
+    attainment_id = models.AutoField(primary_key=True)
+    po_id = models.ForeignKey('academics.PO', on_delete=models.PROTECT, related_name='batch_attainments', db_column='po_id')
+    batch_id = models.ForeignKey('academics.Batch', on_delete=models.PROTECT, related_name='po_attainments', db_column='batch_id')
+    direct_value = models.FloatField(default=0.0)
+    indirect_value = models.FloatField(default=0.0)
+    normalized_value = models.FloatField()
+    gap = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'attainment_pobatchattainment'
+        verbose_name = "PO Batch Attainment"
+        verbose_name_plural = "PO Batch Attainments"
+        unique_together = ('po_id', 'batch_id')
+
+    def __str__(self):
+        return f"PO Batch: {self.po_id} - Batch: {self.batch_id}"
+
+class PSOBatchAttainment(models.Model):
+    attainment_id = models.AutoField(primary_key=True)
+    pso_id = models.ForeignKey('academics.PSO', on_delete=models.PROTECT, related_name='batch_attainments', db_column='pso_id')
+    batch_id = models.ForeignKey('academics.Batch', on_delete=models.PROTECT, related_name='pso_attainments', db_column='batch_id')
+    direct_value = models.FloatField(default=0.0)
+    indirect_value = models.FloatField(default=0.0)
+    normalized_value = models.FloatField()
+    gap = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'attainment_psobatchattainment'
+        verbose_name = "PSO Batch Attainment"
+        verbose_name_plural = "PSO Batch Attainments"
+        unique_together = ('pso_id', 'batch_id')
+
+    def __str__(self):
+        return f"PSO Batch: {self.pso_id} - Batch: {self.batch_id}"
 
 class Backtracking(models.Model):
     backtracking_id = models.AutoField(primary_key=True)

@@ -73,8 +73,12 @@ const Assigntarget = () => {
         safeGet('/academics/schemes/list/'),
         safeGet('/academics/targets/', { params: { academic_year } }),
         safeGet('/attainment/co/', { params }),
-        safeGet('/attainment/po/', { params }),
-        safeGet('/attainment/pso/', { params })
+        selectedBatch && selectedBatch !== 'All' 
+          ? safeGet('/attainment/po/batch/', { params: { ...params, batch_id: selectedBatch } })
+          : safeGet('/attainment/po/', { params }),
+        selectedBatch && selectedBatch !== 'All'
+          ? safeGet('/attainment/pso/batch/', { params: { ...params, batch_id: selectedBatch } })
+          : safeGet('/attainment/pso/', { params })
       ]);
 
       const coursesArr = courseDataArr || [];
@@ -113,12 +117,14 @@ const Assigntarget = () => {
       });
 
       const poAttainmentMap = {};
-      attainmentPoObj?.['PO attainment']?.forEach(a => {
+      const poBatchData = attainmentPoObj?.['PO batch attainment'] || attainmentPoObj?.['PO attainment'] || [];
+      poBatchData.forEach(a => {
         poAttainmentMap[a.po_id] = a;
       });
 
       const psoAttainmentMap = {};
-      attainmentPsoObj?.['PSO attainment']?.forEach?.(a => {
+      const psoBatchData = attainmentPsoObj?.['PSO batch attainment'] || attainmentPsoObj?.['PSO attainment'] || [];
+      psoBatchData.forEach(a => {
         psoAttainmentMap[a.pso_id] = a;
       });
 
@@ -158,23 +164,23 @@ const Assigntarget = () => {
       setPos(poArr.map(p => {
         const att = poAttainmentMap[p.po_id];
         const tVal = poTargetMap[String(p.po_id)] || '0';
-        const aVal = att ? att.normalized_value.toFixed(2) : '-';
+        const aVal = att ? (att.normalized_value || att.attainment_value || 0).toFixed(2) : '-';
         return {
           ...p,
           targetLevel: tVal,
           achievedLevel: aVal,
-          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : att.gap.toFixed(2)
+          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : (att.gap !== undefined ? att.gap.toFixed(2) : (parseFloat(tVal) - parseFloat(aVal)).toFixed(2))
         };
       }));
       setPsos(psoArr.map(p => {
         const att = psoAttainmentMap[p.pso_id];
         const tVal = psoTargetMap[String(p.pso_id)] || '0';
-        const aVal = att ? att.normalized_value.toFixed(2) : '-';
+        const aVal = att ? (att.normalized_value || att.attainment_value || 0).toFixed(2) : '-';
         return {
           ...p,
           targetLevel: tVal,
           achievedLevel: aVal,
-          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : att.gap.toFixed(2)
+          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : (att.gap !== undefined ? att.gap.toFixed(2) : (parseFloat(tVal) - parseFloat(aVal)).toFixed(2))
         };
       }));
 

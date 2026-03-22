@@ -93,13 +93,17 @@ export default function POPSOAttainment() {
             const params = { program_id: selectedDept, academic_year };
 
             const [poRes, psoRes, targetsRes] = await Promise.allSettled([
-                api.get('/attainment/po/', { params }),
-                api.get('/attainment/pso/', { params }),
+                selectedBatch && selectedBatch !== 'All'
+                    ? api.get('/attainment/po/batch/', { params: { ...params, batch_id: selectedBatch } })
+                    : api.get('/attainment/po/', { params }),
+                selectedBatch && selectedBatch !== 'All'
+                    ? api.get('/attainment/pso/batch/', { params: { ...params, batch_id: selectedBatch } })
+                    : api.get('/attainment/pso/', { params }),
                 api.get('/academics/targets/', { params: { academic_year } }),
             ]);
 
-            const poAtt = poRes.status === 'fulfilled' ? (poRes.value.data['PO attainment'] || []) : [];
-            const psoAtt = psoRes.status === 'fulfilled' ? (psoRes.value.data['PSO attainment'] || []) : [];
+            const poAtt = poRes.status === 'fulfilled' ? (poRes.value.data['PO batch attainment'] || poRes.value.data['PO attainment'] || []) : [];
+            const psoAtt = psoRes.status === 'fulfilled' ? (psoRes.value.data['PSO batch attainment'] || psoRes.value.data['PSO attainment'] || []) : [];
             const targets = targetsRes.status === 'fulfilled' ? targetsRes.value.data : {};
             const poTargetMap = {};
             const psoTargetMap = {};
@@ -110,7 +114,7 @@ export default function POPSOAttainment() {
                 ...poAtt.map(a => ({
                     po_id: a.po_id,
                     label: `PO ${a.po_number || a.po_id}`,
-                    achieved: parseFloat(a.normalized_value).toFixed(2),
+                    achieved: parseFloat(a.normalized_value || a.attainment_value || 0).toFixed(2),
                     target: parseFloat(poTargetMap[String(a.po_id)] || 2.5),
                     gap: a.gap
                         ? parseFloat(a.gap).toFixed(2)
@@ -119,7 +123,7 @@ export default function POPSOAttainment() {
                 ...psoAtt.map(a => ({
                     pso_id: a.pso_id,
                     label: `PSO ${a.pso_number || a.pso_id}`,
-                    achieved: parseFloat(a.normalized_value).toFixed(2),
+                    achieved: parseFloat(a.normalized_value || a.attainment_value || 0).toFixed(2),
                     target: parseFloat(psoTargetMap[String(a.pso_id)] || 2.5),
                     gap: a.gap
                         ? parseFloat(a.gap).toFixed(2)

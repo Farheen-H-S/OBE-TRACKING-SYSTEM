@@ -58,6 +58,30 @@ class SurveyMasterDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SurveyMasterSerializer
     permission_classes = [permissions.AllowAny]
 
+    def perform_update(self, serializer):
+        old_status = self.get_object().status
+        survey = serializer.save()
+        # Trigger 1: Survey approved — recalculate attainment for linked course(s)
+        if survey.status == 'APPROVED' and old_status != 'APPROVED':
+            try:
+                from attainment.attainment_service import AttainmentService
+                from academics.models import Course
+                academic_year = survey.academic_year
+                if survey.course_id_id:
+                    AttainmentService.calculate_attainment(survey.course_id_id, academic_year)
+                elif survey.program_id_id:
+                    # OIT survey — recalculate all courses that belong to this program
+                    course_ids = Course.objects.filter(
+                        program_id=survey.program_id_id, is_active=True
+                    ).values_list('course_id', flat=True)
+                    for cid in course_ids:
+                        try:
+                            AttainmentService.calculate_attainment(cid, academic_year)
+                        except Exception:
+                            pass
+            except Exception as e:
+                print(f"[Attainment] Survey approval trigger failed: {e}")
+
 class SubmitSurveyResponseView(APIView):
     permission_classes = [permissions.AllowAny]
     def post(self, request):
@@ -165,6 +189,15 @@ class SubmitSurveyResponseView(APIView):
                 )
         
         log_action(request.user, 'CREATE', 'SurveyResponse', survey.survey_id, remark=f"Survey submitted for {survey.survey_name}")
+
+        # Trigger 2: Survey response submitted — recalculate attainment for linked course (CES only)
+        if survey.course_id_id and survey.survey_category == 'course_exit':
+            try:
+                from attainment.attainment_service import AttainmentService
+                AttainmentService.calculate_attainment(survey.course_id_id, survey.academic_year)
+            except Exception as e:
+                print(f"[Attainment] Response submission trigger failed: {e}")
+
         return Response({"message": "Survey submitted successfully"}, status=status.HTTP_201_CREATED)
 
 import re

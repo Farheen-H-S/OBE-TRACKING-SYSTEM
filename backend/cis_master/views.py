@@ -94,7 +94,15 @@ class SubmitATRView(APIView):
             atr_status='submitted',
             action_proposed=course_atr
         )
-        
+
+        # Trigger 4: ATR submitted — auto-generate the direct attainment report
+        try:
+            from attainment.attainment_service import AttainmentService
+            user = request.user if request.user and not request.user.is_anonymous else None
+            AttainmentService.check_and_generate_report(course_id, academic_year, user)
+        except Exception as e:
+            print(f"[Attainment] ATR submission report trigger failed: {e}")
+
         return Response({"message": "ATR submitted successfully"}, status=status.HTTP_200_OK)
 
 class CalculateDirectCISView(APIView):

@@ -2,7 +2,7 @@ from academics.models import CO, PO, PSO, COPOMapping, COPSOMapping, COTarget, P
 from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
 from indirect_attainment.models import CourseIndirectAttainment, ActivityIndirectAttainment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse
-from .models import COAttainment, POAttainment, PSOAttainment
+from .models import COAttainment, POAttainment, PSOAttainment, POBatchAttainment, PSOBatchAttainment
 from django.db.models import Avg, Count
 from django.db import models
 import re
@@ -107,9 +107,9 @@ class AttainmentService:
             
             POAttainment.objects.update_or_create(
                 po_id=po,
+                course_id_id=course_id,
                 academic_year=academic_year,
                 defaults={
-                    'course_id_id': course_id,
                     'po_value': d_val,
                     'normalized_value': final_val,
                     'gap': gap
@@ -130,9 +130,9 @@ class AttainmentService:
             
             PSOAttainment.objects.update_or_create(
                 pso_id=pso,
+                course_id_id=course_id,
                 academic_year=academic_year,
                 defaults={
-                    'course_id_id': course_id,
                     'pso_value': d_val,
                     'normalized_value': final_val,
                     'gap': gap
@@ -147,7 +147,18 @@ class AttainmentService:
         from .models import CourseATR
         course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
         
+        # Step 15: Batch Level Aggregation
+        try:
+            course_obj = Course.objects.filter(pk=course_id).first()
+            if course_obj:
+                batches = course_obj.batches.all()
+                for batch in batches:
+                    AttainmentService._aggregate_batch_po_pso_attainment(batch.batch_id, course_obj.program_id_id)
+        except Exception as e:
+            print(f"[Attainment] Batch aggregation failed: {e}")
+
         return {
+            "course_id": course_id,
             'final_course_attainment': round(final_course_attainment, 2),
             'final_po_avg': round(final_po_avg, 2),
             'final_pso_avg': round(final_pso_avg, 2),
@@ -251,44 +262,30 @@ class AttainmentService:
             tools = tool_data.get(co.co_id, {})
             
             # Normalize co_number to format CO(CourseNumeric).(CoIndex)
-            # e.g. CS301 + co1 -> CO301.1
             raw_co = co.co_number.upper()
             course_code = co.course_id.course_code.upper()
             
-            # Extract numbers from course code (e.g. 301)
             course_num_match = re.search(r'\d+', course_code)
             course_num = course_num_match.group() if course_num_match else ""
             
-            # Extract numbers from CO name (e.g. 1)
             co_index_match = re.search(r'\d+', raw_co)
             co_index = co_index_match.group() if co_index_match else "1"
             
-            # If the raw CO already looks like CO301.1, don't double format
             if '.' in raw_co and course_num and course_num in raw_co:
                 formatted_co = raw_co
             else:
                 formatted_co = f"CO{course_num}.{co_index}" if course_num else f"CO.{co_index}"
 
-            # Map database keys to user-friendly keys if necessary
-            # tools keys are likely 'FA_TH_1', 'FA_TH_2', 'FA_PR', 'SLA', 'SA_TH', 'SA_PR'
-            
-            # Robust AY lookup
-            
             # Get latest attainment record for gap and action taken
             att_rec = COAttainment.objects.filter(ay_query, co_id=co).first()
             target_obj = COTarget.objects.filter(ay_query, co_id=co).first()
             if not target_obj:
-                # Fallback to course-level target
                 target_obj = COTarget.objects.filter(ay_query, course_id=course_id, co_id__isnull=True).first()
                 
             target_val = target_obj.target_value if target_obj else 3.0
             
-            # Combine to match front-end expectation
             def get_tool_val(prefixes, base_key):
-                # Standardize base_key for lookup
                 lookup_base = base_key.upper().strip()
-                
-                # Variations to check
                 keys_to_try = [
                     lookup_base,
                     lookup_base.lower(),
@@ -299,7 +296,6 @@ class AttainmentService:
                 
                 for p in prefixes:
                     for k in keys_to_try:
-                        # Try Prefix_Key, Key_Prefix, and raw Key
                         variations = [
                             f"{p.upper()}_{k.upper()}",
                             f"{p.lower()}_{k.lower()}",
@@ -313,7 +309,6 @@ class AttainmentService:
                                 res = tools[v]
                                 return res.get('level', '-') if isinstance(res, dict) else res
                 
-                # Last resort: try substring match if prefix or base_key exists in any tools key
                 for k in tools.keys():
                     k_upper = str(k).upper()
                     if lookup_base in k_upper or base_key.upper() in k_upper:
@@ -359,16 +354,13 @@ class AttainmentService:
         tool_co_results = {} # {co_id: {tool_type: level}}
         
         for tool in assessments:
-            # Check for granular configuration if available (stored in configuration JSON)
             config = tool.configuration or {}
             marks_data = config.get('marksData', {})
             user_cos = config.get('userCos', [])
             
-            # Determine tool category (Internal vs External) from Course configuration
             course_tools_config = tool.course_id.assessment_tools or {}
             tool_name_norm = tool.assessment_name.upper().replace(' ', '')
             
-            # Default classification fallback
             tool_category = 'Internal'
             if 'SA' in tool_name_norm:
                 if any(x in tool_name_norm for x in ['INTERNAL', '(INT', ' INT']):
@@ -378,13 +370,11 @@ class AttainmentService:
             elif any(x in tool_name_norm for x in ['EXTERNAL', '(EXT', ' EXT']):
                 tool_category = 'External'
             
-            # Check course config for explicit user selection
             for cfg_key, cfg_val in course_tools_config.items():
                 if cfg_key.upper().replace('-', '') in tool_name_norm.replace('-', ''):
                     tool_category = cfg_val.get('type', tool_category)
                     break
             
-            # Store category in the key for discovery during direct attainment calc
             effective_tool_key = f"{tool_category.upper()}_{tool.assessment_type}"
             
             if any(x in tool_name_norm for x in ['FATH', 'CT', 'TEST']):
@@ -397,64 +387,40 @@ class AttainmentService:
             elif 'SAPR' in tool_name_norm: tool_key = 'SA_PR'
             else: tool_key = tool.assessment_type.upper().replace('-', '_')
 
-            # Use effective_tool_key for the actual storage map
             tool_key = f"{tool_category.upper()}_{tool_key}"
-
-            # Mappings for co_id association
             mappings = AssessmentCOMapping.objects.filter(assessment_id=tool)
             
-            # Summative Auto-Map
-            # SA marks evaluate the entire course holistically, so they map to all active COs.
             is_summative = any(x in tool_key for x in ['SA_TH', 'SA_PR']) or any(x in tool_name_norm for x in ['ESE', 'FINAL', 'SUMMATIVE'])
-            sa_auto_mapped = False
             
             if is_summative:
                 course_cos = CO.objects.filter(course_id=tool.course_id, is_active=True)
                 mappings = [type('obj', (object,), {'co_id_id': co.co_id, 'co_id': co})() for co in course_cos]
-                sa_auto_mapped = True
             elif not mappings.exists() and not (marks_data and user_cos):
                 continue
             
-            # Use granular marks if available
             if marks_data and user_cos:
-                # User's Hierarchical Logic: Group success by CO
-                co_stats = {} # {co_num: {'success': 0, 'appeared': 0}}
-                
-                # 1. Calculate average per question
                 q_indices = set()
                 for student_enroll, student_marks in marks_data.items():
                     if isinstance(student_marks, dict):
                         for k, v in student_marks.items():
                             if v not in [None, '', '-']:
                                 try:
-                                    # Handle both numeric keys and 'total'
-                                    if k == 'total':
-                                        q_indices.add('total')
-                                    else:
-                                        q_indices.add(int(k))
+                                    if k == 'total': q_indices.add('total')
+                                    else: q_indices.add(int(k))
                                 except: pass
                 
                 q_stats = {}
-                q_averages = {}
-                # q_averages = {} # This variable was declared but not used in the original snippet.
-                student_list = list(marks_data.keys())
-                # Standardize at 40% for all tools to match reference benchmarks
                 is_fa_th = 'FATH' in tool_name_norm or 'CT' in tool_name_norm or 'TEST' in tool_name_norm
-                threshold_ratio = 0.4
-                
-                # Track aggregate CO performance (Marks-based for summary alignment)
-                co_agg = {} # {co_key: {'total_got': 0, 'total_max': 0, 'students_appeared': set()}}
+                co_agg = {}
 
                 for student_enroll, s_marks in marks_data.items():
                     if not isinstance(s_marks, dict): continue
                     
-                    # Handle Choice questions (Top 5 of 7) for Theory Assessments
                     excluded_indices = set()
                     if is_fa_th:
                         indices = [int(k) for k in s_marks.keys() if k.isdigit()]
                         if indices:
                             max_idx = max(indices)
-                            # Iterate through groups of 7
                             for start_idx in range(0, max_idx + 1, 7):
                                 group_marks = []
                                 for i in range(start_idx, start_idx + 7):
@@ -464,16 +430,11 @@ class AttainmentService:
                                         try: m_val = float(m)
                                         except: pass
                                     group_marks.append({'val': m_val, 'idx': i})
-                                
-                                # Sort descending by value, then index
                                 group_marks.sort(key=lambda x: (x['val'], -x['idx']), reverse=True)
-                                
-                                # Indices after the first 5 are excluded
                                 if len(group_marks) > 5:
                                     for m in group_marks[5:]:
                                         excluded_indices.add(m['idx'])
                     
-                    # Find COs touched by this student
                     touched_cos = set()
                     for k, v in s_marks.items():
                         if v not in [None, '', '-']:
@@ -484,13 +445,11 @@ class AttainmentService:
                                 else:
                                     q_idx = int(k)
                                     if q_idx < len(user_cos): co_raw = user_cos[q_idx]
-                                
                                 if co_raw:
                                     co_key = f"CO{co_raw}" if not str(co_raw).upper().startswith("CO") else str(co_raw).upper()
                                     touched_cos.add(co_key)
                             except: pass
 
-                    # Re-implementing the loop to handle 'total' and choice properly
                     for q_key in q_indices:
                         val = s_marks.get(str(q_key))
                         mark_val = 0.0
@@ -501,20 +460,16 @@ class AttainmentService:
                                 is_mark_entered = True
                             except: pass
                         
-                        # Mapping to CO
                         co_vals = []
                         has_bits = any(isinstance(k, int) or str(k).isdigit() for k in q_indices)
                         
                         if q_key == 'total':
                             if not has_bits:
                                 if is_summative:
-                                    # Map total mark to all course COs for summative tools
                                     co_vals = [str(m.co_id.co_number).upper().replace('CO', '') for m in mappings]
                                 elif user_cos:
                                     co_vals = [user_cos[0]]
-                            else:
-                                # Skip total if bits are already providing the CO data
-                                continue
+                            else: continue
                         else:
                             try:
                                 q_idx = int(q_key)
@@ -524,146 +479,88 @@ class AttainmentService:
                         for co_val in co_vals:
                             if co_val:
                                 co_key = f"CO{co_val}" if not str(co_val).upper().startswith("CO") else str(co_val).upper()
-                                # Only process if student touched this CO or it's a Summative assessment
                                 if is_summative or co_key in touched_cos:
-                                    if co_key not in co_agg: 
-                                        co_agg[co_key] = {'total_got': 0, 'total_max': 0, 'students_appeared': set()}
+                                    if co_key not in co_agg: co_agg[co_key] = {'total_got': 0, 'total_max': 0, 'students_appeared': set()}
                                     
-                                    q_max = 2.0 # Standard fallback for bits
+                                    q_max = 2.0
                                     custom_weights = config.get('customWeights', [])
                                     if q_key != 'total' and int(q_key) < len(custom_weights) and custom_weights[int(q_key)] not in [None, '']:
                                         try: q_max = float(custom_weights[int(q_key)])
                                         except: pass
-                                    elif q_key == 'total':
-                                        q_max = tool.max_marks or 30
-                                    # Fallback to total-based calculation if no question-level breakdown
+                                    elif q_key == 'total': q_max = tool.max_marks or 30
                                     elif not marks_data or not user_cos:
-                                        if tool.max_marks == 30:
-                                            q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
-                                        elif tool.max_marks == 15:
-                                            q_max = tool.max_marks / 10.0
-                                        elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm:
-                                            q_max = tool.max_marks
-                                        else:
-                                            q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
+                                        if tool.max_marks == 30: q_max = 2.0 if (int(q_key) % 14 < 7) else 4.0
+                                        elif tool.max_marks == 15: q_max = tool.max_marks / 10.0
+                                        elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm: q_max = tool.max_marks
+                                        else: q_max = tool.max_marks / 10.0 if tool.max_marks else 2.0
 
-                                    # Threshold logic
-                                    # Standardize threshold logic to use column average for most tools, but explicitly NOT for CT1/CT2
                                     tp_norm = tool_name_norm.replace('-', '').replace('_', '')
-                                    
-                                    # If the tool is Internal Theory (CT1, CT2), we use 40% of max marks.
-                                    # For all other tools (FA-PR, SA-PR, SLA, SA-TH), we use the class average threshold.
-                                    if 'CT' in tp_norm or 'FATH' in tp_norm:
-                                        is_practical_tool = False
-                                    else:
-                                        is_practical_tool = True
+                                    is_practical_tool = not ('CT' in tp_norm or 'FATH' in tp_norm)
                                         
-                                    if q_key not in q_stats:
-                                        q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
-                                        
+                                    if q_key not in q_stats: q_stats[q_key] = {'success': 0, 'appeared': 0, 'sum': 0, 'marks': []}
                                     if is_mark_entered:
                                         q_stats[q_key]['appeared'] += 1
                                         q_stats[q_key]['sum'] += mark_val
                                         q_stats[q_key]['marks'].append(mark_val)
                                         if not is_practical_tool:
-                                            # Match the exact truncated MSBTE internal theory threshold
                                             q_threshold = max(1, int(q_max * 0.4))
-                                            if mark_val >= q_threshold:
-                                                q_stats[q_key]['success'] += 1
+                                            if mark_val >= q_threshold: q_stats[q_key]['success'] += 1
 
-                                    # 2. CO Aggregation (Marks-based for summary table)
-                                    if q_key != 'total' and int(q_key) in excluded_indices:
-                                        pass
-                                    else:
+                                    if q_key == 'total' or int(q_key) not in excluded_indices:
                                         if is_mark_entered:
                                             co_agg[co_key]['total_got'] += mark_val
                                             co_agg[co_key]['total_max'] += q_max
                                             co_agg[co_key]['students_appeared'].add(student_enroll)
 
-                # All tools (FA-PR, SA-PR, SA_TH, CT, SLA): % = (count >= threshold) / appeared * 100
                 for q_key, stats in q_stats.items():
                     if stats['appeared'] > 0:
-                        # For practical/avg-based tools, we calculate the threshold dynamically after collecting all marks
                         tp_norm = tool_name_norm.replace('-', '').replace('_', '')
-                        if 'CT' in tp_norm or 'FATH' in tp_norm:
-                            is_practical_tool = False
-                        else:
-                            is_practical_tool = True
-                            
+                        is_practical_tool = not ('CT' in tp_norm or 'FATH' in tp_norm)
                         if is_practical_tool:
-                            # Use >= column average threshold
                             avg_mark = stats['sum'] / stats['appeared']
                             success_count = sum(1 for m in stats['marks'] if m >= avg_mark)
                             stats['success'] = round((success_count / stats['appeared']) * 100, 2)
                         else:
-                            # Theory tools already computed pure count, just convert to percentage
                             stats['success'] = round((stats['success'] / stats['appeared']) * 100, 2)
-                    else:
-                        stats['success'] = 0.0
+                    else: stats['success'] = 0.0
 
-                # Finalize CO Summary Stats
-                # CO attainment = AVERAGE of the question-wise success percentages mapped to this CO
-                # (mirrors the formula in the reference Excel sheet)
                 co_stats = {}
-                # Build a helper: for each CO, accumulate question success% values
-                co_q_percents = {}  # {co_key: [pct1, pct2, ...]}
+                co_q_percents = {}
                 for q_key_raw, stats in q_stats.items():
-                    if q_key_raw == 'total':
-                        continue
-                    try:
-                        q_idx = int(q_key_raw)
-                    except:
-                        continue
+                    if q_key_raw == 'total': continue
+                    try: q_idx = int(q_key_raw)
+                    except: continue
                     if q_idx < len(user_cos) and user_cos[q_idx]:
                         co_raw = user_cos[q_idx]
                         co_key = f"CO{co_raw}" if not str(co_raw).upper().startswith("CO") else str(co_raw).upper()
-                        if co_key not in co_q_percents:
-                            co_q_percents[co_key] = []
-                        if stats['appeared'] > 0:
-                            co_q_percents[co_key].append(stats['success'])
+                        if co_key not in co_q_percents: co_q_percents[co_key] = []
+                        if stats['appeared'] > 0: co_q_percents[co_key].append(stats['success'])
 
                 for co_key, agg in co_agg.items():
                     q_pcts = co_q_percents.get(co_key, [])
-                    if q_pcts:
-                        percent = sum(q_pcts) / len(q_pcts)
-                    elif agg['total_max'] > 0:
-                        percent = agg['total_got'] / agg['total_max'] * 100
-                    else:
-                        percent = 0
+                    percent = sum(q_pcts) / len(q_pcts) if q_pcts else (agg['total_got'] / agg['total_max'] * 100 if agg['total_max'] > 0 else 0)
                     co_stats[co_key] = {
                         'appeared': len(agg['students_appeared']),
                         'success': round(percent, 2),
                         'marks_percent': round(percent, 2)
                     }
 
-                # 2. Convert aggregated CO marks to levels
                 for co_key, stats in co_stats.items():
                     if stats['appeared'] > 0:
-                        percentage = stats['marks_percent'] # Use the Weighted Average % directly
-                        
-                        # Use standard OBE attainment (linear 0-3 scale)
+                        percentage = stats['marks_percent']
                         level = round(min((percentage / 100) * 3, 3.00), 2)
-                        
-                        # Find actual CO object matching this mapping
-                        # Enhanced matching: first look in AssessmentCOMapping for this tool,
-                        # then fall back to all COs for this course (supports per-question CO assignment)
                         target_idx = co_key.replace("CO", "").strip()
-                        
                         co_obj = None
-                        resolved_co = None  # Will hold a CO model instance
+                        resolved_co = None
                         
                         if target_idx:
-                            # First: try matching within the tool's formal AssessmentCOMapping
                             all_mappings = list(mappings)
                             for m in all_mappings:
                                 co_numStr = str(m.co_id.co_number).strip().upper()
                                 if co_numStr == co_key.upper().strip():
                                     co_obj = m
                                     break
-                                # Strict numeric suffix matching: "4" matches "CO201.4"
-                                pass # Removed break that was causing premature loop exit
                         
-                        # Second: if not in tool mapping, search all active COs for this course
                         if not co_obj:
                             course_co_list = list(CO.objects.filter(course_id=tool.course_id, is_active=True))
                             for co in course_co_list:
@@ -671,205 +568,115 @@ class AttainmentService:
                                 if co_numStr == co_key.upper().strip():
                                     resolved_co = co
                                     break
-                                # Match suffix: "CO1" matches "313301.1" or "CO301.1"
                                 m_match = re.search(r'(\d+)$', co_numStr)
                                 if m_match and (m_match.group(1) == target_idx or m_match.group(1) == str(target_idx)):
                                     resolved_co = co
                                     break
                         
-                        # Last resort: positional fallback by index
                         if not co_obj and not resolved_co:
                             clean_key = co_key.upper().strip()
                             pos = None
                             match = re.search(r'\d+', clean_key)
-                            if match:
-                                pos = int(match.group()) - 1
-                            elif clean_key == "CO":
-                                pos = 0
-                                
+                            if match: pos = int(match.group()) - 1
+                            elif clean_key == "CO": pos = 0
                             if pos is not None:
                                 course_cos = list(CO.objects.filter(course_id=tool.course_id, is_active=True).order_by('co_number'))
-                                if 0 <= pos < len(course_cos):
-                                    resolved_co = course_cos[pos]
+                                if 0 <= pos < len(course_cos): resolved_co = course_cos[pos]
                         
-                        # Determine the co_id to record results against
-                        if co_obj:
-                            co_id = co_obj.co_id_id
-                        elif resolved_co:
-                            co_id = resolved_co.co_id
-                        else:
-                            print(f"DEBUG: Failed to match CO key '{co_key}' for tool {tool.assessment_name}")
-                            continue
-                        
-                        # Record the resolved result
-                        if co_id not in tool_co_results: tool_co_results[co_id] = {}
-                        res_obj = {
-                            'level': level,
-                            'appeared': stats['appeared'],
-                            'success': stats['success'],
-                            'percentage': percentage
-                        }
-                        tool_co_results[co_id][tool_key] = res_obj
-
-                        # For Summative tools (SA), force the same result to ALL course COs if not already mapped correctly
-                        if is_summative:
-                            for m_alt in mappings:
-                                alt_co_id = m_alt.co_id_id
-                                if alt_co_id not in tool_co_results: tool_co_results[alt_co_id] = {}
-                                tool_co_results[alt_co_id][tool_key] = res_obj
+                        co_id = co_obj.co_id_id if co_obj else (resolved_co.co_id if resolved_co else None)
+                        if co_id:
+                            if co_id not in tool_co_results: tool_co_results[co_id] = {}
+                            res_obj = {'level': level, 'appeared': stats['appeared'], 'success': stats['success'], 'percentage': percentage}
+                            tool_co_results[co_id][tool_key] = res_obj
+                            if is_summative:
+                                for m_alt in mappings:
+                                    alt_co_id = m_alt.co_id_id
+                                    if alt_co_id not in tool_co_results: tool_co_results[alt_co_id] = {}
+                                    tool_co_results[alt_co_id][tool_key] = res_obj
             else:
-                # Fallback to simple whole-tool logic
                 entries = MarksEntry.objects.filter(assessment_id=tool)
                 if entries.exists():
                     total_students = entries.count()
                     avg_marks = entries.aggregate(Avg('marks_obtained'))['marks_obtained__avg'] or 0
                     max_marks = tool.max_marks or 100
-
-                    # Threshold: use column average for Practical/SLA, else 40% of max for Theory
                     tp_norm = tool_name_norm.replace('-', '').replace('_', '')
-                    
-                    if 'CT' in tp_norm or 'FATH' in tp_norm:
-                        is_practical_tool = False
-                    else:
-                        is_practical_tool = True
-                    
-                    if is_practical_tool:
-                        threshold = avg_marks
-                    else:
-                        threshold = max(1, int(max_marks * 0.4))
-                    
+                    is_practical_tool = not ('CT' in tp_norm or 'FATH' in tp_norm)
+                    threshold = avg_marks if is_practical_tool else max(1, int(max_marks * 0.4))
                     count_ge_avg = entries.filter(marks_obtained__gte=threshold).count()
                     percentage = (count_ge_avg / total_students * 100) if total_students > 0 else 0
-                    
                     level = round(min((percentage / 100) * 3, 3.00), 2)
-                    
                     for m in mappings:
                         co_id = m.co_id_id
                         if co_id not in tool_co_results: tool_co_results[co_id] = {}
                         tool_co_results[co_id][tool_key] = {
-                            'level': level,
-                            'appeared': total_students,
-                            'success': count_ge_avg,
-                            'percentage': percentage
+                            'level': level, 'appeared': total_students, 'success': count_ge_avg, 'percentage': percentage
                         }
                 
         return tool_co_results
 
     @staticmethod
     def _calculate_direct_co_attainment(course_id, academic_year):
-        # Detailed logic now returns keys prefixed with INTERNAL_ or EXTERNAL_
         detailed = AttainmentService._calculate_detailed_tool_attainment(course_id, academic_year)
-        
         direct_cos = {}
         for co_id, tools in detailed.items():
-            # Dynamically group levels based on the prefix we added
-            internal_levels = [val['level'] for key, val in tools.items() 
-                               if key.startswith('INTERNAL_') and isinstance(val, dict)]
-            
-            external_levels = [val['level'] for key, val in tools.items() 
-                               if key.startswith('EXTERNAL_') and isinstance(val, dict)]
-            
+            internal_levels = [val['level'] for key, val in tools.items() if key.startswith('INTERNAL_') and isinstance(val, dict)]
+            external_levels = [val['level'] for key, val in tools.items() if key.startswith('EXTERNAL_') and isinstance(val, dict)]
             i_avg = sum(internal_levels) / len(internal_levels) if internal_levels else 0
             e_avg = sum(external_levels) / len(external_levels) if external_levels else 0
-            
-            # Weighted average logic: 40% Internal, 60% External
-            if internal_levels and not external_levels:
-                direct_cos[co_id] = i_avg
-            elif external_levels and not internal_levels:
-                direct_cos[co_id] = e_avg
-            else:
-                direct_cos[co_id] = 0.4 * i_avg + 0.6 * e_avg
-            
+            if internal_levels and not external_levels: direct_cos[co_id] = i_avg
+            elif external_levels and not internal_levels: direct_cos[co_id] = e_avg
+            else: direct_cos[co_id] = 0.4 * i_avg + 0.6 * e_avg
         return direct_cos
 
     @staticmethod
     def _calculate_indirect_co_attainment(course_id, academic_year):
-        # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_short = ay_clean
-        if len(ay_clean) == 9 and ay_clean[4] == '-': # 2025-2026
-            ay_short = ay_clean[:5] + ay_clean[7:] # 2025-26
-        
+        if len(ay_clean) == 9 and ay_clean[4] == '-': ay_short = ay_clean[:5] + ay_clean[7:]
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | \
-                   models.Q(academic_year__icontains=ay_clean) | \
-                   models.Q(academic_year__icontains=ay_short) | \
-                   models.Q(academic_year__icontains=ay_spaced)
-
-        # Find approved CES survey for this course, prioritized by number of responses
-        # (This reliably finds the 'actual' survey among test surveys)
-        best_survey = SurveyMaster.objects.filter(
-            course_id=course_id, 
-            survey_category='course_exit',
-            status='APPROVED'
-        ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
-        
-        # Fallback to latest if none approved
-        if not best_survey:
-            best_survey = SurveyMaster.objects.filter(
-                course_id=course_id, 
-                survey_category='course_exit'
-            ).annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
-
+        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_short) | models.Q(academic_year__icontains=ay_spaced)
+        best_survey = SurveyMaster.objects.filter(course_id=course_id, survey_category='course_exit', status='APPROVED').annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
+        if not best_survey: best_survey = SurveyMaster.objects.filter(course_id=course_id, survey_category='course_exit').annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
         ces_surveys = [best_survey] if best_survey else []
-        
-        # Aggregate multiple questions for same CO
-        co_ratings = {} # {co_id: [list of ratings]}
-        
+        co_ratings = {}
         for survey in ces_surveys:
             questions = SurveyQuestion.objects.filter(survey_id=survey, co_id__isnull=False)
             for q in questions:
                 co_id = q.co_id_id
                 from surveys.models import SurveyAnswer
-                
-                # Get all answers for this question to calculate success percentage
                 answers = list(SurveyAnswer.objects.filter(question_id=q).values_list('answer_value', flat=True))
                 if answers:
-                    if co_id not in co_ratings:
-                        co_ratings[co_id] = []
+                    if co_id not in co_ratings: co_ratings[co_id] = []
                     co_ratings[co_id].append(answers)
-        
         indirect_cos = {}
         for co_id, groups_of_answers in co_ratings.items():
             if groups_of_answers:
-                # Combine all answers if multiple questions/surveys for same CO
                 all_answers = []
-                for group in groups_of_answers:
-                    all_answers.extend(group)
-                
+                for group in groups_of_answers: all_answers.extend(group)
                 if all_answers:
                     avg_val = sum(all_answers) / len(all_answers)
                     success_count = len([v for v in all_answers if v >= avg_val])
                     percent = round((success_count / len(all_answers)) * 100, 2)
-                    
-                    # Formula from user's correct CES sheet: (% >= Avg) * 3 / 100
-                    level = round((percent * 3) / 100, 2)
-                    indirect_cos[co_id] = level
-        
+                    indirect_cos[co_id] = round((percent * 3) / 100, 2)
         return indirect_cos
 
     @staticmethod
     def _calculate_direct_po_attainment(course_id, final_cos, final_course_attainment):
         mappings = COPOMapping.objects.filter(co_id__course_id=course_id)
         po_direct = {}
-        po_weights = {} # Track sum of weights for proper average
+        po_weights = {}
         for m in mappings:
             po_id = m.po_id_id
             weight = m.weightage or 0
             if po_id not in po_direct:
                 po_direct[po_id] = 0
                 po_weights[po_id] = 0
-            
-            # Use specific CO attainment if available, otherwise course avg
             co_val = final_cos.get(m.co_id_id, final_course_attainment)
             po_direct[po_id] += (co_val * weight)
             po_weights[po_id] += weight
-            
         for po_id in po_direct:
-            if po_weights[po_id] > 0:
-                po_direct[po_id] = po_direct[po_id] / po_weights[po_id]
-            else:
-                po_direct[po_id] = 0
+            if po_weights[po_id] > 0: po_direct[po_id] = po_direct[po_id] / po_weights[po_id]
+            else: po_direct[po_id] = 0
         return po_direct
 
     @staticmethod
@@ -883,138 +690,106 @@ class AttainmentService:
             if pso_id not in pso_direct:
                 pso_direct[pso_id] = 0
                 pso_weights[pso_id] = 0
-            
             co_val = final_cos.get(m.co_id_id, final_course_attainment)
             pso_direct[pso_id] += (co_val * weight)
             pso_weights[pso_id] += weight
-            
         for pso_id in pso_direct:
-            if pso_weights[pso_id] > 0:
-                pso_direct[pso_id] = pso_direct[pso_id] / pso_weights[pso_id]
-            else:
-                pso_direct[pso_id] = 0
+            if pso_weights[pso_id] > 0: pso_direct[pso_id] = pso_direct[pso_id] / pso_weights[pso_id]
+            else: pso_direct[pso_id] = 0
         return pso_direct
 
     @staticmethod
     def _calculate_indirect_po_attainment(course_id, academic_year):
-        """
-        Calculates indirect PO attainment from OIT surveys (Expert Lecture, Industry Visit,
-        Alumni Feedback, Resource Person Feedback, VAP, Program Exit, etc.)
-        
-        For each PO, we: 
-          1. Find all indirect-category surveys for the program that covers this course
-          2. Average all SurveyAnswer values linked to questions mapped to that PO
-          3. Average survey averages across all surveys (equal weight per survey)
-        """
         from surveys.models import SurveyAnswer
         from academics.models import Course
-
         try:
             course = Course.objects.get(pk=course_id)
             program_id = course.program_id_id
-        except Course.DoesNotExist:
-            return {}
-
-        # Robust AY Matching
-        ay_clean = academic_year.replace(' ', '') if academic_year else ''
+        except Course.DoesNotExist: return {}
+        ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = (
-            models.Q(academic_year__icontains=academic_year)
-            | models.Q(academic_year__icontains=ay_clean)
-            | models.Q(academic_year__icontains=ay_spaced)
-        )
-
-        # All OIT indirect surveys for this program in this batch window
-        indirect_surveys = SurveyMaster.objects.filter(
-            ay_query,
-            survey_category='indirect',
-            program_id=program_id,
-            is_active=True,
-        )
-
-        po_survey_avgs = {}  # {po_id: [list of per-survey averages]}
-
+        ay_query = (models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced))
+        indirect_surveys = SurveyMaster.objects.filter(ay_query, survey_category='indirect', program_id=program_id, is_active=True)
+        po_survey_avgs = {}
         for survey in indirect_surveys:
-            # Get distinct PO IDs that have questions in this survey
-            po_ids_in_survey = (
-                SurveyQuestion.objects.filter(survey_id=survey, po_id__isnull=False)
-                .values_list('po_id', flat=True)
-                .distinct()
-            )
+            po_ids_in_survey = SurveyQuestion.objects.filter(survey_id=survey, po_id__isnull=False).values_list('po_id', flat=True).distinct()
             for po_id in po_ids_in_survey:
-                avg_val = SurveyAnswer.objects.filter(
-                    question_id__survey_id=survey,
-                    question_id__po_id=po_id,
-                ).aggregate(Avg('answer_value'))['answer_value__avg']
+                avg_val = SurveyAnswer.objects.filter(question_id__survey_id=survey, question_id__po_id=po_id).aggregate(Avg('answer_value'))['answer_value__avg']
                 if avg_val is not None:
-                    if po_id not in po_survey_avgs:
-                        po_survey_avgs[po_id] = []
+                    if po_id not in po_survey_avgs: po_survey_avgs[po_id] = []
                     po_survey_avgs[po_id].append(avg_val)
-
-        # Average of averages across surveys, answers are already on 1-3 scale
         indirect_pos = {}
         for po_id, avgs in po_survey_avgs.items():
-            if avgs:
-                indirect_pos[po_id] = sum(avgs) / len(avgs)
-
+            if avgs: indirect_pos[po_id] = sum(avgs) / len(avgs)
         return indirect_pos
 
     @staticmethod
     def _calculate_indirect_pso_attainment(course_id, academic_year):
-        """
-        Calculates indirect PSO attainment from OIT surveys — same logic as PO but for PSO mappings.
-        """
         from surveys.models import SurveyAnswer
         from academics.models import Course
-
         try:
             course = Course.objects.get(pk=course_id)
             program_id = course.program_id_id
-        except Course.DoesNotExist:
-            return {}
-
-        ay_clean = academic_year.replace(' ', '') if academic_year else ''
+        except Course.DoesNotExist: return {}
+        ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = (
-            models.Q(academic_year__icontains=academic_year)
-            | models.Q(academic_year__icontains=ay_clean)
-            | models.Q(academic_year__icontains=ay_spaced)
-        )
-
-        indirect_surveys = SurveyMaster.objects.filter(
-            ay_query,
-            survey_category='indirect',
-            program_id=program_id,
-            is_active=True,
-        )
-
-        pso_survey_avgs = {}  # {pso_id: [list of per-survey averages]}
-
+        ay_query = (models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced))
+        indirect_surveys = SurveyMaster.objects.filter(ay_query, survey_category='indirect', program_id=program_id, is_active=True)
+        pso_survey_avgs = {}
         for survey in indirect_surveys:
-            pso_ids_in_survey = (
-                SurveyQuestion.objects.filter(survey_id=survey, pso_id__isnull=False)
-                .values_list('pso_id', flat=True)
-                .distinct()
-            )
+            pso_ids_in_survey = SurveyQuestion.objects.filter(survey_id=survey, pso_id__isnull=False).values_list('pso_id', flat=True).distinct()
             for pso_id in pso_ids_in_survey:
-                avg_val = SurveyAnswer.objects.filter(
-                    question_id__survey_id=survey,
-                    question_id__pso_id=pso_id,
-                ).aggregate(Avg('answer_value'))['answer_value__avg']
+                avg_val = SurveyAnswer.objects.filter(question_id__survey_id=survey, question_id__pso_id=pso_id).aggregate(Avg('answer_value'))['answer_value__avg']
                 if avg_val is not None:
-                    if pso_id not in pso_survey_avgs:
-                        pso_survey_avgs[pso_id] = []
+                    if pso_id not in pso_survey_avgs: pso_survey_avgs[pso_id] = []
                     pso_survey_avgs[pso_id].append(avg_val)
-
         indirect_psos = {}
         for pso_id, avgs in pso_survey_avgs.items():
-            if avgs:
-                indirect_psos[pso_id] = sum(avgs) / len(avgs)
-
+            if avgs: indirect_psos[pso_id] = sum(avgs) / len(avgs)
         return indirect_psos
 
     @staticmethod
-    def _get_attainment_level(percentage):
-        if percentage >= 20:
-            return round(min((percentage / 100) * 3, 3.00), 2)
-        return 0.00
+    def _aggregate_batch_po_pso_attainment(batch_id, program_id):
+        from academics.models import Batch, Program, Course, PO, PSO, POTarget, PSOTarget
+        from .models import POAttainment, PSOAttainment, POBatchAttainment, PSOBatchAttainment
+        from django.db.models import Avg
+        batch = Batch.objects.filter(pk=batch_id).first()
+        program = Program.objects.filter(pk=program_id).first()
+        if not batch or not program: return
+        pos = PO.objects.filter(program_id=program, is_active=True)
+        batch_courses = batch.courses.filter(program_id=program, is_active=True)
+        for po in pos:
+            po_records = POAttainment.objects.filter(po_id=po, course_id__in=batch_courses, is_active=True)
+            if not po_records.exists(): continue
+            direct_val = po_records.aggregate(Avg('po_value'))['po_value__avg'] or 0
+            indirect_val = 0
+            if batch_courses.exists():
+                first_course = batch_courses.first()
+                next_year = batch.batch_year + 1
+                next_year_suffix = str(next_year)[-2:]
+                ay = f"{batch.batch_year}-{next_year_suffix}"
+                indirect_pos = AttainmentService._calculate_indirect_po_attainment(first_course.course_id, ay)
+                indirect_val = indirect_pos.get(po.po_id, 0)
+            normalized_value = (direct_val * 0.8) + (indirect_val * 0.2)
+            target_obj = POTarget.objects.filter(po_id=po).order_by('-academic_year').first()
+            target_val = target_obj.target_value if target_obj else 3.0
+            gap = target_val - normalized_value
+            POBatchAttainment.objects.update_or_create(po_id=po, batch_id=batch, defaults={'direct_value': direct_val, 'indirect_value': indirect_val, 'normalized_value': normalized_value, 'gap': gap})
+        psos = PSO.objects.filter(program_id=program, is_active=True)
+        for pso in psos:
+            pso_records = PSOAttainment.objects.filter(pso_id=pso, course_id__in=batch_courses, is_active=True)
+            if not pso_records.exists(): continue
+            direct_val = pso_records.aggregate(Avg('pso_value'))['pso_value__avg'] or 0
+            indirect_val = 0
+            if batch_courses.exists():
+                first_course = batch_courses.first()
+                next_year = batch.batch_year + 1
+                next_year_suffix = str(next_year)[-2:]
+                ay = f"{batch.batch_year}-{next_year_suffix}"
+                indirect_psos = AttainmentService._calculate_indirect_pso_attainment(first_course.course_id, ay)
+                indirect_val = indirect_psos.get(pso.pso_id, 0)
+            normalized_value = (direct_val * 0.8) + (indirect_val * 0.2)
+            target_obj = PSOTarget.objects.filter(pso_id=pso).order_by('-academic_year').first()
+            target_val = target_obj.target_value if target_obj else 3.0
+            gap = target_val - normalized_value
+            PSOBatchAttainment.objects.update_or_create(pso_id=pso, batch_id=batch, defaults={'direct_value': direct_val, 'indirect_value': indirect_val, 'normalized_value': normalized_value, 'gap': gap})

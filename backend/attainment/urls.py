@@ -5,7 +5,8 @@ from .views import (
     BatchEvaluationReportView, IndirectAttainmentReportView, 
     IndirectAttainmentSummaryView, SubmitATRView,
     POContributingCoursesView, PSOContributingCoursesView, 
-    CourseCOBreakdownView, CourseStatusView
+    CourseCOBreakdownView, CourseStatusView,
+    POBatchAttainmentView, PSOBatchAttainmentView
 )
 
 urlpatterns = [
@@ -23,5 +24,7 @@ urlpatterns = [
     path('pso/<int:pso_id>/courses/', PSOContributingCoursesView.as_view(), name='pso-contributing-courses'),
     path('course/<int:course_id>/cos/', CourseCOBreakdownView.as_view(), name='course-co-breakdown'),
     path('course-status/', CourseStatusView.as_view(), name='course-status'),
+    path('po/batch/', POBatchAttainmentView.as_view(), name='po-batch-attainment'),
+    path('pso/batch/', PSOBatchAttainmentView.as_view(), name='pso-batch-attainment'),
 ]
 

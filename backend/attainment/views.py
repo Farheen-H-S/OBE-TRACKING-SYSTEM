@@ -2,12 +2,13 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import COAttainment, POAttainment, PSOAttainment, AttainmentSnapshot
+from .models import COAttainment, POAttainment, PSOAttainment, AttainmentSnapshot, POBatchAttainment, PSOBatchAttainment
 from rest_framework.permissions import AllowAny
 
 from .serializers import (
     COAttainmentSerializer, POAttainmentSerializer, 
-    PSOAttainmentSerializer, AttainmentSnapshotSerializer
+    PSOAttainmentSerializer, AttainmentSnapshotSerializer,
+    POBatchAttainmentSerializer, PSOBatchAttainmentSerializer
 )
 from django.db.models import Avg
 from django.http import HttpResponse
@@ -124,6 +125,44 @@ class PSOAttainmentView(APIView):
             
         serializer = PSOAttainmentSerializer(queryset, many=True)
         return Response({"PSO attainment": serializer.data}, status=status.HTTP_200_OK)
+
+
+class POBatchAttainmentView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request):
+        batch_id = request.query_params.get('batch_id')
+        program_id = request.query_params.get('program_id')
+        
+        queryset = POBatchAttainment.objects.all()
+        if batch_id:
+            batch = resolve_batch(batch_id)
+            if batch:
+                queryset = queryset.filter(batch_id=batch)
+        if program_id:
+            queryset = queryset.filter(po_id__program_id=program_id)
+            
+        serializer = POBatchAttainmentSerializer(queryset, many=True)
+        return Response({"PO batch attainment": serializer.data}, status=status.HTTP_200_OK)
+
+
+class PSOBatchAttainmentView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def get(self, request):
+        batch_id = request.query_params.get('batch_id')
+        program_id = request.query_params.get('program_id')
+        
+        queryset = PSOBatchAttainment.objects.all()
+        if batch_id:
+            batch = resolve_batch(batch_id)
+            if batch:
+                queryset = queryset.filter(batch_id=batch)
+        if program_id:
+            queryset = queryset.filter(pso_id__program_id=program_id)
+            
+        serializer = PSOBatchAttainmentSerializer(queryset, many=True)
+        return Response({"PSO batch attainment": serializer.data}, status=status.HTTP_200_OK)
 
 
 class CreateSnapshotView(APIView):
