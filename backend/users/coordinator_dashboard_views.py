@@ -37,7 +37,7 @@ class CoordinatorDashboardAPIView(APIView):
 
         academic_setup = AcademicSetup.objects.first()
         final_academic_year = academic_year or (academic_setup.academic_year if academic_setup else "2025-26")
-        year_str = final_academic_year
+        year_str = final_academic_year.replace(" ", "")
 
         # 1. Academic Info
         academic_data = {

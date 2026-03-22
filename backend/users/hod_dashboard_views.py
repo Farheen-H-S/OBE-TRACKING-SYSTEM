@@ -69,7 +69,7 @@ class HODDashboardAPIView(APIView):
 
         # 3. Teacher Feedback Survey Status
         from surveys.models import SurveyMaster
-        year_str = final_academic_year
+        year_str = final_academic_year.replace(" ", "")
         teacher_survey = SurveyMaster.objects.filter(survey_category='feedback', academic_year=year_str, is_active=True).first()
         teacher_survey_status = "Conducted" if teacher_survey else "Not conducted"
 

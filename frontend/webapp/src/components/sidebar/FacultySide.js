@@ -1,4 +1,4 @@
-import { FaCircle, FaSignOutAlt } from "react-icons/fa";
+import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
 import { profile } from "../../assets/images"
 import "./FacultySide.css";
 import { useState } from "react";
@@ -106,6 +106,53 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                         style={{ cursor: "pointer" }}
                     >
                         <FaCircle className="me-2" style={{ fontSize: '0.5rem' }} /> Teaching Plan
+                    </div>
+                </li>
+
+                {/* Attainment >> direct, indirect, po */}
+                <li className="nav-item">
+                    <div
+                        className="menu-item d-flex align-items-center text-white pe-4"
+                        onClick={() => toggleMenu('Attainment')}
+                        style={{ cursor: "pointer" }}
+                    >
+                        <FaCircle className="me-2" style={{ fontSize: '0.5rem' }} /> Attainment
+                        {openMenu === 'Attainment' ? <FaMinus className="ms-auto" size={12} /> : <FaPlus className="ms-auto" size={12} />}
+                    </div>
+                    {openMenu === 'Attainment' && (
+                        <div className="submenu bg-white bg-opacity-10 ps-3">
+                            <div 
+                                className="py-2 text-white cursor-pointer" 
+                                style={{ fontSize: '0.9rem' }}
+                                onClick={() => navigate("/direct-attainment")}
+                            >
+                                Direct Attainment
+                            </div>
+                            <div 
+                                className="py-2 text-white cursor-pointer" 
+                                style={{ fontSize: '0.9rem' }}
+                                onClick={() => navigate("/indirect-attainment")}
+                            >
+                                Indirect Attainment
+                            </div>
+                            <div 
+                                className="py-2 text-white cursor-pointer" 
+                                style={{ fontSize: '0.9rem' }}
+                                onClick={() => navigate("/po-pso-attainment")}
+                            >
+                                PO & PSO Attainment
+                            </div>
+                        </div>
+                    )}
+                </li>
+
+                <li className="nav-item">
+                    <div
+                        className="menu-item d-flex align-items-center text-white"
+                        onClick={() => navigate("/report-verification")}
+                        style={{ cursor: "pointer" }}
+                    >
+                        <FaCircle className="me-2" style={{ fontSize: '0.5rem' }} /> Report Verification
                     </div>
                 </li>
 

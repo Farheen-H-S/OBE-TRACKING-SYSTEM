@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Report, DACReport, AuditorBoard
 from .serializers import ReportSerializer, DACReportSerializer, AuditorBoardSerializer
+from .pagination import StandardResultsSetPagination
 from audit.utils import log_action
 
 class ReportListCreateView(generics.ListCreateAPIView):
@@ -35,9 +36,22 @@ class ReportVerificationView(generics.ListAPIView):
     List reports that are pending verification (Draft or Pending).
     """
     serializer_class = ReportSerializer
+    pagination_class = StandardResultsSetPagination
     
     def get_queryset(self):
-        return Report.objects.filter(status__in=['Draft', 'Pending', 'Rejected']).order_by('-created_at')
+        queryset = Report.objects.filter(status__in=['Draft', 'Pending', 'Rejected'])
+        
+        program_id = self.request.query_params.get('program_id')
+        scheme_id = self.request.query_params.get('scheme_id')
+        
+        if program_id:
+            queryset = queryset.filter(program_id=program_id)
+        if scheme_id:
+            queryset = queryset.filter(
+                Q(batch_id__scheme_id=scheme_id) | Q(course_id__scheme_id=scheme_id)
+            ).distinct()
+            
+        return queryset.order_by('-created_at')
 
 class ApproveReportView(APIView):
     def post(self, request, pk):
@@ -106,6 +120,7 @@ class RejectDACReportView(APIView):
 
 class DACReportListCreateView(generics.ListCreateAPIView):
     serializer_class = DACReportSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         queryset = DACReport.objects.all().order_by('-uploaded_at')
@@ -113,12 +128,15 @@ class DACReportListCreateView(generics.ListCreateAPIView):
         # Apply filters if provided
         program_id = self.request.query_params.get('program_id')
         batch_id = self.request.query_params.get('batch_id')
+        scheme_id = self.request.query_params.get('scheme_id')
         academic_year = self.request.query_params.get('academic_year')
         class_name = self.request.query_params.get('class_name')
         semester = self.request.query_params.get('semester')
         
         if program_id:
             queryset = queryset.filter(program_id=program_id)
+        if scheme_id:
+            queryset = queryset.filter(batch_id__scheme_id=scheme_id)
         if batch_id:
             if isinstance(batch_id, str) and '-' in batch_id:
                 # Handle "2025 - 26" or "2025-26"

@@ -17,7 +17,8 @@ class ReportSerializer(serializers.ModelSerializer):
             'report_id', 'course_id', 'program_id', 'batch_id', 'report_type', 
             'year', 'report_file', 'user_id_created', 'user_id_approved', 
             'status', 'auditor_remark', 'created_at', 'updated_at',
-            'file_name', 'created_by_name', 'file_exists', 'batch_display_name'
+            'file_name', 'created_by_name', 'file_exists', 'batch_display_name',
+            'scheme_id', 'scheme_name'
         ]
         read_only_fields = (
             'created_at',
@@ -41,6 +42,23 @@ class ReportSerializer(serializers.ModelSerializer):
             return os.path.basename(obj.report_file.name)
         return "Unknown file"
 
+    scheme_id = serializers.SerializerMethodField()
+    scheme_name = serializers.SerializerMethodField()
+
+    def get_scheme_id(self, obj):
+        if obj.batch_id and obj.batch_id.scheme_id:
+            return obj.batch_id.scheme_id.scheme_id
+        if obj.course_id and obj.course_id.scheme_id:
+            return obj.course_id.scheme_id.scheme_id
+        return None
+
+    def get_scheme_name(self, obj):
+        if obj.batch_id and obj.batch_id.scheme_id:
+            return obj.batch_id.scheme_id.scheme_name
+        if obj.course_id and obj.course_id.scheme_id:
+            return obj.course_id.scheme_id.scheme_name
+        return "N/A"
+
 
 class DACReportSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.name', read_only=True)
@@ -56,7 +74,8 @@ class DACReportSerializer(serializers.ModelSerializer):
             'dac_report_id', 'program_id', 'batch_id', 'academic_year', 
             'class_name', 'semester', 'file', 'uploaded_by', 'uploaded_at', 
             'status', 'auditor_remark', 'uploaded_by_name', 'program_name', 
-            'batch_display_name', 'file_name', 'file_exists'
+            'batch_display_name', 'file_name', 'file_exists',
+            'scheme_id', 'scheme_name'
         ]
         read_only_fields = (
             'uploaded_at',
@@ -78,6 +97,19 @@ class DACReportSerializer(serializers.ModelSerializer):
         if obj.file:
             return os.path.basename(obj.file.name)
         return "Unknown file"
+
+    scheme_id = serializers.SerializerMethodField()
+    scheme_name = serializers.SerializerMethodField()
+
+    def get_scheme_id(self, obj):
+        if obj.batch_id and obj.batch_id.scheme_id:
+            return obj.batch_id.scheme_id.scheme_id
+        return None
+
+    def get_scheme_name(self, obj):
+        if obj.batch_id and obj.batch_id.scheme_id:
+            return obj.batch_id.scheme_id.scheme_name
+        return "N/A"
 class AuditorBoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditorBoard
