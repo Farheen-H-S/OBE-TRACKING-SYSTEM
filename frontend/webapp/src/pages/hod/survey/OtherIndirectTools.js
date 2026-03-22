@@ -223,7 +223,7 @@ const OtherIndirectTools = () => {
                 const latest = indirect[0];
                 setSelectedSurveyId(latest.survey_id);
                 updateLinkBoxFromSurvey(latest);
-                
+
                 if (latest.activity_type) setActivityType(latest.activity_type);
                 setActivityDetail(latest.activity_title || '');
                 setConductedDate(latest.conducted_date || '');
@@ -279,7 +279,7 @@ const OtherIndirectTools = () => {
         const survey = activeSurveys.find(s => s.survey_id === parseInt(surveyId));
         if (survey) {
             updateLinkBoxFromSurvey(survey);
-            
+
             // Populate form fields from survey metadata
             if (survey.activity_type) setActivityType(survey.activity_type);
             setActivityDetail(survey.activity_title || '');
@@ -288,7 +288,7 @@ const OtherIndirectTools = () => {
             setRpDesignation(survey.resource_person_designation || '');
             setRpCompany(survey.resource_person_company || '');
             setRpAddress(survey.resource_person_address || '');
-            
+
             // If showStats was active, clear it or load new ones
             if (showStats) {
                 // Clear immediately to show loading or empty
@@ -583,12 +583,12 @@ const OtherIndirectTools = () => {
     // ── Render ───────────────────────────────────────────────────────────
     return (
         <div className="oit-wrapper">
-            <ViewAllModal 
-                showActiveModal={showActiveModal} 
-                setShowActiveModal={setShowActiveModal} 
-                activeSurveys={activeSurveys} 
-                loadResponses={loadResponses} 
-                handleCloseFromModal={handleCloseFromModal} 
+            <ViewAllModal
+                showActiveModal={showActiveModal}
+                setShowActiveModal={setShowActiveModal}
+                activeSurveys={activeSurveys}
+                loadResponses={loadResponses}
+                handleCloseFromModal={handleCloseFromModal}
             />
             <div className="oit-main">
                 <div className="oit-card">
@@ -940,7 +940,7 @@ const OtherIndirectTools = () => {
                                                 accept=".xlsx,.xls"
                                                 onChange={handleBulkUpload}
                                             />
-                                            <button
+                                            {/* <button
                                                 className="btn btn-sm text-dark bg-warning border border-dark rounded-0 fw-bold px-2 mx-1"
                                                 style={{ boxShadow: '2px 2px 0px black' }}
                                                 onClick={() => {
@@ -958,7 +958,7 @@ const OtherIndirectTools = () => {
                                                 onClick={() => window.open(`${api.defaults.baseURL}bulk_upload/surveys/template/?survey_id=${surveyState.backendId}`, '_blank')}
                                             >
                                                 [DEV] TEMPLATE
-                                            </button>
+                                            </button> */}
                                         </>
                                     )}
                                 </div>
@@ -977,12 +977,12 @@ const OtherIndirectTools = () => {
                             </div>
 
                             {showStats && (
-                                <StatsTable 
-                                    isRP={isRP} 
-                                    fetchedStatements={fetchedStatements} 
-                                    allStatements={allStatements} 
-                                    responses={responses} 
-                                    programName={programName} 
+                                <StatsTable
+                                    isRP={isRP}
+                                    fetchedStatements={fetchedStatements}
+                                    allStatements={allStatements}
+                                    responses={responses}
+                                    programName={programName}
                                 />
                             )}
                         </>

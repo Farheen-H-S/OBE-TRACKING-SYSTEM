@@ -56,25 +56,46 @@ class IndirectReportService:
         return title
 
     @staticmethod
-    def _get_batch_years(graduating_year):
-        """Returns 3 academic years for a graduating batch (FY, SY, TY).
-           Returns both spaced and unspaced formats to ensure query matching."""
+    def _get_batch_years(batch_obj):
+        """Returns 3 academic years starting from the batch's admission year (FY, SY, TY)."""
         try:
-            if isinstance(graduating_year, Batch):
-                start_yr = graduating_year.batch_year
+            if isinstance(batch_obj, Batch):
+                start_yr = batch_obj.batch_year
             else:
-                cleaned_year = str(graduating_year).replace(" ", "")
+                # Fallback if it's already a year string
+                cleaned_year = str(batch_obj).replace(" ", "")
                 start_yr = int(cleaned_year.split("-")[0])
             
             years = []
-            for i in range(2, -1, -1):
-                y = start_yr - i
+            for i in range(3): # FY, SY, TY
+                y = start_yr + i
                 next_yr_short = (y + 1) % 100
                 years.append(f"{y} - {next_yr_short:02d}")
                 years.append(f"{y}-{next_yr_short:02d}")
             return years
         except Exception:
-            return [str(graduating_year)]
+            return [str(batch_obj)]
+
+    @staticmethod
+    def _get_survey_category(survey):
+        """Determines a human-readable category for a survey based on activity_type or name."""
+        atype = (survey.activity_type or "").upper()
+        name = survey.survey_name.upper()
+        
+        if any(x in atype for x in ["RESOURCE", "RP"]) or "RESOURCE PERSON" in name:
+            return "Resource Person Feedback"
+        if any(x in atype for x in ["ALUMNI"]) or "ALUMNI" in name:
+            return "Alumni Feedback"
+        if any(x in atype for x in ["EXIT"]) or "EXIT" in name:
+            return "Programme Exit Feedback"
+        if any(x in atype for x in ["IV", "VISIT"]) or "VISIT" in name:
+            return "Industry Visit Feedback"
+        if any(x in atype for x in ["EL", "LECTURE"]) or "LECTURE" in name:
+            return "Expert Lecture Feedback"
+        if any(x in atype for x in ["VAP"]) or "VAP" in name:
+            return "Value Added Program Feedback"
+            
+        return atype.capitalize() if atype else "Other Feedback"
 
     @staticmethod
     def generate_indirect_attainment_report(program_id, batch_id):
@@ -92,20 +113,46 @@ class IndirectReportService:
             if not batch:
                  raise ValueError(f"Batch {batch_id} not found")
         
-        pos = list(PO.objects.filter(program_id=program_id).order_by('po_number'))
-        psos = list(PSO.objects.filter(program_id=program_id).order_by('pso_number'))
+        pos = list(PO.objects.filter(program_id=program_id, is_active=True).order_by('po_number'))
+        psos = list(PSO.objects.filter(program_id=program_id, is_active=True).order_by('pso_number'))
         outcomes = pos + psos
         num_cols = len(outcomes)
         
         batch_years = IndirectReportService._get_batch_years(batch)
         
+        # 1. Fetch all surveys for this batch and program
+        all_surveys = SurveyMaster.objects.filter(
+            academic_year__in=batch_years
+        ).filter(
+            models.Q(program_id=program) | models.Q(program_id__isnull=True)
+        ).filter(
+            survey_category='indirect',
+            status='APPROVED'
+        ).order_by('-academic_year', '-survey_id')
+
+        # If no approved ones, fall back to all
+        if not all_surveys.exists():
+            all_surveys = SurveyMaster.objects.filter(
+                academic_year__in=batch_years
+            ).filter(
+                models.Q(program_id=program) | models.Q(program_id__isnull=True)
+            ).filter(survey_category='indirect').order_by('-academic_year', '-survey_id')
+
+        # Group surveys by category
+        category_map = {} # label -> [surveys]
+        for s in all_surveys:
+            cat_label = IndirectReportService._get_survey_category(s)
+            if cat_label not in category_map:
+                category_map[cat_label] = []
+            category_map[cat_label].append(s)
+
         border, center_align, header_font, header_fill, title_font, bold_font = IndirectReportService._get_styles()
 
         # 1. Overall Summary Sheet
         ws_sum = wb.create_sheet(title="Overall Summary")
-        next_row = IndirectReportService._add_company_header(ws_sum, "Overall Indirect Attainment", program.program_name, batch_id, num_cols + 2)
+        next_row = IndirectReportService._add_company_header(ws_sum, "Overall Indirect Attainment", program.program_name, batch, num_cols + 2)
         
-        sum_headers = ["Sr. no.", "Feedback"] + [f"{i+1}" for i in range(num_cols)]
+        sum_headers = ["Sr. no.", "Feedback Category"] + [outcome.po_number if isinstance(outcome, PO) else outcome.pso_number for outcome in outcomes]
         for c, h in enumerate(sum_headers, 1):
             cell = ws_sum.cell(row=next_row, column=c, value=h)
             cell.font = header_font
@@ -115,34 +162,19 @@ class IndirectReportService:
         
         next_row += 1
         
-        categories = [
-            ("Overall Curricular and Extra Curricular Activities Feedback", ["EL", "IV", "VAP"], ["Expert Lecture", "Co-curricular", "Visit"]),
-            ("Programme Exit Feedback", [], ["Exit", "Programme Exit"]),
-            ("Feedback from Alumni", [], ["Alumni"]),
-            ("Overall Activities Resource person feedback", ["Resource Person"], ["Resource Person"])
-        ]
+        cat_averages = [] # List of [val1, val2, ...]
+        sorted_categories = sorted(category_map.keys())
         
-        cat_averages = []
-        for idx, (label, types, keywords) in enumerate(categories, 1):
+        for idx, cat_label in enumerate(sorted_categories, 1):
             ws_sum.cell(row=next_row, column=1, value=idx).border = border
-            ws_sum.cell(row=next_row, column=2, value=label).border = border
+            ws_sum.cell(row=next_row, column=2, value=cat_label).border = border
             
-            # Find relevant surveys for this category
-            survey_ids = SurveyMaster.objects.filter(
-                academic_year__in=batch_years
-            ).filter(
-                models.Q(program_id=program) | models.Q(program_id__isnull=True)
-            ).filter(
-                models.Q(activity_type__in=types) | 
-                models.Q(survey_name__iregex=r'|'.join(keywords))
-            ).values_list('survey_id', flat=True)
-            
+            surveys_in_cat = category_map[cat_label]
             row_vals = []
             for col_idx, outcome in enumerate(outcomes, 3):
-                # FIX: Step 2 should be simple average of survey averages, not global mean
                 survey_avgs = []
-                for sid in survey_ids:
-                    ans_filter = {'question_id__survey_id': sid}
+                for s in surveys_in_cat:
+                    ans_filter = {'question_id__survey_id': s.survey_id}
                     if isinstance(outcome, PO):
                         ans_filter['question_id__po_id'] = outcome
                     else:
@@ -153,58 +185,41 @@ class IndirectReportService:
                         survey_avgs.append(s_avg)
                 
                 cat_avg = sum(survey_avgs) / len(survey_avgs) if survey_avgs else None
-                val = round(cat_avg, 2) if cat_avg is not None else ""
-                cell = ws_sum.cell(row=next_row, column=col_idx, value=val)
+                val = round(cat_avg, 2) if cat_avg is not None else 0
+                cell = ws_sum.cell(row=next_row, column=col_idx, value=val if val > 0 else "")
                 cell.border = border
                 cell.alignment = center_align
-                row_vals.append(val if val != "" else 0)
+                row_vals.append(val)
             
             cat_averages.append(row_vals)
             next_row += 1
             
         # Overall Average Row
         ws_sum.cell(row=next_row, column=1).border = border
-        cell_avg_label = ws_sum.cell(row=next_row, column=2, value="Average")
+        cell_avg_label = ws_sum.cell(row=next_row, column=2, value="AVERAGE")
         cell_avg_label.font = bold_font
         cell_avg_label.border = border
         
+        final_summary_row = []
         for col_idx in range(3, num_cols + 3):
-            # Only average non-zero values if appropriate, or all if they are expected.
-            # Using simple average of the 4 categories for now.
             vals = [row[col_idx-3] for row in cat_averages if row[col_idx-3] > 0]
-            avg_val = round(sum(vals)/len(vals), 2) if vals else ""
-            cell = ws_sum.cell(row=next_row, column=col_idx, value=avg_val)
+            avg_val = round(sum(vals)/len(vals), 2) if vals else 0
+            display_val = avg_val if avg_val > 0 else ""
+            cell = ws_sum.cell(row=next_row, column=col_idx, value=display_val)
             cell.font = bold_font
             cell.border = border
             cell.alignment = center_align
+            final_summary_row.append(avg_val)
 
-        # Adjust columns
-        ws_sum.column_dimensions['B'].width = 60
+        ws_sum.column_dimensions['B'].width = 50
         
-        # 2. Detailed Sheets
-        sheets_config = [
-            ("Expert Lecturer", (["EL"], ["Expert Lecture", "Expert Lect"]), "Student's Expert Lecturer Feedback"),
-            ("Exit Feedback", ([], ["Exit", "Programme Exit"]), "Programme Exit Feedback"),
-            ("Alumni Feedback", ([], ["Alumni"]), "Feedback from Alumni"),
-            ("Resource Person", (["Resource Person"], ["Resource Person"]), "Feedback from Resource Person")
-        ]
-        
-        for sheet_title, (types, keywords), long_title in sheets_config:
+        # 2. Detailed Sheets (One for each category)
+        for cat_label in sorted_categories:
+            sheet_title = IndirectReportService._sanitize_title(cat_label)
             ws = wb.create_sheet(title=sheet_title)
-            surveys = SurveyMaster.objects.filter(
-                academic_year__in=batch_years
-            ).filter(
-                models.Q(program_id=program) | models.Q(program_id__isnull=True)
-            ).filter(
-                models.Q(activity_type__in=types) | 
-                models.Q(survey_name__iregex=r'|'.join(keywords))
-            ).order_by('-academic_year')
             
-            if not surveys.exists():
-                ws.cell(row=1, column=1, value="No data found for this category.")
-                continue
-                
-            curr_row = IndirectReportService._add_company_header(ws, long_title, program.program_name, batch_id, num_cols + 2)
+            surveys = category_map[cat_label]
+            curr_row = IndirectReportService._add_company_header(ws, cat_label, program.program_name, batch, num_cols + 2)
             
             for survey in surveys:
                 # Add table for each survey
@@ -214,7 +229,7 @@ class IndirectReportService:
                 cell.font = bold_font
                 curr_row += 1
                 
-                table_headers = ["Sr. no.", "Name of Student / Industry"] + [f"{i+1}" for i in range(num_cols)]
+                table_headers = ["Sr. no.", "Respondent Name"] + [outcome.po_number if isinstance(outcome, PO) else outcome.pso_number for outcome in outcomes]
                 for c, h in enumerate(table_headers, 1):
                     cell = ws.cell(row=curr_row, column=c, value=h)
                     cell.font = header_font
@@ -254,7 +269,7 @@ class IndirectReportService:
                 ws.cell(row=curr_row, column=2).border = border
                 
                 for col_idx, outcome in enumerate(outcomes, 3):
-                    ans_filter = {'question_id__survey_id': survey}
+                    ans_filter = {'question_id__survey_id': survey.survey_id}
                     if isinstance(outcome, PO):
                         ans_filter['question_id__po_id'] = outcome
                     else:
@@ -269,7 +284,7 @@ class IndirectReportService:
                 
                 curr_row += 2 # Space between tables
 
-            ws.column_dimensions['B'].width = 50
+            ws.column_dimensions['B'].width = 40
 
         output = io.BytesIO()
         wb.save(output)
@@ -279,36 +294,38 @@ class IndirectReportService:
     @staticmethod
     def get_indirect_attainment_summary_data(program_id, batch_id):
         program = Program.objects.get(program_id=program_id)
-        pos = list(PO.objects.filter(program_id=program_id).order_by('po_number'))
-        psos = list(PSO.objects.filter(program_id=program_id).order_by('pso_number'))
+        pos = list(PO.objects.filter(program_id=program_id, is_active=True).order_by('po_number'))
+        psos = list(PSO.objects.filter(program_id=program_id, is_active=True).order_by('pso_number'))
         outcomes = pos + psos
         
-        batch_years = IndirectReportService._get_batch_years(batch_id)
+        if isinstance(batch_id, Batch):
+            batch = batch_id
+        else:
+            from attainment.views import resolve_batch
+            batch = resolve_batch(batch_id)
+            if not batch: return []
+            
+        batch_years = IndirectReportService._get_batch_years(batch)
         
-        categories = [
-            ("Overall Curricular and Extra Curricular Activities", ["EL", "IV", "VAP"], ["Expert Lecture", "Co-curricular", "Visit"]),
-            ("Programme Exit Feedback", [], ["Exit", "Programme Exit"]),
-            ("Feedback from Alumni", [], ["Alumni"]),
-            ("Resource person feedback", ["Resource Person"], ["Resource Person"])
-        ]
-        
+        all_surveys = SurveyMaster.objects.filter(
+            academic_year__in=batch_years
+        ).filter(
+            models.Q(program_id=program) | models.Q(program_id__isnull=True)
+        ).filter(survey_category='indirect').order_by('-academic_year')
+
+        category_map = {}
+        for s in all_surveys:
+            cat_label = IndirectReportService._get_survey_category(s)
+            if cat_label not in category_map: category_map[cat_label] = []
+            category_map[cat_label].append(s)
+            
         summary = []
         for outcome in outcomes:
             category_vals = []
-            for (label, types, keywords) in categories:
-                survey_ids = SurveyMaster.objects.filter(
-                    academic_year__in=batch_years
-                ).filter(
-                    models.Q(program_id=program) | models.Q(program_id__isnull=True)
-                ).filter(
-                    models.Q(activity_type__in=types) | 
-                    models.Q(survey_name__iregex=r'|'.join(keywords))
-                ).values_list('survey_id', flat=True)
-                
-                # FIX: Step 2 should be simple average of survey averages
+            for cat_label, surveys in category_map.items():
                 survey_avgs = []
-                for sid in survey_ids:
-                    ans_filter = {'question_id__survey_id': sid}
+                for s in surveys:
+                    ans_filter = {'question_id__survey_id': s.survey_id}
                     if isinstance(outcome, PO):
                         ans_filter['question_id__po_id'] = outcome
                     else:
