@@ -134,7 +134,7 @@ class IndirectReportService:
         ).filter(
             models.Q(program_id=program) | models.Q(program_id__isnull=True)
         ).filter(
-            survey_category__in=['indirect', 'feedback']
+            survey_category__in=['indirect']
         ).exclude(status='DRAFT').order_by('-academic_year', '-survey_id')
 
         # Group surveys by category
