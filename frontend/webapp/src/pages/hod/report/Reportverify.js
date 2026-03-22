@@ -3,6 +3,7 @@ import { Modal, Button, Table } from 'react-bootstrap';
 import './Reportverify.css';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
+import { useFilters } from '../../../context/FilterContext';
 
 const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
 
@@ -18,10 +19,10 @@ const Reportverifiy = () => {
     const [reports, setReports] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
-    const [programs, setPrograms] = useState([]);
-    const [schemes, setSchemes] = useState([]);
-    const [selectedProgram, setSelectedProgram] = useState('');
-    const [selectedScheme, setSelectedScheme] = useState('');
+    
+    // Global Context Hooks
+    const { selectedDept, selectedScheme } = useFilters();
+    
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalReports, setTotalReports] = useState(0);
@@ -32,31 +33,11 @@ const Reportverifiy = () => {
     const [loading, setLoading] = useState(false);
 
     
-
-    useEffect(() => {
-        fetchInitialData();
-    }, []);
+    // Data fetching handled reactively based on global context values changing
 
     useEffect(() => {
         fetchPendingReports();
-    }, [selectedProgram, selectedScheme, page]);
-
-    const fetchInitialData = async () => {
-        try {
-            const [progRes, schemeRes] = await Promise.all([
-                api.get('/academics/programs/'),
-                api.get('/academics/schemes/')
-            ]);
-            setPrograms(progRes.data);
-            setSchemes(schemeRes.data);
-            
-            // Default to user's department if available
-            if (user?.program_id) setSelectedProgram(user.program_id);
-            else if (user?.department_id) setSelectedProgram(user.department_id);
-        } catch (err) {
-            console.error("Error fetching initial data:", err);
-        }
-    };
+    }, [selectedDept, selectedScheme, page]);
 
     const fetchAuditorRemarks = async () => {
         setLoadingRemarks(true);
@@ -87,7 +68,7 @@ const Reportverifiy = () => {
         try {
             const params = {
                 page,
-                program_id: selectedProgram,
+                program_id: selectedDept,
                 scheme_id: selectedScheme
             };
 
@@ -207,33 +188,7 @@ const Reportverifiy = () => {
 
                     <div className="filter-row-v2 mb-4 p-3 bg-light rounded border">
                         <div className="row g-3">
-                            <div className="col-md-3">
-                                <label className="filter-label">DEPARTMENT</label>
-                                <select
-                                    className="form-select filter-select"
-                                    value={selectedProgram}
-                                    onChange={(e) => { setSelectedProgram(e.target.value); setPage(1); }}
-                                >
-                                    <option value="">All Departments</option>
-                                    {programs.map(p => (
-                                        <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="col-md-3">
-                                <label className="filter-label">SCHEME</label>
-                                <select
-                                    className="form-select filter-select"
-                                    value={selectedScheme}
-                                    onChange={(e) => { setSelectedScheme(e.target.value); setPage(1); }}
-                                >
-                                    <option value="">All Schemes</option>
-                                    {schemes.map(s => (
-                                        <option key={s.scheme_id} value={s.scheme_id}>{s.scheme_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="col-md-3">
+                            <div className="col-md-6">
                                 <label className="filter-label">TYPE</label>
                                 <select
                                     className="form-select filter-select"
@@ -247,7 +202,7 @@ const Reportverifiy = () => {
                                     <option value="Batch">PO/PSO Attainment</option>
                                 </select>
                             </div>
-                            <div className="col-md-3">
+                            <div className="col-md-6">
                                 <label className="filter-label">SEARCH</label>
                                 <div className="search-box position-relative">
                                     <input

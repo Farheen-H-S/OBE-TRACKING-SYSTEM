@@ -68,12 +68,17 @@ const Layout = ({ children, role }) => {
             return ['dept', 'scheme', 'batch', 'year', 'class', 'semester'];
         }
 
+        // Dept & Scheme Only Group
+        const deptSchemePages = ['/report-verification', '/view-reports'];
+        if (deptSchemePages.includes(path)) {
+            return ['dept', 'scheme'];
+        }
+
         // Full Context Group (Default for other faculty/hod pages)
         const fullContextPages = [
             '/student-management', '/marks-entry', '/course-exit-survey',
             '/other-indirect-tools', '/direct-attainment', '/indirect-attainment',
-            '/po-pso-attainment', '/report-verification',
-            '/view-reports', '/view-cis-entries', '/teaching-plan'
+            '/po-pso-attainment', '/view-cis-entries', '/teaching-plan'
         ];
 
         if (fullContextPages.includes(path)) {
