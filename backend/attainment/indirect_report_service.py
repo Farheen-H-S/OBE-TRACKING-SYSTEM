@@ -246,6 +246,20 @@ class IndirectReportService:
             cat_row_avgs.append(outcome_avgs)
             next_row += 1
         
+        # Add Overall Average Row for Categorywise Sheet
+        next_row += 1
+        ws_cat_sum.cell(row=next_row, column=1).border = border
+        ws_cat_sum.cell(row=next_row, column=2, value="AVERAGE").border = border
+        ws_cat_sum.cell(row=next_row, column=2).font = bold_font
+        for col_idx in range(3, num_cols + 3):
+            col_vals = [r[col_idx-3] for r in cat_row_avgs if r[col_idx-3] > 0]
+            val = round(sum(col_vals)/len(col_vals), 2) if col_vals else 0
+            c = ws_cat_sum.cell(row=next_row, column=col_idx, value=val if val > 0 else "")
+            c.border = border
+            c.alignment = center_align
+            c.font = bold_font
+            
+        ws_cat_sum.column_dimensions['B'].width = 60
         ws_cat_sum.column_dimensions['B'].width = 50
 
         # 3. Detailed Sheets (One for each category)
@@ -360,7 +374,7 @@ class IndirectReportService:
                 'id': outcome.po_id if isinstance(outcome, PO) else outcome.pso_id,
                 'type': 'PO' if isinstance(outcome, PO) else 'PSO',
                 'number': outcome.po_number if isinstance(outcome, PO) else outcome.pso_number,
-                'label': f"PO {outcome.po_number}" if isinstance(outcome, PO) else f"PSO {outcome.pso_number}",
+                'label': str(outcome.po_number) if isinstance(outcome, PO) else str(outcome.pso_number),
                 'achieved': round(outcome_final_avg, 2)
             })
         return summary

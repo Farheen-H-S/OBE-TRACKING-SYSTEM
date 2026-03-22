@@ -420,8 +420,13 @@ const OtherIndirectTools = () => {
                 api.get(`/academics/psos/?program_id=${selectedProgram}`),
             ]);
 
+            let finalSurveyName = computedTitle || selectedTool.label;
+            if (selectedTool.id === 'resource-person') {
+                finalSurveyName = `Resource Person Feedback on ${activityType}` + (activityDetail ? ` — ${activityDetail}` : '');
+            }
+
             const surveyPayload = {
-                survey_name: computedTitle || selectedTool.label,
+                survey_name: finalSurveyName,
                 survey_category: 'indirect',
                 academic_year: selectedYear,
                 program_id: selectedProgram,
