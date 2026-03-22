@@ -12,12 +12,9 @@ import { FaChevronDown, FaChevronRight, FaArrowRight } from 'react-icons/fa';
 const TOOL_NAMES = {
   fa_th_1: 'FA-TH (CT1)',
   fa_th_2: 'FA-TH (CT2)',
-  fa_pr: 'FA-PR',
   sla: 'SLA',
   sa_th: 'SA-TH',
-  sa_pr: 'SA-PR',
   ces: 'CES',
-  oit: 'OIT (Indirect)',
 };
 
 const Backtracking = ({ isDashboard = false }) => {

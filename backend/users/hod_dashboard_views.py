@@ -9,7 +9,7 @@ from datetime import datetime
 from .models import User, FacultyCourseAssignment, Student
 from academics.models import AcademicSetup, Course, COTarget, PO
 from stress.models import StressMaster
-from reports.models import Report
+from reports.models import Report, DACReport
 from attainment.models import COAttainment, POAttainment, PSOAttainment
 from .permissions import IsHOD
 
@@ -73,13 +73,17 @@ class HODDashboardAPIView(APIView):
         teacher_survey = SurveyMaster.objects.filter(survey_category='feedback', academic_year=year_str, is_active=True).first()
         teacher_survey_status = "Conducted" if teacher_survey else "Not conducted"
 
-        # 4. Total Students Distribution (FY, SY, TY using the class_year field)
+        # 4. Total Students Distribution (FY, SY, TY dynamically based on Academic Year and Batch)
         try:
-            fy_count = Student.objects.filter(program_id=dept, class_year='FY', is_active=True).count()
-            sy_count = Student.objects.filter(program_id=dept, class_year='SY', is_active=True).count()
-            ty_count = Student.objects.filter(program_id=dept, class_year='TY', is_active=True).count()
+            ay_start = int(final_academic_year.split('-')[0].strip())
+            
+            # Map Batch Years (TY = ay_start, SY = ay_start + 1, FY = ay_start + 2)
+            fy_count = Student.objects.filter(program_id=dept, batch_id__batch_year=ay_start + 2, is_active=True).count()
+            sy_count = Student.objects.filter(program_id=dept, batch_id__batch_year=ay_start + 1, is_active=True).count()
+            ty_count = Student.objects.filter(program_id=dept, batch_id__batch_year=ay_start, is_active=True).count()
             total_students_count = fy_count + sy_count + ty_count
-        except Exception:
+        except Exception as e:
+            print("Error parsing students distribution:", e)
             fy_count, sy_count, ty_count, total_students_count = 0, 0, 0, 0
 
         # 5. Course & Faculty Overview
@@ -119,9 +123,16 @@ class HODDashboardAPIView(APIView):
         ]
 
         # Verification
-        verified_reports = Report.objects.filter(course_id__in=courses, status='Approved').count()
-        pending_reports = Report.objects.filter(course_id__in=courses, status='Draft').count()
+        verified_regular = Report.objects.filter(Q(course_id__in=courses) | Q(program_id=dept), status='Approved').count()
+        pending_regular = Report.objects.filter(Q(course_id__in=courses) | Q(program_id=dept), status='Pending').count()
+        
+        verified_dac = DACReport.objects.filter(program_id=dept, status='Approved').count()
+        pending_dac = DACReport.objects.filter(program_id=dept, status='Pending').count()
+        
+        verified_reports = verified_regular + verified_dac
+        pending_reports = pending_regular + pending_dac
         total_reports = verified_reports + pending_reports or 1
+
         verification_health = [
             ["Status", "Percentage"],
             ["Verified", (verified_reports / total_reports) * 100],

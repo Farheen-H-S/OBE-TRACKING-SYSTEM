@@ -53,7 +53,7 @@ const Stresscreate = () => {
     /* ---------------- LOAD DATA ---------------- */
     const fetchSurveys = async () => {
         try {
-            const res = await getStressSurveys(selectedYear || null);
+            const res = await getStressSurveys(); // Fetch all to ensure current year's active survey is found
             setSurveys(res.data);
         } catch (err) {
             console.error("Failed to load surveys", err);
@@ -73,7 +73,7 @@ const Stresscreate = () => {
     useEffect(() => {
         fetchSurveys();
         fetchQuestionSets();
-    }, [selectedYear]);
+    }, []);
 
     const updateCountdown = () => {
         if (!activeSurvey || !activeSurvey.end_date) {
