@@ -897,12 +897,121 @@ class AttainmentService:
 
     @staticmethod
     def _calculate_indirect_po_attainment(course_id, academic_year):
-        # Implementation depends on survey response results
-        return {}
+        """
+        Calculates indirect PO attainment from OIT surveys (Expert Lecture, Industry Visit,
+        Alumni Feedback, Resource Person Feedback, VAP, Program Exit, etc.)
+        
+        For each PO, we: 
+          1. Find all indirect-category surveys for the program that covers this course
+          2. Average all SurveyAnswer values linked to questions mapped to that PO
+          3. Average survey averages across all surveys (equal weight per survey)
+        """
+        from surveys.models import SurveyAnswer
+        from academics.models import Course
+
+        try:
+            course = Course.objects.get(pk=course_id)
+            program_id = course.program_id_id
+        except Course.DoesNotExist:
+            return {}
+
+        # Robust AY Matching
+        ay_clean = academic_year.replace(' ', '') if academic_year else ''
+        ay_spaced = ay_clean.replace('-', ' - ')
+        ay_query = (
+            models.Q(academic_year__icontains=academic_year)
+            | models.Q(academic_year__icontains=ay_clean)
+            | models.Q(academic_year__icontains=ay_spaced)
+        )
+
+        # All OIT indirect surveys for this program in this batch window
+        indirect_surveys = SurveyMaster.objects.filter(
+            ay_query,
+            survey_category='indirect',
+            program_id=program_id,
+            is_active=True,
+        )
+
+        po_survey_avgs = {}  # {po_id: [list of per-survey averages]}
+
+        for survey in indirect_surveys:
+            # Get distinct PO IDs that have questions in this survey
+            po_ids_in_survey = (
+                SurveyQuestion.objects.filter(survey_id=survey, po_id__isnull=False)
+                .values_list('po_id', flat=True)
+                .distinct()
+            )
+            for po_id in po_ids_in_survey:
+                avg_val = SurveyAnswer.objects.filter(
+                    question_id__survey_id=survey,
+                    question_id__po_id=po_id,
+                ).aggregate(Avg('answer_value'))['answer_value__avg']
+                if avg_val is not None:
+                    if po_id not in po_survey_avgs:
+                        po_survey_avgs[po_id] = []
+                    po_survey_avgs[po_id].append(avg_val)
+
+        # Average of averages across surveys, answers are already on 1-3 scale
+        indirect_pos = {}
+        for po_id, avgs in po_survey_avgs.items():
+            if avgs:
+                indirect_pos[po_id] = sum(avgs) / len(avgs)
+
+        return indirect_pos
 
     @staticmethod
     def _calculate_indirect_pso_attainment(course_id, academic_year):
-        return {}
+        """
+        Calculates indirect PSO attainment from OIT surveys — same logic as PO but for PSO mappings.
+        """
+        from surveys.models import SurveyAnswer
+        from academics.models import Course
+
+        try:
+            course = Course.objects.get(pk=course_id)
+            program_id = course.program_id_id
+        except Course.DoesNotExist:
+            return {}
+
+        ay_clean = academic_year.replace(' ', '') if academic_year else ''
+        ay_spaced = ay_clean.replace('-', ' - ')
+        ay_query = (
+            models.Q(academic_year__icontains=academic_year)
+            | models.Q(academic_year__icontains=ay_clean)
+            | models.Q(academic_year__icontains=ay_spaced)
+        )
+
+        indirect_surveys = SurveyMaster.objects.filter(
+            ay_query,
+            survey_category='indirect',
+            program_id=program_id,
+            is_active=True,
+        )
+
+        pso_survey_avgs = {}  # {pso_id: [list of per-survey averages]}
+
+        for survey in indirect_surveys:
+            pso_ids_in_survey = (
+                SurveyQuestion.objects.filter(survey_id=survey, pso_id__isnull=False)
+                .values_list('pso_id', flat=True)
+                .distinct()
+            )
+            for pso_id in pso_ids_in_survey:
+                avg_val = SurveyAnswer.objects.filter(
+                    question_id__survey_id=survey,
+                    question_id__pso_id=pso_id,
+                ).aggregate(Avg('answer_value'))['answer_value__avg']
+                if avg_val is not None:
+                    if pso_id not in pso_survey_avgs:
+                        pso_survey_avgs[pso_id] = []
+                    pso_survey_avgs[pso_id].append(avg_val)
+
+        indirect_psos = {}
+        for pso_id, avgs in pso_survey_avgs.items():
+            if avgs:
+                indirect_psos[pso_id] = sum(avgs) / len(avgs)
+
+        return indirect_psos
 
     @staticmethod
     def _get_attainment_level(percentage):
