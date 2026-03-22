@@ -12,8 +12,10 @@ import { FaChevronDown, FaChevronRight, FaArrowRight } from 'react-icons/fa';
 const TOOL_NAMES = {
   fa_th_1: 'FA-TH (CT1)',
   fa_th_2: 'FA-TH (CT2)',
+  fa_pr: 'FA-PR',
   sla: 'SLA',
   sa_th: 'SA-TH',
+  sa_pr: 'SA-PR',
   ces: 'CES',
 };
 
@@ -369,7 +371,6 @@ const Backtracking = ({ isDashboard = false }) => {
                                       <thead className="table-light">
                                         <tr>
                                           <th className="text-start ps-2">CO</th>
-                                          <th className="text-start" style={{ maxWidth: 200 }}>Description</th>
                                           {Object.keys(TOOL_NAMES).map(k => (
                                             <th key={k}>{TOOL_NAMES[k]}</th>
                                           ))}
@@ -405,7 +406,6 @@ const Backtracking = ({ isDashboard = false }) => {
                                           return cos.map((co, ci) => (
                                             <tr key={ci}>
                                               <td className="fw-bold text-start ps-2 text-nowrap">{co.co_number}</td>
-                                              <td className="text-start text-muted smallest" style={{ fontSize: '10px' }}>{co.description}</td>
                                               {toolKeys.map(k => (
                                                 <td key={k} className={k === lowestToolKey ? 'bt-highlight-lowest' : ''}>
                                                   {formatTool(co.tools?.[k], co.tools?.tool_details, k)}
