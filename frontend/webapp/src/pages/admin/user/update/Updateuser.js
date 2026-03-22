@@ -26,6 +26,7 @@ const Updateuser = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [roleList, setRoleList] = useState([]);
+  const [deptHasHod, setDeptHasHod] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,6 +52,33 @@ const Updateuser = () => {
       setLoading(false);
     }
   }, [location, isAdmin, loggedInUser?.user_id]);
+
+  // Check HOD conflict whenever role, department, or is_active changes
+  useEffect(() => {
+    const checkDeptHod = async () => {
+      const dept = formData.department;
+      const role = formData.role;
+      const isActive = formData.is_active;
+      const currentUserId = formData.user_id;
+
+      // Only applicable if HOD role selected, dept set, and user is active
+      if (!dept || role.toLowerCase() !== 'hod' || !isActive) {
+        setDeptHasHod(false);
+        return;
+      }
+      try {
+        const res = await api.get('/users/', { params: { role: 'HOD', department: dept, status: 'active' } });
+        const results = res.data?.results || res.data || [];
+        // Exclude current user from check
+        const others = Array.isArray(results) ? results.filter(u => String(u.user_id) !== String(currentUserId)) : [];
+        setDeptHasHod(others.length > 0);
+      } catch (err) {
+        console.warn('Could not check HOD for dept:', err);
+        setDeptHasHod(false);
+      }
+    };
+    checkDeptHod();
+  }, [formData.role, formData.department, formData.is_active, formData.user_id]);
 
   const fetchRoles = async () => {
     try {
@@ -243,22 +271,30 @@ const Updateuser = () => {
                 </div>
               </div>
 
-              {/* Flags */}
+              {/* Status / Active */}
               <div className="row mb-3 align-items-center">
                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Status :</label>
-                <div className="col-sm-9 d-flex gap-4">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      name="is_active"
-                      id="isActive"
-                      checked={formData.is_active}
-                      onChange={handleInputChange}
-                      disabled={!isAdmin || (isAdmin && String(formData.user_id) === String(loggedInUser?.user_id))}
-                    />
-                    <label className="form-check-label" htmlFor="isActive">Active</label>
+                <div className="col-sm-9 d-flex flex-column gap-1">
+                  <div className="d-flex gap-4">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        name="is_active"
+                        id="isActive"
+                        checked={formData.is_active}
+                        onChange={handleInputChange}
+                        disabled={!isAdmin || (isAdmin && String(formData.user_id) === String(loggedInUser?.user_id))}
+                      />
+                      <label className="form-check-label" htmlFor="isActive">Active</label>
+                    </div>
                   </div>
+                  {deptHasHod && (
+                    <small className="text-danger mt-1">
+                      <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                      This department already has an active HOD. Deactivate the current HOD before saving.
+                    </small>
+                  )}
                 </div>
               </div>
 
@@ -300,9 +336,14 @@ const Updateuser = () => {
               </div>
 
               <div className="update-btn-container d-flex justify-content-center mt-5">
-                <button type="submit" className="btn btn-outline-primary px-5 py-2 shadow-sm fw-bold" disabled={saving}>
+                <button type="submit" className="btn btn-outline-primary px-5 py-2 shadow-sm fw-bold" disabled={saving || deptHasHod}>
                   {saving ? 'Saving...' : (isAdmin ? 'Save Changes' : 'Update Profile')}
                 </button>
+                {deptHasHod && (
+                  <p className="text-danger text-center mt-2 small">
+                    Save disabled: HOD conflict detected for this department.
+                  </p>
+                )}
               </div>
             </form>
           </div>

@@ -179,8 +179,29 @@ class UserDetailAPIView(APIView):
 
         if 'status' in data:
             data['is_active'] = data['status'].lower() == 'active'
-            
-        # Ensure username stays in sync with email
+
+        # Enforce: only one active HOD per department on update
+        # Applies when role is being changed to HOD OR when user is being reactivated as existing HOD
+        resolved_role_id = data.get('role_id') or user.role_id_id
+        resolved_dept = data.get('department') or user.department_id
+        new_is_active = data.get('is_active', user.is_active)
+        if new_is_active:
+            try:
+                hod_role = UserRole.objects.get(role_name__iexact='HOD')
+                if int(resolved_role_id) == hod_role.role_id and resolved_dept:
+                    existing_hod = User.objects.filter(
+                        role_id=hod_role,
+                        department_id=resolved_dept,
+                        is_active=True
+                    ).exclude(pk=pk).first()   # exclude the user being updated
+                    if existing_hod:
+                        return Response(
+                            {"error": f"Department already has an active HOD ({existing_hod.name}). Deactivate them first before assigning a new HOD."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+            except UserRole.DoesNotExist:
+                pass
+
         if 'email' in data:
             data['username'] = data['email']
             

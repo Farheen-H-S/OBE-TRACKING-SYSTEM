@@ -27,22 +27,17 @@ const Teachplan = () => {
         const role = (user?.role_name || user?.role || '').toLowerCase();
         const isFaculty = role === 'faculty';
 
-        if (!selectedYear) return;
-
-        const normalizedYear = selectedYear.replace(/\s/g, '');
+        // Faculty: backend filters by FacultyCourseAssignment automatically (no year needed for course list)
+        // HOD/Coordinator: require dept selection
         if (!isFaculty && !selectedDept) return;
 
         try {
-            const params = {
-                academic_year: normalizedYear,
-            };
+            const params = {};
 
-            // For faculty: only dept + year, let backend filter by assignment.
-            // For HOD/Coordinator: apply all selected filters for precision.
+            // For faculty: only send program_id if available; backend returns their assigned courses
             if (selectedDept) params.program_id = selectedDept;
             if (!isFaculty) {
-                // Only apply these filters for non-faculty roles where
-                // the global context is reliably set by the HOD.
+                // Only apply these filters for non-faculty roles
                 if (selectedScheme) params.scheme_id = selectedScheme;
                 if (selectedClass) params.class_year = selectedClass;
                 if (selectedBatch) params.batch_id = selectedBatch;
@@ -63,7 +58,7 @@ const Teachplan = () => {
             console.error("Error fetching courses:", err);
             setCourses([]);
         }
-    }, [selectedDept, selectedYear, selectedScheme, selectedClass, selectedBatch, user]);
+    }, [selectedDept, selectedScheme, selectedClass, selectedBatch, user]);
 
     const fetchPlan = useCallback(async () => {
         if (!selectedCourseId) return;
