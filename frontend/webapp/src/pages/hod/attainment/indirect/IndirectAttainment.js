@@ -163,19 +163,25 @@ export default function IndirectAttainment() {
 
     const handleGenerateReport = async () => {
         try {
-            const response = await api.get(`/attainment/indirect-report/?batch_id=${selectedBatch}&program_id=${selectedDept}`, {
+            const response = await api.get('/attainment/indirect-report/', {
+                params: { batch_id: selectedBatch, program_id: selectedDept },
                 responseType: 'blob',
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Indirect_Attainment_Report_${selectedBatch}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error('Report generation failed:', err);
-            alert('Failed to generate report.');
+            if (err.response && err.response.status === 404) {
+                alert(`No admission batch found for year ${selectedBatch}. Please ensure the batch is created in Academic Setup.`);
+            } else {
+                alert('Failed to generate report.');
+            }
         }
     };
 
