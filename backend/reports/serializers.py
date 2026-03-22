@@ -7,14 +7,28 @@ class ReportSerializer(serializers.ModelSerializer):
     file_name = serializers.SerializerMethodField()
     created_by_name = serializers.CharField(source='user_id_created.name', read_only=True)
 
+    file_exists = serializers.SerializerMethodField()
+
+    batch_year = serializers.CharField(source='batch_id.batch_year', read_only=True, allow_null=True)
+
     class Meta:
         model = Report
-        fields = '__all__'
+        fields = [
+            'report_id', 'course_id', 'program_id', 'batch_id', 'report_type', 
+            'year', 'report_file', 'user_id_created', 'user_id_approved', 
+            'status', 'auditor_remark', 'created_at', 'updated_at',
+            'file_name', 'created_by_name', 'file_exists', 'batch_year'
+        ]
         read_only_fields = (
             'created_at',
             'updated_at',
             'user_id_created',
         )
+
+    def get_file_exists(self, obj):
+        if obj.report_file and obj.report_file.name:
+            return os.path.exists(obj.report_file.path)
+        return False
 
     def get_file_name(self, obj):
         if obj.report_file:
@@ -28,13 +42,26 @@ class DACReportSerializer(serializers.ModelSerializer):
     batch_name = serializers.CharField(source='batch_id.batch_name', read_only=True)
     file_name = serializers.SerializerMethodField()
 
+    file_exists = serializers.SerializerMethodField()
+
     class Meta:
         model = DACReport
         fields = '__all__'
+        fields = [
+            'dac_report_id', 'program_id', 'batch_id', 'academic_year', 
+            'class_name', 'semester', 'file', 'uploaded_by', 'uploaded_at', 
+            'status', 'auditor_remark', 'uploaded_by_name', 'program_name', 
+            'batch_name', 'file_name', 'file_exists'
+        ]
         read_only_fields = (
             'uploaded_at',
             'uploaded_by',
         )
+
+    def get_file_exists(self, obj):
+        if obj.file and obj.file.name:
+            return os.path.exists(obj.file.path)
+        return False
 
     def get_file_name(self, obj):
         if obj.file:

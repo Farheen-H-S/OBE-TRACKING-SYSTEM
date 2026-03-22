@@ -28,6 +28,7 @@ const Reportverifiy = () => {
     const [selectedBatch, setSelectedBatch] = useState(localStorage.getItem('selectedBatch') || '2025 - 26');
     const [selectedClass, setSelectedClass] = useState(localStorage.getItem('selectedClassYear') || '');
     const [selectedSem, setSelectedSem] = useState(localStorage.getItem('selectedSemester') || '');
+    const [applyContextFilters, setApplyContextFilters] = useState(false); // Default to false to show all reports
 
     const years = [];
     for (let i = 2019; i <= 2030; i++) {
@@ -84,8 +85,16 @@ const Reportverifiy = () => {
                 ...r,
                 report_id: r.report_id,
                 report_name: r.file_name || `${r.report_type} Report - ${r.course_id || r.batch_id || 'N/A'}`,
+                report_file: r.report_file,
                 display_status: r.status,
-                submitted_by: r.created_by_name || 'System'
+                submitted_by: r.created_by_name || 'System',
+                filters: {
+                    academicYear: r.year,
+                    batch: r.batch_id ? (r.batch_year ? `${r.batch_year} - ${(parseInt(r.batch_year)+3).toString().slice(-2)}` : null) : null,
+                    // Note: regular reports don't always have class/sem in the model
+                },
+                file_exists: r.file_exists,
+                source: 'System Generated'
             }));
 
             const dacReports = dacRes.data.map(r => ({
@@ -103,7 +112,9 @@ const Reportverifiy = () => {
                     batch: r.batch,
                     class: r.class_year,
                     semester: r.semester
-                }
+                },
+                file_exists: r.file_exists,
+                source: 'Manual Upload'
             }));
 
             setReports([...regularReports, ...dacReports]);
@@ -145,11 +156,20 @@ const Reportverifiy = () => {
 
         const matchesType = filterType === 'All' || r.report_type === filterType || (r.report_type === 'Batch' && filterType === 'PO/PSO Attainment');
 
-        // Context filtering
-        const matchesYear = !selectedYear || !r.filters?.academicYear || r.filters.academicYear === selectedYear;
-        const matchesBatch = !selectedBatch || !r.filters?.batch || r.filters.batch === selectedBatch;
-        const matchesClass = !selectedClass || !r.filters?.class || r.filters.class === selectedClass;
-        const matchesSem = !selectedSem || !r.filters?.semester || String(r.filters.semester) === String(selectedSem);
+        // Context filtering with normalization
+        const normalize = (val) => String(val || '').replace(/\s+/g, '').toLowerCase();
+
+        const matchesYear = !applyContextFilters || !selectedYear || selectedYear === 'All' || !r.filters?.academicYear || 
+            normalize(r.filters.academicYear) === normalize(selectedYear);
+            
+        const matchesBatch = !applyContextFilters || !selectedBatch || selectedBatch === 'All' || !r.filters?.batch || 
+            normalize(r.filters.batch) === normalize(selectedBatch);
+            
+        const matchesClass = !applyContextFilters || !selectedClass || selectedClass === 'All' || !r.filters?.class || 
+            normalize(r.filters.class) === normalize(selectedClass);
+            
+        const matchesSem = !applyContextFilters || !selectedSem || selectedSem === 'All' || !r.filters?.semester || 
+            String(r.filters.semester) === String(selectedSem);
 
         return matchesSearch && matchesType && matchesYear && matchesBatch && matchesClass && matchesSem;
     });
@@ -200,6 +220,20 @@ const Reportverifiy = () => {
                                     />
                                 </div>
                             </div>
+                            <div className="col-md-auto d-flex align-items-end">
+                                <div className="form-check form-switch mb-2">
+                                    <input 
+                                        className="form-check-input" 
+                                        type="checkbox" 
+                                        id="contextFilterToggle" 
+                                        checked={applyContextFilters}
+                                        onChange={(e) => setApplyContextFilters(e.target.checked)}
+                                    />
+                                    <label className="form-check-label small fw-bold text-muted" htmlFor="contextFilterToggle">
+                                        Filter by Global Context
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -225,6 +259,12 @@ const Reportverifiy = () => {
                                             <td>{report.report_id}</td>
                                             <td className="text-start fw-bold report-name-cell" title={report.report_name}>
                                                 {report.report_name}
+                                                {!report.file_exists && (
+                                                    <span className="ms-2 badge bg-warning text-dark px-2" style={{ fontSize: '10px' }}>Missing</span>
+                                                )}
+                                                <div className="text-muted" style={{ fontSize: '10px', fontWeight: 'normal' }}>
+                                                    Source: {report.source}
+                                                </div>
                                             </td>
                                             <td className="small">{report.report_type}</td>
                                             <td className="small">{new Date(report.created_at).toLocaleString()}</td>
@@ -235,8 +275,9 @@ const Reportverifiy = () => {
                                                         href={report.report_file}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className="btn btn-view btn-sm"
-                                                        title="View Report"
+                                                        className={`btn btn-view btn-sm ${!report.file_exists ? 'disabled' : ''}`}
+                                                        title={report.file_exists ? "View Report" : "File missing on server"}
+                                                        onClick={(e) => { if (!report.file_exists) e.preventDefault(); }}
                                                     >
                                                         View
                                                     </a>

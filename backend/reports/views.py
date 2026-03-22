@@ -15,9 +15,20 @@ class ReportListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(status='Approved')
         return queryset
 
+import os
+
 class ReportDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
+    
+    def perform_destroy(self, instance):
+        # Delete the file from the disk
+        if instance.report_file and os.path.exists(instance.report_file.path):
+            try:
+                os.remove(instance.report_file.path)
+            except Exception:
+                pass
+        instance.delete()
 
 class ReportVerificationView(generics.ListAPIView):
     """
@@ -175,6 +186,13 @@ class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         if user:
             log_action(user, 'DELETE', 'DACReport', instance.dac_report_id, remark=f"Deleted DAC Report: {instance.file.name}")
             
+        # Delete the file from the disk
+        if instance.file and os.path.exists(instance.file.path):
+            try:
+                os.remove(instance.file.path)
+            except Exception:
+                pass
+                
         instance.delete()
 
 class AuditorBoardView(APIView):

@@ -210,6 +210,11 @@ const Dacreview = () => {
                                                             <span className="file-name text-truncate" style={{ maxWidth: '250px' }} title={file.file.split('/').pop()}>
                                                                 {file.file.split('/').pop()}
                                                             </span>
+                                                            {!file.file_exists && (
+                                                                <span className="ms-2 badge bg-warning text-dark" title="File not found on server">
+                                                                    Missing
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td>
@@ -223,12 +228,14 @@ const Dacreview = () => {
                                                     <td className="text-center">
                                                         <div className="d-flex justify-content-center gap-2">
                                                             <button
-                                                                className="btn btn-sm btn-outline-primary"
+                                                                className={`btn btn-sm btn-outline-primary ${!file.file_exists ? 'disabled' : ''}`}
                                                                 onClick={() => {
+                                                                    if (!file.file_exists) return;
                                                                     const url = file.file.startsWith('http') ? file.file : `http://127.0.0.1:8000${file.file}`;
                                                                     window.open(url, '_blank');
                                                                 }}
-                                                                title="Download/View File"
+                                                                title={file.file_exists ? "Download/View File" : "File missing on server"}
+                                                                disabled={!file.file_exists}
                                                             >
                                                                 <FaDownload />
                                                             </button>
