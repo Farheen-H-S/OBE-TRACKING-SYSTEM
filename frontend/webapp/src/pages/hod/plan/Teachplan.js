@@ -37,14 +37,16 @@ const Teachplan = () => {
                 academic_year: normalizedYear,
             };
 
-            // For Faculty, we rely primarily on their assignments. 
-            // We only apply additional filters if THEY are explicitly selected and not just defaults.
-            // Simplified: For now, let's just send academic_year and let backend handle the rest for faculty.
+            // For faculty: only dept + year, let backend filter by assignment.
+            // For HOD/Coordinator: apply all selected filters for precision.
             if (selectedDept) params.program_id = selectedDept;
-            if (selectedSemester) params.semester = selectedSemester;
-            if (selectedScheme) params.scheme_id = selectedScheme;
-            if (selectedClass) params.class_year = selectedClass;
-            if (selectedBatch) params.batch_id = selectedBatch;
+            if (!isFaculty) {
+                // Only apply these filters for non-faculty roles where
+                // the global context is reliably set by the HOD.
+                if (selectedScheme) params.scheme_id = selectedScheme;
+                if (selectedClass) params.class_year = selectedClass;
+                if (selectedBatch) params.batch_id = selectedBatch;
+            }
 
             const res = await api.get('/academics/courses/', { params });
             setCourses(res.data);
@@ -61,7 +63,7 @@ const Teachplan = () => {
             console.error("Error fetching courses:", err);
             setCourses([]);
         }
-    }, [selectedDept, selectedYear, selectedSemester, selectedScheme, selectedClass, selectedBatch, user]);
+    }, [selectedDept, selectedYear, selectedScheme, selectedClass, selectedBatch, user]);
 
     const fetchPlan = useCallback(async () => {
         if (!selectedCourseId) return;

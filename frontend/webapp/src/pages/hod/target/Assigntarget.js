@@ -167,22 +167,30 @@ const Assigntarget = () => {
         const att = poAttainmentMap[p.po_id];
         const tVal = poTargetMap[String(p.po_id)] || '0';
         const aVal = att ? (att.normalized_value || att.attainment_value || 0).toFixed(2) : '-';
+        // Always compute gap from displayed target - achieved (frontend is source of truth for display)
+        const gapVal = aVal === '-'
+          ? (parseFloat(tVal) - 0).toFixed(2)
+          : (parseFloat(tVal) - parseFloat(aVal)).toFixed(2);
         return {
           ...p,
           targetLevel: tVal,
           achievedLevel: aVal,
-          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : (att.gap !== undefined ? att.gap.toFixed(2) : (parseFloat(tVal) - parseFloat(aVal)).toFixed(2))
+          gap: gapVal
         };
       }));
       setPsos(psoArr.map(p => {
         const att = psoAttainmentMap[p.pso_id];
         const tVal = psoTargetMap[String(p.pso_id)] || '0';
         const aVal = att ? (att.normalized_value || att.attainment_value || 0).toFixed(2) : '-';
+        // Always compute gap from displayed target - achieved (frontend is source of truth for display)
+        const gapVal = aVal === '-'
+          ? (parseFloat(tVal) - 0).toFixed(2)
+          : (parseFloat(tVal) - parseFloat(aVal)).toFixed(2);
         return {
           ...p,
           targetLevel: tVal,
           achievedLevel: aVal,
-          gap: aVal === '-' ? (parseFloat(tVal) - 0).toFixed(2) : (att.gap !== undefined ? att.gap.toFixed(2) : (parseFloat(tVal) - parseFloat(aVal)).toFixed(2))
+          gap: gapVal
         };
       }));
 

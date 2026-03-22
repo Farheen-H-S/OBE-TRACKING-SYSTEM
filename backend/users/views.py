@@ -97,6 +97,26 @@ class UserListCreateAPIView(APIView):
                 except (Program.DoesNotExist, ImportError):
                     pass
 
+        # Enforce: only one active HOD per department
+        resolved_role_id = data.get('role_id')
+        resolved_dept = data.get('department')
+        if resolved_role_id and resolved_dept:
+            try:
+                hod_role = UserRole.objects.get(role_name__iexact='HOD')
+                if int(resolved_role_id) == hod_role.role_id:
+                    existing_hod = User.objects.filter(
+                        role_id=hod_role,
+                        department_id=resolved_dept,
+                        is_active=True
+                    ).first()
+                    if existing_hod:
+                        return Response(
+                            {"error": f"Department already has an active HOD ({existing_hod.name}). Please deactivate the current HOD before assigning a new one."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+            except UserRole.DoesNotExist:
+                pass
+
         serializer = UserSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()

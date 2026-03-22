@@ -17,6 +17,7 @@ const CreateUser = () => {
         date_of_joining: new Date().toISOString().split('T')[0], // YYYY-MM-DD for date input
         username: '',
         password: '',
+        is_active: true,
     });
     const [profilePic, setProfilePic] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
@@ -29,6 +30,7 @@ const CreateUser = () => {
     const [bulkResults, setBulkResults] = useState(null);
     const [programs, setPrograms] = useState([]);
     const [roleList, setRoleList] = useState([]);
+    const [deptHasHod, setDeptHasHod] = useState(false);
 
     useEffect(() => {
         fetchPrograms();
@@ -57,6 +59,31 @@ const CreateUser = () => {
     useEffect(() => {
         setFormData(prev => ({ ...prev, username: prev.email }));
     }, [formData.email]);
+
+    // Check if selected department already has an active HOD
+    useEffect(() => {
+        const checkDeptHod = async () => {
+            const dept = formData.department;
+            if (!dept) {
+                setDeptHasHod(false);
+                return;
+            }
+            try {
+                const res = await api.get('/users/', { params: { role: 'HOD', department: dept, status: 'active' } });
+                const results = res.data?.results || res.data || [];
+                const hasHod = Array.isArray(results) && results.length > 0;
+                setDeptHasHod(hasHod);
+                // Clear HOD selection if conflict detected
+                if (hasHod && formData.role.toLowerCase() === 'hod') {
+                    setFormData(prev => ({ ...prev, role: '' }));
+                }
+            } catch (err) {
+                console.warn('Could not check HOD for dept:', err);
+                setDeptHasHod(false);
+            }
+        };
+        checkDeptHod();
+    }, [formData.department]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -155,14 +182,25 @@ const CreateUser = () => {
                         <div className="row mb-3 align-items-center">
                             <label className="col-sm-3 col-form-label fw-bold text-secondary">Role :</label>
                             <div className="col-sm-3">
-                                <select name="role" className="form-select" value={formData.role} onChange={handleInputChange}>
+                        <select name="role" className="form-select" value={formData.role} onChange={handleInputChange}>
                                     <option value="" hidden>Select Role</option>
                                     {roleList.map(role => (
-                                        <option key={role.role_id} value={role.role_name}>
-                                            {role.role_name}
+                                        <option
+                                            key={role.role_id}
+                                            value={role.role_name}
+                                            disabled={role.role_name.toLowerCase() === 'hod' && deptHasHod}
+                                            title={role.role_name.toLowerCase() === 'hod' && deptHasHod ? 'This department already has an active HOD' : ''}
+                                        >
+                                            {role.role_name}{role.role_name.toLowerCase() === 'hod' && deptHasHod ? ' (Occupied)' : ''}
                                         </option>
                                     ))}
                                 </select>
+                                {deptHasHod && formData.department && (
+                                    <small className="text-warning mt-1 d-block">
+                                        <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                                        This department already has an active HOD. HOD role is unavailable.
+                                    </small>
+                                )}
                             </div>
                         </div>
 
