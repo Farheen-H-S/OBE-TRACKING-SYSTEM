@@ -31,7 +31,8 @@ const Layout = ({ children, role }) => {
         // Hidden Group
         if (effectiveRole === 'ADMIN' ||
             path === '/profile' ||
-            path === '/add-course') {
+            path === '/add-course' ||
+            path === '/report-verification') {
             return [];
         }
 
@@ -69,7 +70,7 @@ const Layout = ({ children, role }) => {
         }
 
         // Dept & Scheme Only Group
-        const deptSchemePages = ['/report-verification', '/view-reports'];
+        const deptSchemePages = ['/view-reports'];
         if (deptSchemePages.includes(path)) {
             return ['dept', 'scheme'];
         }
