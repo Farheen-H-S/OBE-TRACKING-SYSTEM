@@ -190,20 +190,23 @@ class SurveyStatsView(APIView):
         semester = request.query_params.get('semester')
         division = request.query_params.get('division')
         
+        is_rp_survey = survey.resource_person_name or 'Resource Person' in survey.survey_name
+        
         if survey.survey_category in ['indirect', 'course_exit']:
             # Student Profile fields like academic_year or class_year often signify admission year or current state,
             # which mismatch the OIT dashboard's contextual filters. Only filter by true grouping constraints.
-            if batch_id and str(batch_id).lower() != 'all':
-                if str(batch_id).isdigit():
-                    responses = responses.filter(student_id__batch_id=batch_id)
-                else:
-                    try:
-                        start_year = int(str(batch_id).replace(" ", "").split("-")[0])
-                        responses = responses.filter(student_id__batch_id__batch_year=start_year)
-                    except ValueError:
-                        pass
-            if division and str(division).lower() != 'all': 
-                responses = responses.filter(student_id__division=division)
+            # CRITICAL: Skip student-specific filters for Resource Person surveys as they don't have a student_id.
+            if not is_rp_survey:
+                if batch_id and str(batch_id).lower() != 'all':
+                    if str(batch_id).isdigit():
+                        responses = responses.filter(student_id__batch_id=batch_id)
+                    else:
+                        try:
+                            start_year = int(str(batch_id).replace(" ", "").split("-")[0])
+                            responses = responses.filter(student_id__batch_id__batch_year=start_year)
+                        except ValueError:
+                            pass
+                    responses = responses.filter(student_id__division=division)
         else:
             if any([batch_id, academic_year, class_year, semester, division]):
                 if batch_id and str(batch_id).lower() != 'all':
@@ -221,7 +224,7 @@ class SurveyStatsView(APIView):
                 if division and str(division).lower() != 'all': responses = responses.filter(student_id__division=division)
 
         # 2. Get questions: Specifically for this survey
-        questions = SurveyQuestion.objects.filter(survey_id=survey)
+        questions = list(SurveyQuestion.objects.filter(survey_id=survey))
         
         # Identify unique statements and teacher names
         unique_statements = []
@@ -264,7 +267,9 @@ class SurveyStatsView(APIView):
                 stmt = text
                 if stmt not in unique_statements:
                     unique_statements.append(stmt)
-                teacher_names.add('General')
+                # If it's a Resource Person survey, use the RP name as the teacher
+                t_name = (survey.resource_person_name or 'Expert Speaker') if is_rp_survey else 'General'
+                teacher_names.add(t_name)
 
         q_map = {} # question_id -> {statement, teacher}
         for q in questions:
@@ -273,11 +278,12 @@ class SurveyStatsView(APIView):
              if len(parts) >= 2:
                  q_map[q.question_id] = {'statement': parts[1].strip(), 'teacher': parts[0].strip()}
              else:
-                 q_map[q.question_id] = {'statement': text, 'teacher': 'General'}
+                 # If it's a Resource Person survey, use the RP name as the teacher if not explicitly provided
+                 teacher_name = (survey.resource_person_name or 'Expert Speaker') if is_rp_survey else 'General'
+                 q_map[q.question_id] = {'statement': text, 'teacher': teacher_name}
 
         # Aggregate scores
         from collections import defaultdict
-        # teacher_scores[teacher][statement] = [scores...]
         teacher_scores = defaultdict(lambda: defaultdict(list))
         
         for res in responses.prefetch_related('answers'):
@@ -329,7 +335,7 @@ class SurveyStatsView(APIView):
 
         # Build Teacher Matrix (only if it looks like a matrix/indirect survey)
         teacher_data = []
-        has_matrix = any('|' in q.question_text for q in canonical_questions)
+        has_matrix = any('|' in q.question_text for q in questions) or is_rp_survey
         if has_matrix:
             for t_name in teacher_names:
                 row = {'teacher': t_name, 'scores': {}, 'achieved_score': 0}
@@ -368,10 +374,10 @@ class SurveyStatsView(APIView):
                         (q.pso_id.description if q.pso_id else
                          (q.co_id.description if q.co_id else ''))
                     ),
-                    "question_text": q.question_text,
+                    "question_text": q_map.get(q.question_id, {}).get('statement', q.question_text),
                     "question_id": q.question_id
-                } for q in canonical_questions
-            ] if not has_matrix else unique_statements,
+                } for q in (canonical_questions if not has_matrix else [q for q in canonical_questions if q_map.get(q.question_id, {}).get('statement') in unique_statements])
+            ],
             'responses': responses_list,
             'teachers': teacher_data,
             'total_responses': len(responses_list)
@@ -424,18 +430,22 @@ class SurveyExportView(APIView):
         batch_id = request.query_params.get('batch_id')
         academic_year = request.query_params.get('academic_year')
         
+        is_rp_survey = survey.resource_person_name or 'Resource Person' in survey.survey_name
+
         if survey.survey_category in ['indirect', 'course_exit']:
-            if batch_id and str(batch_id).lower() != 'all':
-                if str(batch_id).isdigit():
-                    responses = responses.filter(student_id__batch_id=batch_id)
-                else:
-                    try:
-                        start_year = int(str(batch_id).replace(" ", "").split("-")[0])
-                        responses = responses.filter(student_id__batch_id__batch_year=start_year)
-                    except ValueError:
-                        pass
+            # Skip student-specific filters for Resource Person surveys
+            if not is_rp_survey:
+                if batch_id and str(batch_id).lower() != 'all':
+                    if str(batch_id).isdigit():
+                        responses = responses.filter(student_id__batch_id=batch_id)
+                    else:
+                        try:
+                            start_year = int(str(batch_id).replace(" ", "").split("-")[0])
+                            responses = responses.filter(student_id__batch_id__batch_year=start_year)
+                        except ValueError:
+                            pass
             # Do NOT filter student_id__academic_year for OIT/CES 
-             # because student records represent their admission/latest state, which differs from survey context year
+            # because student records represent their admission/latest state, which differs from survey context year
         else:
             if batch_id and str(batch_id).lower() != 'all':
                 if str(batch_id).isdigit():
@@ -455,6 +465,8 @@ class SurveyExportView(APIView):
         teacher_names = set()
         q_map = {}
         
+        is_rp_survey = survey.resource_person_name or 'Resource Person' in survey.survey_name
+        
         for q in questions:
             parts = q.question_text.split('|')
             if len(parts) >= 2:
@@ -468,8 +480,10 @@ class SurveyExportView(APIView):
                 stmt = q.question_text.strip()
                 if stmt not in unique_statements:
                     unique_statements.append(stmt)
-                q_map[q.question_id] = {'statement': stmt, 'teacher': 'General'}
-                teacher_names.add('General')
+                # If it's a Resource Person survey, use the RP name as the teacher
+                t_name = (survey.resource_person_name or 'Expert Speaker') if is_rp_survey else 'General'
+                q_map[q.question_id] = {'statement': stmt, 'teacher': t_name}
+                teacher_names.add(t_name)
 
         from collections import defaultdict
         teacher_scores = defaultdict(lambda: defaultdict(list))
