@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
+# import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-h*m-4kgy)@n)j_vcy)9ck6&w-)=!f!mj5gwga(=8ga6y3ncb$g'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-h*m-4kgy)@n)j_vcy)9ck6&w-)=!f!mj5gwga(=8ga6y3ncb$g')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -58,8 +60,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -131,15 +133,10 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+ 
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
  
 # Media files (Profile pictures, etc.)
 MEDIA_URL = '/media/'
@@ -160,11 +157,12 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
-
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
 
 # Email Configuration (Google SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
