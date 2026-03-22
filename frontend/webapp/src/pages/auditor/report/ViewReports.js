@@ -4,6 +4,7 @@ import { FaFilter, FaSearch, FaSave, FaPlus, FaTrash, FaEye, FaFileDownload, FaT
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
 import { Badge, Modal, Table, Button } from 'react-bootstrap';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const ViewReports = () => {
     const user = getLoggedInUser();
@@ -25,6 +26,7 @@ const ViewReports = () => {
         type: 'All'
     });
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [selectedReport, setSelectedReport] = useState(null);
 
     // Remarks State: { rows: [['','','']] } -> Single Unified Board
@@ -207,7 +209,7 @@ const ViewReports = () => {
     };
 
     const filteredReports = reports.filter(r => {
-        const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = r.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
         const matchesProgram = !filters.program || (r.filters.program && r.filters.program.toString() === filters.program);
         const matchesType = filters.type === 'All' || r.type === filters.type;
         return matchesSearch && matchesProgram && matchesType;

@@ -9,6 +9,7 @@ import { Modal, Button, Table, Form, Alert } from 'react-bootstrap';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '../../../../utils/semesterUtils';
 
 import { useFilters } from '../../../../context/FilterContext';
+import { useDebounce } from '../../../../utils/useDebounce';
 
 export default function Cisdirectrep() {
     const navigate = useNavigate();
@@ -44,6 +45,7 @@ export default function Cisdirectrep() {
     const [atrSaving, setAtrSaving] = React.useState(false);
     const [requestingAtr, setRequestingAtr] = React.useState(null); // course_id
     const [searchTerm, setSearchTerm] = React.useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     const CLASS_OPTIONS = ['FY', 'SY', 'TY'];
     const [semesterOptions, setSemesterOptions] = React.useState(() => getSemesterOptions(selectedClass || ''));
@@ -97,7 +99,7 @@ export default function Cisdirectrep() {
     };
 
     const filteredCoursesDropdown = courses.filter(course => {
-        const term = searchTerm.toLowerCase();
+        const term = debouncedSearchTerm.toLowerCase();
         return (course.course_name || "").toLowerCase().includes(term) ||
             (course.course_code || "").toLowerCase().includes(term) ||
             (course.course_title || "").toLowerCase().includes(term) ||

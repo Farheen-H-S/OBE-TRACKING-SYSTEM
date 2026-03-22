@@ -109,7 +109,6 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                     </div>
                 </li>
 
-                {/* Attainment >> direct, indirect, po */}
                 <li className="nav-item">
                     <div
                         className="menu-item d-flex align-items-center text-white pe-4"
@@ -121,22 +120,22 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
                     </div>
                     {openMenu === 'Attainment' && (
                         <div className="submenu bg-white bg-opacity-10 ps-3">
-                            <div 
-                                className="py-2 text-white cursor-pointer" 
+                            <div
+                                className="py-2 text-white cursor-pointer"
                                 style={{ fontSize: '0.9rem' }}
                                 onClick={() => navigate("/direct-attainment")}
                             >
                                 Direct Attainment
                             </div>
-                            <div 
-                                className="py-2 text-white cursor-pointer" 
+                            <div
+                                className="py-2 text-white cursor-pointer"
                                 style={{ fontSize: '0.9rem' }}
                                 onClick={() => navigate("/indirect-attainment")}
                             >
                                 Indirect Attainment
                             </div>
-                            <div 
-                                className="py-2 text-white cursor-pointer" 
+                            <div
+                                className="py-2 text-white cursor-pointer"
                                 style={{ fontSize: '0.9rem' }}
                                 onClick={() => navigate("/po-pso-attainment")}
                             >

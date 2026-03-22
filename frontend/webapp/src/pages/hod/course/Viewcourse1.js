@@ -4,6 +4,7 @@ import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
 import { useFilters } from '../../../context/FilterContext';
 import './Viewcourse1.css';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const Viewcourse1 = ({ isMyCourses = false }) => {
     const navigate = useNavigate();
@@ -11,6 +12,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
     const [isEditingLink, setIsEditingLink] = useState(false);
     const [newLinkValue, setNewLinkValue] = useState("");
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [copySuccess, setCopySuccess] = useState('');
 
     const copyToClipboard = () => {
@@ -98,7 +100,7 @@ const Viewcourse1 = ({ isMyCourses = false }) => {
     }, [isMyCourses, selectedDept, selectedScheme, selectedIntroYear, selectedBatch]);
 
     const filteredCourses = courses.filter(course => {
-        const term = searchTerm.toLowerCase();
+        const term = debouncedSearchTerm.toLowerCase();
         const matchesSearch =
             (course.course_name || "").toLowerCase().includes(term) ||
             (course.course_code || "").toLowerCase().includes(term) ||

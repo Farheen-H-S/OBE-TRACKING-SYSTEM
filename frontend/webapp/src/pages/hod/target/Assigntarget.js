@@ -4,6 +4,7 @@ import './Assigntarget.css';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { BsFileEarmarkExcelFill } from 'react-icons/bs';
 import { useFilters } from '../../../context/FilterContext';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const Assigntarget = () => {
   const {
@@ -32,6 +33,7 @@ const Assigntarget = () => {
   const [atrText, setAtrText] = useState('');
   const [savingAtr, setSavingAtr] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     if (selectedDept && selectedYear) {
@@ -192,10 +194,10 @@ const Assigntarget = () => {
   };
 
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = (course.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.code || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.abbr || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (course.name || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (course.code || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (course.title || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (course.abbr || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
     const matchesDept = !selectedDept || selectedDept === 'All' || String(course.program_id) === String(selectedDept);
     const matchesScheme = !selectedScheme || selectedScheme === 'All' || String(course.scheme_id) === String(selectedScheme);

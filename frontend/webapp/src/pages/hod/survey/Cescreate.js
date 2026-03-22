@@ -4,6 +4,7 @@ import api from '../../../utils/axios';
 import { FaCopy, FaCheckCircle, FaExclamationCircle, FaSearch, FaFilter, FaEdit, FaCheck } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType } from '../../../utils/semesterUtils';
 import { useFilters } from '../../../context/FilterContext';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const Cescreate = () => {
     const {
@@ -34,6 +35,7 @@ const Cescreate = () => {
 
     // Search state
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     // Survey states
     const [surveyStates, setSurveyStates] = useState({}); // { courseId: { status, duration, link } }
@@ -558,7 +560,7 @@ const Cescreate = () => {
     };
 
     const filteredCourses = courses.filter(c => {
-        const term = searchTerm.toLowerCase();
+        const term = debouncedSearchTerm.toLowerCase();
         return (c.course_name || "").toLowerCase().includes(term) ||
             (c.course_code || "").toLowerCase().includes(term) ||
             (c.course_title || "").toLowerCase().includes(term) ||

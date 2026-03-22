@@ -10,6 +10,7 @@ import {
   FaEye, FaPaperclip, FaEdit, FaExclamationCircle, FaUpload, FaFileExcel, FaCheckDouble
 } from 'react-icons/fa';
 import { getDefaultSemester, getCachedSemesterType, getSemesterOptions as computeSemesterOptions } from '../../../utils/semesterUtils';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const Cisentry = () => {
   const location = useLocation();
@@ -69,6 +70,7 @@ const Cisentry = () => {
   }, [selectedCourse, setGlobalSelectedCourse]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [allCourses, setAllCourses] = useState([]);
   const [assessmentType, setAssessmentType] = useState('Internal');
   const [selectedTool, setSelectedTool] = useState('FA-TH-CT1');
@@ -1636,8 +1638,8 @@ const Cisentry = () => {
                       <div className="search-results-overlay shadow border rounded mt-1 bg-white" style={{ position: 'absolute', zIndex: 1000, width: '100%', maxHeight: '300px', overflowY: 'auto' }}>
                         {allCourses
                           .filter(c =>
-                            ((c.course_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              (c.course_code || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
+                            ((c.course_name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                              (c.course_code || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase())) &&
                             !['TEST101', 'CS101'].includes(c.course_code)
                           )
                           .slice(0, 10)

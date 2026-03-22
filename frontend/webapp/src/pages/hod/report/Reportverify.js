@@ -3,6 +3,7 @@ import { Modal, Button, Table } from 'react-bootstrap';
 import './Reportverify.css';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
 
@@ -17,6 +18,7 @@ const Reportverifiy = () => {
 
     const [reports, setReports] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [filterType, setFilterType] = useState('All');
     const [programs, setPrograms] = useState([]);
     const [schemes, setSchemes] = useState([]);
@@ -167,7 +169,7 @@ const Reportverifiy = () => {
     const filteredReports = reports.filter(r => {
         const typeMatchName = r.report_type ? String(r.report_type).toLowerCase() : '';
         const userMatchName = r.submitted_by ? String(r.submitted_by).toLowerCase() : '';
-        const searchLow = searchTerm.toLowerCase();
+        const searchLow = debouncedSearchTerm.toLowerCase();
 
         const matchesSearch = typeMatchName.includes(searchLow) ||
             userMatchName.includes(searchLow) ||

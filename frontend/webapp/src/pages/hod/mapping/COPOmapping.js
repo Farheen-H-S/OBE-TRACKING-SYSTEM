@@ -5,6 +5,7 @@ import api from '../../../utils/axios';
 import './COPOmapping.css';
 import { useFilters } from '../../../context/FilterContext';
 import { getLoggedInUser } from '../../../utils/auth';
+import { useDebounce } from '../../../utils/useDebounce';
 
 const COPOmapping = () => {
     const {
@@ -26,6 +27,7 @@ const COPOmapping = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [existingCoursesAll, setExistingCoursesAll] = useState([]);
     const [showStatements, setShowStatements] = useState(false);
     const [cos, setCos] = useState([]);
@@ -243,7 +245,7 @@ const COPOmapping = () => {
                                             <div className="search-results-overlay shadow-sm" style={{ maxHeight: '300px', overflowY: 'auto', zIndex: 1000 }}>
                                                 {existingCoursesAll
                                                     .filter(c => {
-                                                        const term = searchTerm.toLowerCase();
+                                                        const term = debouncedSearchTerm.toLowerCase();
                                                         return (
                                                             (c.course_name || "").toLowerCase().includes(term) ||
                                                             (c.course_code || "").toLowerCase().includes(term) ||
