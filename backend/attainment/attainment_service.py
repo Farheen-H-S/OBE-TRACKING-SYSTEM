@@ -124,7 +124,7 @@ class AttainmentService:
             final_val = d_val * 0.8 + i_val * 0.2
             final_psos[pso.pso_id] = final_val
             
-            target_obj = PSOTarget.objects.filter(pso_id=pso, academic_year=academic_year).first()
+            target_obj = PSOTarget.objects.filter(ay_query, pso_id=pso).first()
             target_val = target_obj.target_value if target_obj else 2.5 # Updated default PSO target score
             gap = target_val - final_val
             
