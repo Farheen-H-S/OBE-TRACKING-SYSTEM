@@ -202,16 +202,7 @@ const Assigntarget = () => {
     const matchesDept = !selectedDept || selectedDept === 'All' || String(course.program_id) === String(selectedDept);
     const matchesScheme = !selectedScheme || selectedScheme === 'All' || String(course.scheme_id) === String(selectedScheme);
 
-    // If a specific batch/class/sem is selected, try to match but don't hide everything if it's broad
-    const matchesClass = !selectedClass || selectedClass === 'All' || (course.class_year && selectedClass.includes(course.class_year));
-    const matchesSem = !selectedSem || selectedSem === 'All' || String(course.semester) === String(selectedSem);
-
-    // Batch matching: If no batch selected, or course has no batches (allow assignment), or it matches
-    const matchesBatch = !selectedBatch || selectedBatch === 'All' ||
-      (course.batch_list && course.batch_list.length === 0) ||
-      (course.batch_list && course.batch_list.some(b => String(b) === String(selectedBatch)));
-
-    return matchesSearch && matchesDept && matchesScheme && matchesClass && matchesSem && matchesBatch;
+    return matchesSearch && matchesDept && matchesScheme;
   });
 
 
@@ -442,17 +433,6 @@ const Assigntarget = () => {
                 <i className="bi bi-info-circle me-1"></i>
                 <strong>Helper Note:</strong> Course Targets change and are evaluated per Semester.
               </div>
-
-              {/* TEMPORARY UI DOM DEBUGGER */}
-              <div className="alert alert-secondary border-secondary p-2 mb-3 mt-2" style={{ fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'pre-wrap' }}>
-                <strong className="text-dark">Antigravity Debug:</strong><br/>
-                Total Fetched Courses: {courses.length}<br/>
-                Total Filtered Courses: {filteredCourses.length}<br/>
-                Selected Context: Dept={selectedDept}, Scheme={selectedScheme}, Class={selectedClass}, Sem={selectedSem}, Batch={selectedBatch}<br/>
-                First Filtered Course Dump: {filteredCourses.length > 0 ? JSON.stringify(filteredCourses[0]) : "None"}<br/>
-                First Source Course Dump: {courses.length > 0 ? JSON.stringify(courses[0]) : "None"}
-              </div>
-
               <table className="table table-bordered align-middle target-table-refined">
                 <thead>
                   <tr>
