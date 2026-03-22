@@ -89,8 +89,7 @@ const Reportverifiy = () => {
                 submitted_by: r.created_by_name || 'System',
                 filters: {
                     academicYear: r.year,
-                    batch: r.batch_id ? (r.batch_year ? `${r.batch_year} - ${(parseInt(r.batch_year)+3).toString().slice(-2)}` : null) : null,
-                    // Note: regular reports don't always have class/sem in the model
+                    batch: r.batch_display_name,
                 },
                 file_exists: r.file_exists,
                 source: 'System Generated'
@@ -108,7 +107,7 @@ const Reportverifiy = () => {
                 // Map filters for consistent filtering logic
                 filters: {
                     academicYear: r.academic_year,
-                    batch: r.batch_name || r.batch,
+                    batch: r.batch_display_name,
                     class: r.class_year || r.class_name,
                     semester: r.semester
                 },
