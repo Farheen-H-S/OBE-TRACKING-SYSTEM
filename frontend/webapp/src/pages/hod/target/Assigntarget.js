@@ -442,6 +442,17 @@ const Assigntarget = () => {
                 <i className="bi bi-info-circle me-1"></i>
                 <strong>Helper Note:</strong> Course Targets change and are evaluated per Semester.
               </div>
+
+              {/* TEMPORARY UI DOM DEBUGGER */}
+              <div className="alert alert-secondary border-secondary p-2 mb-3 mt-2" style={{ fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'pre-wrap' }}>
+                <strong className="text-dark">Antigravity Debug:</strong><br/>
+                Total Fetched Courses: {courses.length}<br/>
+                Total Filtered Courses: {filteredCourses.length}<br/>
+                Selected Context: Dept={selectedDept}, Scheme={selectedScheme}, Class={selectedClass}, Sem={selectedSem}, Batch={selectedBatch}<br/>
+                First Filtered Course Dump: {filteredCourses.length > 0 ? JSON.stringify(filteredCourses[0]) : "None"}<br/>
+                First Source Course Dump: {courses.length > 0 ? JSON.stringify(courses[0]) : "None"}
+              </div>
+
               <table className="table table-bordered align-middle target-table-refined">
                 <thead>
                   <tr>
