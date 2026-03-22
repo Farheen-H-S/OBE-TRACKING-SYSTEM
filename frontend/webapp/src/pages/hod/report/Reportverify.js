@@ -28,7 +28,6 @@ const Reportverifiy = () => {
     const [selectedBatch, setSelectedBatch] = useState(localStorage.getItem('selectedBatch') || '2025 - 26');
     const [selectedClass, setSelectedClass] = useState(localStorage.getItem('selectedClassYear') || '');
     const [selectedSem, setSelectedSem] = useState(localStorage.getItem('selectedSemester') || '');
-    const [applyContextFilters, setApplyContextFilters] = useState(false); // Default to false to show all reports
 
     const years = [];
     for (let i = 2019; i <= 2030; i++) {
@@ -103,14 +102,14 @@ const Reportverifiy = () => {
                 report_type: 'DAC Report',
                 report_name: r.file_name || `DAC Report - ${r.academic_year} (${r.semester})`,
                 report_file: r.file,
-                created_at: r.created_at,
+                created_at: r.uploaded_at,
                 display_status: r.status,
                 submitted_by: r.uploaded_by_name || 'System',
                 // Map filters for consistent filtering logic
                 filters: {
                     academicYear: r.academic_year,
-                    batch: r.batch,
-                    class: r.class_year,
+                    batch: r.batch_name || r.batch,
+                    class: r.class_year || r.class_name,
                     semester: r.semester
                 },
                 file_exists: r.file_exists,
@@ -159,16 +158,16 @@ const Reportverifiy = () => {
         // Context filtering with normalization
         const normalize = (val) => String(val || '').replace(/\s+/g, '').toLowerCase();
 
-        const matchesYear = !applyContextFilters || !selectedYear || selectedYear === 'All' || !r.filters?.academicYear || 
+        const matchesYear = !selectedYear || selectedYear === 'All' || !r.filters?.academicYear || 
             normalize(r.filters.academicYear) === normalize(selectedYear);
             
-        const matchesBatch = !applyContextFilters || !selectedBatch || selectedBatch === 'All' || !r.filters?.batch || 
+        const matchesBatch = !selectedBatch || selectedBatch === 'All' || !r.filters?.batch || 
             normalize(r.filters.batch) === normalize(selectedBatch);
             
-        const matchesClass = !applyContextFilters || !selectedClass || selectedClass === 'All' || !r.filters?.class || 
+        const matchesClass = !selectedClass || selectedClass === 'All' || !r.filters?.class || 
             normalize(r.filters.class) === normalize(selectedClass);
             
-        const matchesSem = !applyContextFilters || !selectedSem || selectedSem === 'All' || !r.filters?.semester || 
+        const matchesSem = !selectedSem || selectedSem === 'All' || !r.filters?.semester || 
             String(r.filters.semester) === String(selectedSem);
 
         return matchesSearch && matchesType && matchesYear && matchesBatch && matchesClass && matchesSem;
@@ -218,20 +217,6 @@ const Reportverifiy = () => {
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
-                                </div>
-                            </div>
-                            <div className="col-md-auto d-flex align-items-end">
-                                <div className="form-check form-switch mb-2">
-                                    <input 
-                                        className="form-check-input" 
-                                        type="checkbox" 
-                                        id="contextFilterToggle" 
-                                        checked={applyContextFilters}
-                                        onChange={(e) => setApplyContextFilters(e.target.checked)}
-                                    />
-                                    <label className="form-check-label small fw-bold text-muted" htmlFor="contextFilterToggle">
-                                        Filter by Global Context
-                                    </label>
                                 </div>
                             </div>
                         </div>
