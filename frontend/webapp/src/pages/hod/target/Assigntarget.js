@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+
+/**
+ * TARGET MANAGEMENT COMPONENT
+ * Central dashboard for setting and monitoring OBE targets.
+ * Logic:
+ * 1. Course View: Sets targets for subjects; shows CO status and ATR links.
+ * 2. Program View: Sets targets for POs and PSOs at the batch level.
+ * 3. Gap Calculation: (Target Level - Achieved Level) = Gap.
+ */
 import api from '../../../utils/axios';
 import './Assigntarget.css';
 import { Modal, Button, Form } from 'react-bootstrap';
@@ -21,9 +30,9 @@ const Assigntarget = () => {
   const requiredFields = ['dept', 'year'];
   const { isValid, missingFields } = validateContext(requiredFields);
 
-  const [courses, setCourses] = useState([]);
-  const [pos, setPos] = useState([]);
-  const [psos, setPsos] = useState([]);
+  const [courses, setCourses] = useState([]); // Formatted course data with targets and gaps
+  const [pos, setPos] = useState([]); // Program Outcomes with achievement data
+  const [psos, setPsos] = useState([]); // Program Specific Outcomes
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('course'); // 'course' or 'program'
   const [isEditing, setIsEditing] = useState(false);

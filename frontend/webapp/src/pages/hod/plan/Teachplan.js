@@ -1,4 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
+/**
+ * TEACHING PLAN COMPONENT
+ * Manages the planning and tracking of course lectures.
+ * Core Logic:
+ * 1. Fetches assigned courses based on user role (Faculty/HOD).
+ * 2. Loads/Creates teaching plans for a specific Academic Year and Semester.
+ * 3. Supports Bulk Upload via Excel and Manual Grid Editing.
+ */
 import { useFilters } from '../../../context/FilterContext';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
@@ -12,15 +21,15 @@ const Teachplan = () => {
     } = useFilters();
     const user = React.useMemo(() => getLoggedInUser(), []);
 
-    const [courses, setCourses] = useState([]);
-    const [selectedCourseId, setSelectedCourseId] = useState('');
-    const [plan, setPlan] = useState(null);
-    const [lectures, setLectures] = useState([]);
+    const [courses, setCourses] = useState([]); // List of courses assigned to the user or department
+    const [selectedCourseId, setSelectedCourseId] = useState(''); // Current active course selection
+    const [plan, setPlan] = useState(null); // The teaching plan object (header)
+    const [lectures, setLectures] = useState([]); // Individual lecture rows
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState('');
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(false); // Toggle between View and Edit modes
     const fileInputRef = React.useRef(null);
 
     const fetchCourses = useCallback(async () => {
@@ -97,10 +106,12 @@ const Teachplan = () => {
         }
     }, [selectedCourseId, selectedYear, selectedSemester, selectedScheme, selectedBatch]);
 
+    // Fetch available courses whenever filters (Dept/Scheme/Batch) change
     useEffect(() => {
         fetchCourses();
     }, [fetchCourses]);
 
+    // Re-fetch the plan details whenever the selected course or period changes
     useEffect(() => {
         fetchPlan();
     }, [fetchPlan]);

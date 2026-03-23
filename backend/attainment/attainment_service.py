@@ -1,4 +1,10 @@
 from academics.models import CO, PO, PSO, COPOMapping, COPSOMapping, COTarget, POTarget, PSOTarget, Course
+
+"""
+ATTAINMENT SERVICE
+This service handles the calculation and persistence of Direct and Indirect attainment.
+Formula: Final Attainment = (0.8 * Direct) + (0.2 * Indirect)
+"""
 from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
 from indirect_attainment.models import CourseIndirectAttainment, ActivityIndirectAttainment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse
@@ -9,6 +15,10 @@ import re
 import numpy as np
 
 class AttainmentService:
+    """
+    Core engine for OBE attainment calculations.
+    Coordinates between Direct (Assessments) and Indirect (Surveys) data sources.
+    """
     @staticmethod
     def calculate_attainment(course_id, academic_year):
         """
@@ -342,6 +352,10 @@ class AttainmentService:
 
     @staticmethod
     def _calculate_detailed_tool_attainment(course_id, academic_year):
+        """
+        Calculates attainment level (0.00 - 3.00) for each assessment tool mapping to a CO.
+        Uses marks data and threshold logic (typically 40% of max marks).
+        """
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
@@ -616,6 +630,10 @@ class AttainmentService:
 
     @staticmethod
     def _calculate_direct_co_attainment(course_id, academic_year):
+        """
+        Aggregates tool-wise results into a single Direct CO attainment value.
+        Weighting: 40% Internal + 60% External (Summative).
+        """
         detailed = AttainmentService._calculate_detailed_tool_attainment(course_id, academic_year)
         direct_cos = {}
         for co_id, tools in detailed.items():
@@ -630,6 +648,9 @@ class AttainmentService:
 
     @staticmethod
     def _calculate_indirect_co_attainment(course_id, academic_year):
+        """
+        Fetches Course Exit Survey (CES) results and computes indirect CO attainment.
+        """
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_short = ay_clean
         if len(ay_clean) == 9 and ay_clean[4] == '-': ay_short = ay_clean[:5] + ay_clean[7:]
@@ -750,6 +771,10 @@ class AttainmentService:
 
     @staticmethod
     def _aggregate_batch_po_pso_attainment(batch_id, program_id):
+        """
+        Aggregates attainment values for an entire student batch.
+        Updates POBatchAttainment and PSOBatchAttainment tables.
+        """
         from academics.models import Batch, Program, Course, PO, PSO, POTarget, PSOTarget
         from .models import POAttainment, PSOAttainment, POBatchAttainment, PSOBatchAttainment
         from django.db.models import Avg

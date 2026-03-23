@@ -33,8 +33,8 @@ const ViewReports = () => {
     const [remarksData, setRemarksData] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
     const [showRemarksModal, setShowRemarksModal] = useState(false);
     const [loadingRemarks, setLoadingRemarks] = useState(false);
-    const [periods, setPeriods] = useState([]);
-    const [selectedPeriod, setSelectedPeriod] = useState(null);
+    const [periods, setPeriods] = useState([]); // All periods (Active + Archive)
+    const [selectedPeriod, setSelectedPeriod] = useState(null); // Selected period in historic modal
 
     // Column letters for Excel-like feel
     const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
@@ -52,6 +52,7 @@ const ViewReports = () => {
             const res = await api.get('/reports/audit-periods/');
             setPeriods(res.data);
             if (res.data.length > 0) {
+                // Initialize with active period if available, otherwise latest archive
                 const active = res.data.find(p => p.is_active);
                 const defaultPeriod = active || res.data[0];
                 setSelectedPeriod(defaultPeriod);
@@ -140,6 +141,7 @@ const ViewReports = () => {
         loadUnifiedBoard(periodId);
     };
 
+    // Both user status (Active/Disabled) and Period status (Active/Archive) govern Read-Only state
     const isPeriodReadOnly = !selectedPeriod?.is_active || isUserDisabled;
 
 

@@ -223,6 +223,11 @@ class AuditPeriodListView(generics.ListAPIView):
 
 class AuditorBoardView(APIView):
     def get(self, request):
+        """
+        Retrieves the board content for a specific period.
+        - Auditor role: retrieve their own board.
+        - Other roles: retrieve the board for the first available auditor.
+        """
         role_name = request.user.role_id.role_name if request.user.role_id else ''
         period_id = request.query_params.get('period_id')
         

@@ -13,8 +13,8 @@ const ViewRemark = () => {
 
     const [remarksData, setRemarksData] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
     const [loading, setLoading] = useState(true);
-    const [periods, setPeriods] = useState([]);
-    const [selectedPeriod, setSelectedPeriod] = useState(null);
+    const [periods, setPeriods] = useState([]); // List of all audit periods
+    const [selectedPeriod, setSelectedPeriod] = useState(null); // Currently selected period in dropdown
     const gridRefs = useRef({});
 
     const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
@@ -28,7 +28,7 @@ const ViewRemark = () => {
             const res = await api.get('/reports/audit-periods/');
             setPeriods(res.data);
             if (res.data.length > 0) {
-                // Default to the active period if exists, else the latest one
+                // Default to the active period if exists, else the latest one (Archive)
                 const active = res.data.find(p => p.is_active);
                 const defaultPeriod = active || res.data[0];
                 setSelectedPeriod(defaultPeriod);
@@ -66,6 +66,10 @@ const ViewRemark = () => {
         loadData(periodId);
     };
 
+    // Grid interaction is blocked if:
+    // 1. The selected period is closed (Archive)
+    // 2. The user is not an auditor
+    // 3. The user's account is disabled
     const isPeriodReadOnly = !selectedPeriod?.is_active || isReadOnly;
 
     const handleRowChange = (rowIndex, colIndex, val) => {

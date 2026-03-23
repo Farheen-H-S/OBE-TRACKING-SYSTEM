@@ -222,10 +222,13 @@ class UserDetailAPIView(APIView):
             user = serializer.save()
             
             # Handle AuditPeriod lifecycle for Auditor
+            # Auditor Lifecycle: Automatic Audit Period management
             if user.role_id.role_name.lower() == 'auditor':
+                # Track currently active period globally
                 active_period = AuditPeriod.objects.filter(is_active=True).first()
+                
                 if user.is_active:
-                    # Enabling auditor: start a new period if none active
+                    # Enabling auditor: ensure there is an active period to receive remarks
                     if not active_period:
                         now_str = timezone.now().strftime('%d %b %Y')
                         AuditPeriod.objects.create(
@@ -233,7 +236,7 @@ class UserDetailAPIView(APIView):
                             is_active=True
                         )
                 else:
-                    # Disabling auditor: close active period if exists
+                    # Disabling auditor: archive the current period and mark as closed
                     if active_period:
                         start_str = active_period.started_at.strftime('%d %b %Y')
                         now_str = timezone.now().strftime('%d %b %Y')

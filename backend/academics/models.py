@@ -1,6 +1,15 @@
 from django.db import models
 
+"""
+CORE ACADEMIC MODELS
+This module defines the structural hierarchy of the educational system:
+Program -> Scheme -> Batch -> Course -> Outcomes (CO/PO/PSO)
+"""
+
 class Program(models.Model):
+    """
+    Represents a department or degree program (e.g., Computer Engineering).
+    """
     program_id = models.AutoField(primary_key=True)
     program_name = models.CharField(max_length=100)
     duration = models.IntegerField(default=4)
@@ -12,6 +21,10 @@ class Program(models.Model):
         return self.program_name
 
 class Scheme(models.Model):
+    """
+    Defines the curriculum framework (e.g., 'K-Scheme' or 'I-Scheme').
+    Courses are mapped to specific schemes.
+    """
     scheme_id = models.AutoField(primary_key=True)
     scheme_name = models.CharField(max_length=100)
     start_year = models.IntegerField()
@@ -24,6 +37,10 @@ class Scheme(models.Model):
         return self.scheme_name
 
 class Batch(models.Model):
+    """
+    Groups students by their year of admission. 
+    Attainment is typically calculated and aggregated at the batch level.
+    """
     batch_id = models.AutoField(primary_key=True)
     batch_year = models.IntegerField(help_text="Year of admission (start)")
     start_year = models.IntegerField(null=True, blank=True)
@@ -42,6 +59,10 @@ class Batch(models.Model):
         return f"{self.batch_year} ({self.scheme_id.scheme_name})"
 
 class Course(models.Model):
+    """
+    A specific subject within a program and scheme.
+    Contains metadata for assessment tools and attainment status.
+    """
     course_id = models.AutoField(primary_key=True)
     course_code = models.CharField(max_length=20)
     course_name = models.CharField(max_length=100)
@@ -69,6 +90,9 @@ class Course(models.Model):
         return f"{self.course_code} - {self.course_name}"
 
 class CO(models.Model):
+    """
+    Course Outcomes (COs) define what students should know after a course.
+    """
     co_id = models.AutoField(primary_key=True)
     course_id = models.ForeignKey(Course, on_delete=models.PROTECT, related_name='cos', db_column='c_id')
     co_number = models.CharField(max_length=20, help_text="co1/co2/co3 etc")
@@ -86,6 +110,9 @@ class CO(models.Model):
         return f"{self.course_id.course_code} - {self.co_number}"
 
 class PO(models.Model):
+    """
+    Program Outcomes (POs) define what students should know after the entire program.
+    """
     po_id = models.AutoField(primary_key=True)
     program_id = models.ForeignKey(Program, on_delete=models.PROTECT, related_name='pos', db_column='p_id', null=True, blank=True)
     po_number = models.CharField(max_length=20, help_text="po1/po2/po3 etc")
@@ -102,6 +129,9 @@ class PO(models.Model):
         return self.po_number
 
 class PSO(models.Model):
+    """
+    Program Specific Outcomes (PSOs) are industry-specific outcomes for a program.
+    """
     pso_id = models.AutoField(primary_key=True)
     program_id = models.ForeignKey(Program, on_delete=models.PROTECT, related_name='psos', db_column='p_id')
     pso_number = models.CharField(max_length=20, help_text="pso1/pso2")

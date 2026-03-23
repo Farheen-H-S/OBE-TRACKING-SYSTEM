@@ -170,6 +170,10 @@ class DACReport(models.Model):
         return f"DAC Report - {self.academic_year}"
 
 class AuditPeriod(models.Model):
+    """
+    Manages distinct time windows for auditor remarks.
+    A new period is created when an auditor is activated, and closed when deactivated.
+    """
     label = models.CharField(max_length=100)
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
@@ -179,6 +183,10 @@ class AuditPeriod(models.Model):
         return self.label
 
 class AuditorBoard(models.Model):
+    """
+    Stores the unified remarks grid for an auditor within a specific audit period.
+    The 'content' field stores the grid data as a JSON string.
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='remarks_boards')
     audit_period = models.ForeignKey(AuditPeriod, on_delete=models.CASCADE, related_name='boards', null=True, blank=True)
     content = models.TextField(null=True, blank=True, help_text="JSON representation of the unified grid")

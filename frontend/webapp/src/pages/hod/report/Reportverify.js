@@ -32,8 +32,8 @@ const Reportverifiy = () => {
     const [auditorRemarks, setAuditorRemarks] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
     const [showAuditorBoard, setShowAuditorBoard] = useState(false);
     const [loadingRemarks, setLoadingRemarks] = useState(false);
-    const [periods, setPeriods] = useState([]);
-    const [selectedPeriod, setSelectedPeriod] = useState(null);
+    const [periods, setPeriods] = useState([]); // All periods (Active + Archive)
+    const [selectedPeriod, setSelectedPeriod] = useState(null); // The period selected in the remark modal
     const [loading, setLoading] = useState(false);
 
     
@@ -47,6 +47,7 @@ const Reportverifiy = () => {
             const res = await api.get('/reports/audit-periods/');
             setPeriods(res.data);
             if (res.data.length > 0) {
+                // Default selection is the active period if it exists
                 const active = res.data.find(p => p.is_active);
                 const defaultPeriod = active || res.data[0];
                 setSelectedPeriod(defaultPeriod);
@@ -80,6 +81,7 @@ const Reportverifiy = () => {
     const fetchAuditorRemarks = async (periodId = null) => {
         setLoadingRemarks(true);
         try {
+            // If periodId is provided, fetch historical board; otherwise fetch current
             const url = periodId ? `/reports/auditor-board/?period_id=${periodId}` : '/reports/auditor-board/';
             const res = await api.get(url);
             if (res.data.content) {
