@@ -32,12 +32,29 @@ const Reportverifiy = () => {
     const [auditorRemarks, setAuditorRemarks] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
     const [showAuditorBoard, setShowAuditorBoard] = useState(false);
     const [loadingRemarks, setLoadingRemarks] = useState(false);
+    const [periods, setPeriods] = useState([]);
+    const [selectedPeriod, setSelectedPeriod] = useState(null);
     const [loading, setLoading] = useState(false);
 
     
     useEffect(() => {
         fetchInitialData();
+        fetchPeriods();
     }, []);
+
+    const fetchPeriods = async () => {
+        try {
+            const res = await api.get('/reports/audit-periods/');
+            setPeriods(res.data);
+            if (res.data.length > 0) {
+                const active = res.data.find(p => p.is_active);
+                const defaultPeriod = active || res.data[0];
+                setSelectedPeriod(defaultPeriod);
+            }
+        } catch (err) {
+            console.error("Error fetching periods:", err);
+        }
+    };
 
     useEffect(() => {
         fetchPendingReports();
@@ -60,16 +77,15 @@ const Reportverifiy = () => {
         }
     };
 
-    const fetchAuditorRemarks = async () => {
+    const fetchAuditorRemarks = async (periodId = null) => {
         setLoadingRemarks(true);
         try {
-            const res = await api.get('/reports/auditor-board/');
+            const url = periodId ? `/reports/auditor-board/?period_id=${periodId}` : '/reports/auditor-board/';
+            const res = await api.get(url);
             if (res.data.content) {
                 setAuditorRemarks(JSON.parse(res.data.content));
-            } else if (Array.isArray(res.data)) {
-                // Handle legacy list format if any
-                const rows = res.data.map(r => [r.report_name || '', r.remark || '']);
-                setAuditorRemarks({ rows });
+            } else {
+                setAuditorRemarks({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
             }
         } catch (err) {
             console.error("Error fetching auditor remarks:", err);
@@ -78,9 +94,16 @@ const Reportverifiy = () => {
         }
     };
 
+    const handlePeriodChange = (e) => {
+        const periodId = e.target.value;
+        const period = periods.find(p => p.id === parseInt(periodId));
+        setSelectedPeriod(period);
+        fetchAuditorRemarks(periodId);
+    };
+
     useEffect(() => {
-        if (showAuditorBoard) {
-            fetchAuditorRemarks();
+        if (showAuditorBoard && selectedPeriod) {
+            fetchAuditorRemarks(selectedPeriod.id);
         }
     }, [showAuditorBoard]);
 
@@ -389,6 +412,24 @@ const Reportverifiy = () => {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-0">
+                    <div className="p-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+                        <div className="text-muted small fw-bold">Select Audit Period</div>
+                        <div className="d-flex align-items-center gap-2">
+                            <span className="small text-muted">Period:</span>
+                            <select 
+                                className="form-select form-select-sm" 
+                                style={{ width: 'auto', minWidth: '220px' }}
+                                value={selectedPeriod?.id || ''}
+                                onChange={handlePeriodChange}
+                            >
+                                {periods.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.label} {p.is_active ? '(Current)' : '(Archive)'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                     <div className="excel-grid-container custom-scrollbar" style={{ height: '70vh' }}>
                         <table className="excel-table">
                             <thead>

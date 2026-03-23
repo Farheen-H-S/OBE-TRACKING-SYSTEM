@@ -32,8 +32,9 @@ const ViewReports = () => {
     // Remarks State: { rows: [['','','']] } -> Single Unified Board
     const [remarksData, setRemarksData] = useState({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
     const [showRemarksModal, setShowRemarksModal] = useState(false);
-    const [auditorRemarks, setAuditorRemarks] = useState([]);
     const [loadingRemarks, setLoadingRemarks] = useState(false);
+    const [periods, setPeriods] = useState([]);
+    const [selectedPeriod, setSelectedPeriod] = useState(null);
 
     // Column letters for Excel-like feel
     const columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
@@ -43,8 +44,26 @@ const ViewReports = () => {
     useEffect(() => {
         fetchPrograms();
         loadApprovedReports();
-        loadUnifiedBoard();
+        fetchPeriods();
     }, []);
+
+    const fetchPeriods = async () => {
+        try {
+            const res = await api.get('/reports/audit-periods/');
+            setPeriods(res.data);
+            if (res.data.length > 0) {
+                const active = res.data.find(p => p.is_active);
+                const defaultPeriod = active || res.data[0];
+                setSelectedPeriod(defaultPeriod);
+                loadUnifiedBoard(defaultPeriod.id);
+            } else {
+                loadUnifiedBoard();
+            }
+        } catch (err) {
+            console.error("Error fetching periods:", err);
+            loadUnifiedBoard();
+        }
+    };
 
     const fetchPrograms = async () => {
         try {
@@ -100,37 +119,41 @@ const ViewReports = () => {
         }
     };
 
-    const loadUnifiedBoard = async () => {
+    const loadUnifiedBoard = async (periodId = null) => {
         try {
-            const res = await api.get('/reports/auditor-board/');
+            const url = periodId ? `/reports/auditor-board/?period_id=${periodId}` : '/reports/auditor-board/';
+            const res = await api.get(url);
             if (res.data.content) {
                 setRemarksData(JSON.parse(res.data.content));
+            } else {
+                setRemarksData({ rows: Array(25).fill(0).map(() => Array(10).fill('')) });
             }
         } catch (err) {
             console.error("Error loading board:", err);
         }
-    }; const fetchAuditorRemarks = async () => {
-        setLoadingRemarks(true);
-        try {
-            const res = await api.get('/reports/auditor-board/');
-            setAuditorRemarks(res.data);
-        } catch (err) {
-            console.error("Error fetching auditor remarks:", err);
-        } finally {
-            setLoadingRemarks(false);
-        }
     };
 
+    const handlePeriodChange = (e) => {
+        const periodId = e.target.value;
+        const period = periods.find(p => p.id === parseInt(periodId));
+        setSelectedPeriod(period);
+        loadUnifiedBoard(periodId);
+    };
+
+    const isPeriodReadOnly = !selectedPeriod?.is_active || isUserDisabled;
+
+
+
     useEffect(() => {
-        if (showRemarksModal) {
-            fetchAuditorRemarks();
+        if (showRemarksModal && selectedPeriod) {
+            loadUnifiedBoard(selectedPeriod.id);
         }
     }, [showRemarksModal]);
 
     const handleReportSelect = (report) => {
         setSelectedReport(report);
 
-        // Trigger Direct Download
+        // Trigger Direct Download if content exists
         if (report.content) {
             const link = document.createElement('a');
             link.href = report.content;
@@ -160,7 +183,7 @@ const ViewReports = () => {
     };
 
     const handleRowChange = (rowIndex, colIndex, value) => {
-        if (isUserDisabled) return;
+        if (isPeriodReadOnly) return;
         const newRows = [...remarksData.rows];
         newRows[rowIndex] = [...newRows[rowIndex]];
         newRows[rowIndex][colIndex] = value;
@@ -168,19 +191,19 @@ const ViewReports = () => {
     };
 
     const addRow = () => {
-        if (isUserDisabled) return;
+        if (isPeriodReadOnly) return;
         const newRows = [...remarksData.rows, Array(remarksData.rows[0].length).fill('')];
         setRemarksData({ ...remarksData, rows: newRows });
     };
 
     const addColumn = () => {
-        if (isUserDisabled) return;
+        if (isPeriodReadOnly) return;
         const newRows = remarksData.rows.map(row => [...row, '']);
         setRemarksData({ ...remarksData, rows: newRows });
     };
 
     const handleKeyDown = (e, rIdx, cIdx) => {
-        if (isUserDisabled) return;
+        if (isPeriodReadOnly) return;
         const rows = remarksData.rows;
         const maxRows = rows.length;
         const maxCols = rows[0].length;
@@ -304,13 +327,14 @@ const ViewReports = () => {
                                 <div className="d-flex flex-column h-100">
                                     <div className="excel-panel-header p-3 border-bottom d-flex justify-content-between align-items-center bg-white rounded-top">
                                         <div className="d-flex align-items-center gap-2">
-                                            <h5 className="fw-bold m-0"> Remarks</h5>
+                                            <h5 className="fw-bold m-0">Remarks Board</h5>
                                             {isUserDisabled && <Badge bg="danger" className="ms-2">Account Frozen</Badge>}
+                                            {selectedPeriod && !selectedPeriod.is_active && <Badge bg="warning" text="dark" className="ms-2">Historical</Badge>}
                                         </div>
                                         <div className="d-flex gap-2">
-                                            <button className="btn btn-sm btn-outline-secondary" onClick={addColumn} title="Add Column" disabled={isUserDisabled}>+</button>
-                                            <button className="btn btn-sm btn-outline-secondary" onClick={addRow} title="Add Row" disabled={isUserDisabled}>↵</button>
-                                            <button className="btn btn-success btn-sm px-3" onClick={saveRemarks} disabled={isUserDisabled}> Save</button>
+                                            <button className="btn btn-sm btn-outline-secondary" onClick={addColumn} title="Add Column" disabled={isPeriodReadOnly}>+</button>
+                                            <button className="btn btn-sm btn-outline-secondary" onClick={addRow} title="Add Row" disabled={isPeriodReadOnly}>↵</button>
+                                            <button className="btn btn-success btn-sm px-3" onClick={saveRemarks} disabled={isPeriodReadOnly}> Save</button>
                                         </div>
                                     </div>
 
@@ -336,8 +360,7 @@ const ViewReports = () => {
                                                                     value={cell}
                                                                     onChange={(e) => handleRowChange(rIdx, cIdx, e.target.value)}
                                                                     onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx)}
-                                                                    disabled={isUserDisabled}
-                                                                /* placeholder={isUserDisabled ? "" : "Type observation..."} */
+                                                                    disabled={isPeriodReadOnly}
                                                                 />
                                                             </td>
                                                         ))}
@@ -353,48 +376,66 @@ const ViewReports = () => {
                 </div>
             </div>
             {/* Auditor Remarks Modal (Read-Only) */}
-            <Modal show={showRemarksModal} onHide={() => setShowRemarksModal(false)} size="xl" centered>
+            <Modal show={showRemarksModal} onHide={() => setShowRemarksModal(false)} size="xl" centered animation={false}>
                 <Modal.Header closeButton className="bg-primary text-white">
                     <Modal.Title className="fs-5 fw-bold">
                         <i className="bi bi-journal-text me-2"></i>
-                        Audit Remarks (Read-Only)
+                        Remarks History (Read-Only)
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-0">
-                    <div className="table-responsive" style={{ maxHeight: '70vh' }}>
-                        <Table striped bordered hover className="mb-0 admin-remarks-table">
-                            <thead className="sticky-top bg-light">
+                    <div className="p-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+                        <div className="text-muted small fw-bold">Select Audit Period to view past results</div>
+                        <div className="d-flex align-items-center gap-2">
+                            <span className="small text-muted">Period:</span>
+                            <select 
+                                className="form-select form-select-sm" 
+                                style={{ width: 'auto', minWidth: '220px' }}
+                                value={selectedPeriod?.id || ''}
+                                onChange={handlePeriodChange}
+                            >
+                                {periods.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.label} {p.is_active ? '(Current)' : '(Archive)'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="excel-grid-container custom-scrollbar" style={{ height: '70vh' }}>
+                        <table className="excel-table">
+                            <thead>
                                 <tr>
-                                    <th style={{ width: '50px', textAlign: 'center' }}>#</th>
-                                    <th>Report Name / Component</th>
-                                    <th>Auditor Remark</th>
+                                    <th className="excel-corner"></th>
+                                    {remarksData.rows[0].map((_, idx) => (
+                                        <th key={idx} className="excel-col-header">{columnLabels[idx] || `C${idx + 1}`}</th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {loadingRemarks ? (
                                     <tr>
-                                        <td colSpan="3" className="text-center py-5">
-                                            <div className="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
-                                            Loading remarks...
+                                        <td colSpan="20" className="text-center py-5 bg-white">
+                                            <div className="spinner-border text-primary spinner-border-sm" role="status"></div>
                                         </td>
                                     </tr>
-                                ) : auditorRemarks.length > 0 ? (
-                                    auditorRemarks.map((row, index) => (
-                                        <tr key={row.auditor_board_id || index}>
-                                            <td className="text-center text-muted">{index + 1}</td>
-                                            <td className="fw-bold text-dark">{row.report_name}</td>
-                                            <td className="text-muted">{row.remark || <span className="opacity-50 italic">No remark provided</span>}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="3" className="text-center py-5 text-muted italic">
-                                            No auditor remarks have been recorded yet.
-                                        </td>
+                                ) : remarksData.rows.map((row, rIdx) => (
+                                    <tr key={rIdx}>
+                                        <td className="excel-row-header">{rIdx + 1}</td>
+                                        {row.map((cell, cIdx) => (
+                                            <td key={cIdx} className="excel-cell">
+                                                <textarea
+                                                    className="excel-textarea"
+                                                    value={cell}
+                                                    readOnly
+                                                    style={{ cursor: 'default' }}
+                                                />
+                                            </td>
+                                        ))}
                                     </tr>
-                                )}
+                                ))}
                             </tbody>
-                        </Table>
+                        </table>
                     </div>
                 </Modal.Body>
                 <Modal.Footer>
