@@ -4,7 +4,7 @@ from .views import (
     ReportVerificationView, ApproveReportView, RejectReportView,
     DACReportListCreateView, DACReportDetailView,
     ApproveDACReportView, RejectDACReportView,
-    AuditorBoardView
+    AuditorBoardView, AuditPeriodListView
 )
 
 urlpatterns = [
@@ -20,4 +20,5 @@ urlpatterns = [
     path('dac-reports/<int:pk>/approve/', ApproveDACReportView.as_view(), name='dac-report-approve'),
     path('dac-reports/<int:pk>/reject/', RejectDACReportView.as_view(), name='dac-report-reject'),
     path('auditor-board/', AuditorBoardView.as_view(), name='auditor-board'),
+    path('audit-periods/', AuditPeriodListView.as_view(), name='audit-periods'),
 ]

@@ -17,6 +17,8 @@ from .tokens import custom_token_generator
 from django.db.models import Q, Case, When, Value, IntegerField
 from rest_framework.pagination import PageNumberPagination
 from academics.models import AcademicSetup
+from reports.models import AuditPeriod
+from django.utils import timezone
 
 class UserPagination(PageNumberPagination):
     page_size = 10
@@ -120,6 +122,16 @@ class UserListCreateAPIView(APIView):
         serializer = UserSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
+            
+            # If active Auditor is created, start a new AuditPeriod
+            if user.role_id.role_name.lower() == 'auditor' and user.is_active:
+                if not AuditPeriod.objects.filter(is_active=True).exists():
+                    now_str = timezone.now().strftime('%d %b %Y')
+                    AuditPeriod.objects.create(
+                        label=f"Audit Period ({now_str} onwards)",
+                        is_active=True
+                    )
+            
             log_action(
                 request.user, 
                 'CREATE', 
@@ -207,7 +219,29 @@ class UserDetailAPIView(APIView):
             
         serializer = UserSerializer(user, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
+            
+            # Handle AuditPeriod lifecycle for Auditor
+            if user.role_id.role_name.lower() == 'auditor':
+                active_period = AuditPeriod.objects.filter(is_active=True).first()
+                if user.is_active:
+                    # Enabling auditor: start a new period if none active
+                    if not active_period:
+                        now_str = timezone.now().strftime('%d %b %Y')
+                        AuditPeriod.objects.create(
+                            label=f"Audit Period ({now_str} onwards)",
+                            is_active=True
+                        )
+                else:
+                    # Disabling auditor: close active period if exists
+                    if active_period:
+                        start_str = active_period.started_at.strftime('%d %b %Y')
+                        now_str = timezone.now().strftime('%d %b %Y')
+                        active_period.label = f"Audit Period ({start_str} to {now_str})"
+                        active_period.is_active = False
+                        active_period.ended_at = timezone.now()
+                        active_period.save()
+
             log_action(
                 request.user, 
                 'UPDATE', 
@@ -229,6 +263,18 @@ class UserDetailAPIView(APIView):
             
         user.is_active = False # Soft delete
         user.save()
+
+        # If Auditor is deleted, close active period
+        if user.role_id.role_name.lower() == 'auditor':
+            active_period = AuditPeriod.objects.filter(is_active=True).first()
+            if active_period:
+                start_str = active_period.started_at.strftime('%d %b %Y')
+                now_str = timezone.now().strftime('%d %b %Y')
+                active_period.label = f"Audit Period ({start_str} to {now_str})"
+                active_period.is_active = False
+                active_period.ended_at = timezone.now()
+                active_period.save()
+
         log_action(
             request.user, 
             'DISABLE', 

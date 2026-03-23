@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Report, DACReport, AuditorBoard
+from .models import Report, DACReport, AuditorBoard, AuditPeriod
 import os
 
 
@@ -110,7 +110,14 @@ class DACReportSerializer(serializers.ModelSerializer):
         if obj.batch_id and obj.batch_id.scheme_id:
             return obj.batch_id.scheme_id.scheme_name
         return "N/A"
+class AuditPeriodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AuditPeriod
+        fields = ['id', 'label', 'started_at', 'ended_at', 'is_active']
+
 class AuditorBoardSerializer(serializers.ModelSerializer):
+    audit_period_label = serializers.CharField(source='audit_period.label', read_only=True)
+    
     class Meta:
         model = AuditorBoard
-        fields = ['content', 'updated_at']
+        fields = ['content', 'updated_at', 'audit_period', 'audit_period_label']

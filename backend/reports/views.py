@@ -1,10 +1,13 @@
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Report, DACReport, AuditorBoard
-from .serializers import ReportSerializer, DACReportSerializer, AuditorBoardSerializer
+from .models import Report, DACReport, AuditorBoard, AuditPeriod
+from .serializers import ReportSerializer, DACReportSerializer, AuditorBoardSerializer, AuditPeriodSerializer
 from .pagination import StandardResultsSetPagination
 from audit.utils import log_action
+from django.db.models import Q
 
 class ReportListCreateView(generics.ListCreateAPIView):
     serializer_class = ReportSerializer
@@ -213,20 +216,39 @@ class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
                 
         instance.delete()
 
+class AuditPeriodListView(generics.ListAPIView):
+    queryset = AuditPeriod.objects.all().order_by('-started_at')
+    serializer_class = AuditPeriodSerializer
+    permission_classes = [IsAuthenticated]
+
 class AuditorBoardView(APIView):
     def get(self, request):
         role_name = request.user.role_id.role_name if request.user.role_id else ''
-        if role_name == 'Auditor':
-            # Auditor fetches their own board
-            board, created = AuditorBoard.objects.get_or_create(user=request.user)
+        period_id = request.query_params.get('period_id')
+        
+        if period_id:
+            period = get_object_or_404(AuditPeriod, pk=period_id)
         else:
-            # HOD / Coordinator / Faculty: find the first Auditor user's board (read-only view)
+            period = AuditPeriod.objects.filter(is_active=True).first()
+            if not period:
+                # If no active period, just return the last period
+                period = AuditPeriod.objects.order_by('-started_at').first()
+        
+        if not period:
+            return Response({'content': None, 'audit_period': None}, status=status.HTTP_200_OK)
+
+        if role_name == 'Auditor':
+            # Auditor fetches their own board for the selected period
+            board, created = AuditorBoard.objects.get_or_create(user=request.user, audit_period=period)
+        else:
+            # Others: find the first Auditor user's board for this period
             from users.models import User
             auditor_user = User.objects.filter(role_id__role_name='Auditor').first()
             if auditor_user:
-                board, created = AuditorBoard.objects.get_or_create(user=auditor_user)
+                board, created = AuditorBoard.objects.get_or_create(user=auditor_user, audit_period=period)
             else:
-                return Response({'content': None}, status=status.HTTP_200_OK)
+                return Response({'content': None, 'audit_period': period.id}, status=status.HTTP_200_OK)
+        
         serializer = AuditorBoardSerializer(board)
         return Response(serializer.data)
 
@@ -234,9 +256,16 @@ class AuditorBoardView(APIView):
         role_name = request.user.role_id.role_name if request.user.role_id else ''
         if role_name != 'Auditor':
             return Response({"error": "Only auditors can update remarks."}, status=status.HTTP_403_FORBIDDEN)
-        board, created = AuditorBoard.objects.get_or_create(user=request.user)
+        
         if not request.user.is_active:
             return Response({"error": "Account frozen. Cannot save remarks."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Sync changes ONLY to the currently active period
+        period = AuditPeriod.objects.filter(is_active=True).first()
+        if not period:
+            return Response({"error": "No active audit period found. Cannot save remarks."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        board, created = AuditorBoard.objects.get_or_create(user=request.user, audit_period=period)
         
         serializer = AuditorBoardSerializer(board, data=request.data, partial=True)
         if serializer.is_valid():

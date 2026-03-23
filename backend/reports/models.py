@@ -169,10 +169,23 @@ class DACReport(models.Model):
     def __str__(self):
         return f"DAC Report - {self.academic_year}"
 
+class AuditPeriod(models.Model):
+    label = models.CharField(max_length=100)
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.label
+
 class AuditorBoard(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='remarks_board')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='remarks_boards')
+    audit_period = models.ForeignKey(AuditPeriod, on_delete=models.CASCADE, related_name='boards', null=True, blank=True)
     content = models.TextField(null=True, blank=True, help_text="JSON representation of the unified grid")
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'audit_period')
+
     def __str__(self):
-        return f"Board for {self.user.name}"
+        return f"Board for {self.user.name} - {self.audit_period.label}"
