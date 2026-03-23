@@ -217,7 +217,7 @@ const AcademicSetup = () => {
                                 <div className="row g-2 align-items-end">
                                     <div className="col-md-7">
                                         <label className="form-label small fw-bold text-secondary">Scheme Name</label>
-                                        <input type="text" className="form-control" placeholder="e.g. K Scheme"
+                                        <input type="text" className="form-control" placeholder="e.g. K"
                                             value={newScheme.scheme_name}
                                             onChange={(e) => setNewScheme({ ...newScheme, scheme_name: e.target.value })} required />
                                     </div>
