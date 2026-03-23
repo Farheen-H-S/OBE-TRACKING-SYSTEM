@@ -287,7 +287,10 @@ class CourseListCreateAPIView(APIView):
                                     batch, _ = Batch.objects.get_or_create(
                                         batch_year=year_val, 
                                         scheme_id=course.scheme_id,
-                                        defaults={'start_year': year_val, 'end_year': year_val + 4}
+                                        # Treat year_val as graduation academic year start (e.g. 2025-26)
+                                        # Admission (start) = year_val - 2 = 2023
+                                        # Graduation (end) = year_val + 1 = 2026
+                                        defaults={'start_year': year_val - 2, 'end_year': year_val + 1}
                                     )
                                     batch_objs.append(batch)
                             except (ValueError, IndexError): continue

@@ -38,7 +38,9 @@ def resolve_batch(batch_id):
         # Handle formats like '2025-26' or '2025'
         try:
             year_val = int(str(batch_id).split('-')[0].strip())
-            return Batch.objects.filter(batch_year=year_val).first()
+            # Search by end_year to match graduation academic year (e.g. 2025-26 -> graduates 2026)
+            # If input is 2025, we look for end_year = 2026
+            return Batch.objects.filter(end_year=year_val + 1).first()
         except (ValueError, IndexError):
             return None
 
@@ -139,6 +141,9 @@ class POBatchAttainmentView(APIView):
             batch = resolve_batch(batch_id)
             if batch:
                 queryset = queryset.filter(batch_id=batch)
+            else:
+                # If batch_id was provided but not found, return empty
+                return Response({"PO batch attainment": []}, status=status.HTTP_200_OK)
         if program_id:
             queryset = queryset.filter(po_id__program_id=program_id)
             
@@ -158,6 +163,9 @@ class PSOBatchAttainmentView(APIView):
             batch = resolve_batch(batch_id)
             if batch:
                 queryset = queryset.filter(batch_id=batch)
+            else:
+                # If batch_id was provided but not found, return empty
+                return Response({"PSO batch attainment": []}, status=status.HTTP_200_OK)
         if program_id:
             queryset = queryset.filter(pso_id__program_id=program_id)
             

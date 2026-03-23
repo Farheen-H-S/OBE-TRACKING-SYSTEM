@@ -76,7 +76,9 @@ export default function POPSOAttainment() {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Result_of_Evaluation_Batch_${batch.batch_year}.xlsx`);
+            // Format filename as graduation academic year (e.g. 2025-26)
+            const batchLabel = batch ? `${batch.batch_year}-${(batch.batch_year + 1).toString().slice(-2)}` : 'Report';
+            link.setAttribute('download', `Result_of_Evaluation_Batch_${batchLabel}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
