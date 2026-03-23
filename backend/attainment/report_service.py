@@ -164,8 +164,8 @@ class ReportService:
 
         # Row 2: Subtitle for Right table
         ws.merge_cells(start_row=2, start_column=len(po_pso_headers)+3, end_row=2, end_column=len(po_pso_headers)*2 + 4)
-        # Display as graduation academic year (e.g. 2025-26)
-        batch_label = f"{batch.end_year-1}-{str(batch.end_year)[-2:]}"
+        # Display as academic year matching the batch identifier (e.g. 2025-26)
+        batch_label = f"{batch.batch_year}-{(batch.batch_year + 1) % 100:02d}"
         ws.cell(row=2, column=len(po_pso_headers)+3, value=f"Batch {batch_label} (PO and PSO attainment)").font = bold_font
         ws.cell(row=2, column=len(po_pso_headers)+3).alignment = center_align
 

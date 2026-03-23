@@ -38,9 +38,8 @@ def resolve_batch(batch_id):
         # Handle formats like '2025-26' or '2025'
         try:
             year_val = int(str(batch_id).split('-')[0].strip())
-            # Search by end_year to match graduation academic year (e.g. 2025-26 -> graduates 2026)
-            # If input is 2025, we look for end_year = 2026
-            return Batch.objects.filter(end_year=year_val + 1).first()
+            # Match against batch_year to ensure compatibility with existing data
+            return Batch.objects.filter(batch_year=year_val).first()
         except (ValueError, IndexError):
             return None
 
