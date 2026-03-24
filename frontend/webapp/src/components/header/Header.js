@@ -238,7 +238,7 @@ const Header = ({ onToggleSidebar }) => {
           {/* Global Filters - Moved to GlobalFilterBar in Layout.js */}
 
 
-          {userRole == !['auditor', 'admin'].includes(userRole) && (
+          {!['auditor', 'admin'].includes(userRole) && (
             <div className="notification-container" ref={downloadRef}>
               <FaDownload
                 size={22}
@@ -282,7 +282,7 @@ const Header = ({ onToggleSidebar }) => {
             </div>
           )}
 
-          {userRole == !['auditor', 'admin'].includes(userRole) && (
+          {!['auditor', 'admin'].includes(userRole) && (
             <div className="notification-container" ref={bellRef}>
               <FaBell
                 size={24}

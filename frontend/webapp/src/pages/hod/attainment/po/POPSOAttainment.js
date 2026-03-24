@@ -214,7 +214,11 @@ export default function POPSOAttainment() {
                         <div className="d-flex justify-content-between align-items-center mb-4">
                             <div>
                                 <h2 className="ppo-title mb-0">PO &amp; PSO Attainment</h2>
-                                <p className="text-muted small mb-0">{selectedClass} &nbsp;|&nbsp; {selectedYear}</p>
+                                <p className="text-muted small mb-0">
+                                    {selectedBatch && selectedBatch !== 'All' 
+                                        ? `Batch ${selectedBatch}` 
+                                        : `${selectedClass} | ${selectedYear}`}
+                                </p>
                             </div>
                             <button
                                 className="btn btn-success d-flex align-items-center gap-2"
