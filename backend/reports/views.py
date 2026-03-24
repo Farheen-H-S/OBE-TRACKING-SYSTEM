@@ -8,6 +8,10 @@ from .serializers import ReportSerializer, DACReportSerializer, AuditorBoardSeri
 from .pagination import StandardResultsSetPagination
 from audit.utils import log_action
 from django.db.models import Q
+from django.http import HttpResponse, FileResponse
+from attainment.report_service import ReportService
+from attainment.indirect_report_service import IndirectReportService
+import io
 
 class ReportListCreateView(generics.ListCreateAPIView):
     serializer_class = ReportSerializer
@@ -88,6 +92,60 @@ class RejectReportView(APIView):
             return Response({"message": "Report rejected successfully"}, status=status.HTTP_200_OK)
         except Report.DoesNotExist:
             return Response({"error": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class DownloadReportView(APIView):
+    """
+    Serves a report file. If the file is missing from disk (e.g., on Render),
+    it attempts to regenerate it using stored metadata.
+    """
+    def get(self, request, pk):
+        report = get_object_or_404(Report, pk=pk)
+        
+        # Check if file exists on disk
+        if report.report_file and os.path.exists(report.report_file.path):
+            return FileResponse(open(report.report_file.path, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        
+        # Fallback: Regenerate the report
+        try:
+            excel_data = None
+            filename = os.path.basename(report.report_file.name) if report.report_file else f"Report_{pk}.xlsx"
+            
+            if report.report_type == 'Batch':
+                if report.program_id and report.batch_id:
+                    excel_data = ReportService.generate_batch_evaluation_report(report.program_id.pk, report.batch_id)
+            elif report.report_type == 'Direct':
+                if report.course_id and report.year:
+                    excel_data = ReportService.generate_course_attainment_report(report.course_id.pk, report.year)
+            elif report.report_type == 'Indirect':
+                if report.program_id and report.batch_id:
+                    excel_data = IndirectReportService.generate_indirect_attainment_report(report.program_id.pk, report.batch_id.pk)
+            
+            if excel_data:
+                # Save the regenerated file back to storage
+                from .utils import save_generated_report
+                save_generated_report(
+                    user=report.user_id_created,
+                    report_type=report.report_type,
+                    year=report.year,
+                    file_content=excel_data,
+                    filename=filename,
+                    course=report.course_id,
+                    program=report.program_id,
+                    batch=report.batch_id
+                )
+                
+                excel_data.seek(0)
+                response = HttpResponse(
+                    excel_data.read(),
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = f'attachment; filename={filename}'
+                return response
+            else:
+                return Response({"error": "Report file missing and could not be regenerated due to incomplete metadata."}, status=status.HTTP_404_NOT_FOUND)
+                
+        except Exception as e:
+            return Response({"error": f"Report regeneration failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ApproveDACReportView(APIView):
     def post(self, request, pk):
@@ -199,6 +257,16 @@ class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = serializer.save()
         if user:
             log_action(user, 'UPDATE', 'DACReport', instance.dac_report_id, remark=f"Updated DAC Report: {instance.file.name}")
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.file and not os.path.exists(instance.file.path):
+            # Graceful error if file is missing (uploaded files cannot be regenerated)
+            return Response({
+                "error": "The uploaded DAC report file is missing from the server storage.",
+                "detail": "Storage on Render is ephemeral. Please re-upload the document."
+            }, status=status.HTTP_404_NOT_FOUND)
+        return super().get(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
         user = self.request.user if self.request.user and not self.request.user.is_anonymous else None

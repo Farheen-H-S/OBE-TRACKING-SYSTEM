@@ -139,6 +139,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_URL = 'static/'
  
 # Media files (Profile pictures, etc.)
+# WARNING: Render disk is ephemeral. Uploaded files will be LOST on redeploy.
+# For production, use an external storage service like AWS S3 or Cloudinary.
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

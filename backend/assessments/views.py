@@ -1,4 +1,5 @@
 import re
+import os
 from django.db import models
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
@@ -274,6 +275,12 @@ class EvidenceListView(APIView):
 
         if not assessment.evidence_file:
             return Response({"message": "No evidence uploaded"}, status=status.HTTP_200_OK)
+
+        if not os.path.exists(assessment.evidence_file.path):
+            return Response({
+                "error": "The uploaded evidence file is missing from the server storage.",
+                "detail": "Storage on Render is ephemeral. Please re-upload the document."
+            }, status=status.HTTP_404_NOT_FOUND)
 
         file_info = {
             "name": assessment.evidence_file.name,
