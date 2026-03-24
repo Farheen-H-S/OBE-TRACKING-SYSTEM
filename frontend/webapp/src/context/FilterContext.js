@@ -138,9 +138,22 @@ export const FilterProvider = ({ children }) => {
             }
 
             // Set default department from user if not already set
-            const userDept = user.department_id || user.department;
-            if (userDept && !selectedDept) {
-                setSelectedDept(userDept.toString());
+            const userDept = (user.department_id || user.department)?.toString();
+            const userRole = (user.role || user.role_name || "").toUpperCase();
+            
+            if (userDept) {
+                // If user is HOD/FACULTY/COORDINATOR, they MUST see their own department
+                if (['HOD', 'FACULTY', 'COORDINATOR'].includes(userRole)) {
+                    if (selectedDept !== userDept) {
+                        setSelectedDept(userDept);
+                    }
+                } else if (!selectedDept) {
+                    // For Admin/Auditor, only set if nothing selected yet
+                    setSelectedDept(userDept);
+                }
+            } else if (!selectedDept && deptRes.data && deptRes.data.length > 0) {
+                 // Fallback for Admin with no dept: pick first from list
+                 setSelectedDept(deptRes.data[0].program_id.toString());
             }
 
             // Set default scheme if not already set

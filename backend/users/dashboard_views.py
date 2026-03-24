@@ -80,15 +80,7 @@ class AdminDashboardAPIView(APIView):
  
         # 5. Attention Required Logic
         config_issues = []
-        if not academic_setup:
-            config_issues.append("No active academic year")
-        else:
-            if not academic_setup.academic_year or academic_setup.academic_year == "N/A":
-                config_issues.append("Academic year not configured")
-            if not academic_setup.semester_type or academic_setup.semester_type == "N/A":
-                config_issues.append("Semester type not configured")
-            if not academic_setup.scheme_id:
-                config_issues.append("Scheme not assigned")
+        # Configuration warnings (Academic year/scheme) are currently suppressed as per user request
  
         structural_issues = []
         if role == 'ADMIN':

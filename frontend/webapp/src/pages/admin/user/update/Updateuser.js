@@ -260,7 +260,13 @@ const Updateuser = () => {
               <div className="row mb-3 align-items-center">
                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Department :</label>
                 <div className="col-sm-6">
-                  <select name="department" className="form-select" value={formData.department} onChange={handleInputChange} disabled={!isAdmin}>
+                  <select 
+                    name="department" 
+                    className="form-select" 
+                    value={formData.role.toLowerCase() === 'admin' ? '' : formData.department} 
+                    onChange={handleInputChange} 
+                    disabled={!isAdmin || formData.role.toLowerCase() === 'admin'}
+                  >
                     <option value="" hidden>Select Department</option>
                     {programs.map(prog => (
                       <option key={prog.program_id} value={prog.program_id}>

@@ -17,6 +17,25 @@ class UserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True}
         }
 
+    def validate(self, data):
+        # Username validation logic (moved from validate_username for clarity if needed, 
+        # but validate_username is also fine. Let's keep validate_username for single field check)
+        
+        # Admin department validation
+        role_obj = data.get('role_id')
+        role_name = ""
+        if role_obj:
+            role_name = role_obj.role_name.upper()
+        elif self.instance:
+            role_name = self.instance.role_id.role_name.upper()
+            
+        if role_name == 'ADMIN' and data.get('department'):
+            # Automatically clear/nullify department if role is Admin instead of raising error?
+            # User requested "validation", so raising error is safer if frontend fails.
+            raise serializers.ValidationError({"department": "Admin users should not have an associated department."})
+            
+        return data
+
     def validate_username(self, value):
         if value:
             # Check if another user already has this username

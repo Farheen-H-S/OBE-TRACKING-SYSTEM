@@ -22,6 +22,7 @@ export const logout = async (refreshToken) => {
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
         localStorage.removeItem("user");
+        localStorage.removeItem("obe_academic_context");
         sessionStorage.removeItem("access");
         sessionStorage.removeItem("refresh");
         sessionStorage.removeItem("user");
