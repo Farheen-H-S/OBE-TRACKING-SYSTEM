@@ -24,9 +24,10 @@ from audit.utils import log_action
 from reports.utils import save_generated_report
 from academics.models import Course, Program, Batch
 
-def resolve_batch(batch_id):
+def resolve_batch(batch_id, program_id=None):
     """
     Resolves a batch_id (which could be a PK or a string like '2025-26') to a Batch object.
+    If program_id is provided, it attempts to find the batch that has courses in that program first (better for multiple schemes).
     """
     if not batch_id:
         return None
@@ -38,6 +39,22 @@ def resolve_batch(batch_id):
         # Handle formats like '2025-26' or '2025'
         try:
             year_val = int(str(batch_id).split('-')[0].strip())
+            
+            # If program_id is provided, look for a batch that has courses in this program
+            if program_id:
+                # We look for a batch of this year that has any courses in this program 
+                # OR matches the scheme of courses in this program
+                batch = Batch.objects.filter(batch_year=year_val, courses__program_id=program_id).first()
+                if batch:
+                    return batch
+                    
+                # Fallback: find the first active batch for this year and match it to a likely scheme for the program
+                course = Course.objects.filter(program_id=program_id).first()
+                if course and course.scheme_id:
+                    batch = Batch.objects.filter(batch_year=year_val, scheme_id=course.scheme_id).first()
+                    if batch:
+                        return batch
+
             # Match against batch_year to ensure compatibility with existing data
             return Batch.objects.filter(batch_year=year_val).first()
         except (ValueError, IndexError):
@@ -137,7 +154,7 @@ class POBatchAttainmentView(APIView):
         
         queryset = POBatchAttainment.objects.all()
         if batch_id:
-            batch = resolve_batch(batch_id)
+            batch = resolve_batch(batch_id, program_id=program_id)
             if batch:
                 queryset = queryset.filter(batch_id=batch)
             else:
@@ -159,7 +176,7 @@ class PSOBatchAttainmentView(APIView):
         
         queryset = PSOBatchAttainment.objects.all()
         if batch_id:
-            batch = resolve_batch(batch_id)
+            batch = resolve_batch(batch_id, program_id=program_id)
             if batch:
                 queryset = queryset.filter(batch_id=batch)
             else:
@@ -204,7 +221,7 @@ class BatchEvaluationReportView(APIView):
             return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            batch = resolve_batch(batch_id)
+            batch = resolve_batch(batch_id, program_id=program_id)
             if not batch:
                  return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             
@@ -253,7 +270,7 @@ class IndirectAttainmentReportView(APIView):
             return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            batch = resolve_batch(batch_id)
+            batch = resolve_batch(batch_id, program_id=program_id)
             if not batch:
                  return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             
@@ -302,7 +319,7 @@ class IndirectAttainmentSummaryView(APIView):
             return Response({"error": "program_id and batch_id are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            batch = resolve_batch(batch_id)
+            batch = resolve_batch(batch_id, program_id=program_id)
             if not batch:
                  return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             
@@ -523,7 +540,7 @@ class CourseStatusView(APIView):
         # In this view, batch_id is used as part of logical filtering if needed,
         # but interestingly, the original code didn't use batch_id for the Course.objects.filter.
         # However, let's resolve it to ensure it's valid if we want to add filtering later.
-        batch = resolve_batch(batch_id)
+        batch = resolve_batch(batch_id, program_id=program_id)
         if not batch:
              return Response({"error": f"Batch {batch_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             

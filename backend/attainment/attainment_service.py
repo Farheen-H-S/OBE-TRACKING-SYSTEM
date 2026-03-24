@@ -777,48 +777,106 @@ class AttainmentService:
         """
         from academics.models import Batch, Program, Course, PO, PSO, POTarget, PSOTarget
         from .models import POAttainment, PSOAttainment, POBatchAttainment, PSOBatchAttainment
-        from django.db.models import Avg
+        from django.db.models import Avg, Q
         batch = Batch.objects.filter(pk=batch_id).first()
         program = Program.objects.filter(pk=program_id).first()
         if not batch or not program: return
+        
         pos = PO.objects.filter(program_id=program, is_active=True)
         batch_courses = batch.courses.filter(program_id=program, is_active=True)
+        
+        # Calculate admission year for offset calculation
+        # batch_year is treated as graduation start year (e.g. 2025 for 2025-26)
+        admission_year = batch.start_year if batch.start_year else (batch.batch_year - 2)
+        
+        # Helper to get AY for a course in this batch
+        def get_ay_filter(course):
+            offset = (course.semester - 1) // 2
+            y = admission_year + offset
+            next_y = (y + 1) % 100
+            return Q(academic_year__icontains=f"{y}-{next_y:02d}") | Q(academic_year__icontains=f"{y} - {next_y:02d}")
+
         for po in pos:
-            po_records = POAttainment.objects.filter(po_id=po, course_id__in=batch_courses, is_active=True)
-            if not po_records.exists(): continue
-            direct_val = po_records.aggregate(Avg('po_value'))['po_value__avg'] or 0
+            # Aggregate direct attainment from relevant years only
+            po_values = []
+            for course in batch_courses:
+                # Only include attainment from the year this batch took the course
+                records = POAttainment.objects.filter(get_ay_filter(course), po_id=po, course_id=course, is_active=True)
+                val = records.aggregate(Avg('po_value'))['po_value__avg']
+                if val is not None:
+                    po_values.append(val)
+            
+            if not po_values: continue
+            direct_val = sum(po_values) / len(po_values)
+            
+            # Indirect Attainment (Exit survey usually in Graduation Year)
+            grad_year = batch.batch_year
+            grad_ay = f"{grad_year}-{(grad_year+1)%100:02d}"
+            
             indirect_val = 0
             if batch_courses.exists():
-                first_course = batch_courses.first()
-                next_year = batch.batch_year + 1
-                next_year_suffix = str(next_year)[-2:]
-                ay = f"{batch.batch_year}-{next_year_suffix}"
-                indirect_pos = AttainmentService._calculate_indirect_po_attainment(first_course.course_id, ay)
+                # We use the program's indirect attainment for the graduation year
+                # Passing any course from the program to the helper
+                indirect_pos = AttainmentService._calculate_indirect_po_attainment(batch_courses.first().course_id, grad_ay)
                 indirect_val = indirect_pos.get(po.po_id, 0)
+                
             normalized_value = (direct_val * 0.8) + (indirect_val * 0.2)
-            target_obj = POTarget.objects.filter(po_id=po, academic_year=ay, is_active=True).first()
+            
+            # Target for the graduation year
+            target_obj = POTarget.objects.filter(po_id=po, academic_year__icontains=grad_ay, is_active=True).first()
             if not target_obj:
                 target_obj = POTarget.objects.filter(po_id=po, is_active=True).order_by('-academic_year').first()
+            
             target_val = target_obj.target_value if (target_obj and target_obj.target_value) else 2.5
             gap = target_val - normalized_value
-            POBatchAttainment.objects.update_or_create(po_id=po, batch_id=batch, defaults={'direct_value': direct_val, 'indirect_value': indirect_val, 'normalized_value': normalized_value, 'gap': gap})
+            
+            POBatchAttainment.objects.update_or_create(
+                po_id=po, 
+                batch_id=batch, 
+                defaults={
+                    'direct_value': direct_val, 
+                    'indirect_value': indirect_val, 
+                    'normalized_value': normalized_value, 
+                    'gap': gap
+                }
+            )
+            
         psos = PSO.objects.filter(program_id=program, is_active=True)
         for pso in psos:
-            pso_records = PSOAttainment.objects.filter(pso_id=pso, course_id__in=batch_courses, is_active=True)
-            if not pso_records.exists(): continue
-            direct_val = pso_records.aggregate(Avg('pso_value'))['pso_value__avg'] or 0
+            pso_values = []
+            for course in batch_courses:
+                records = PSOAttainment.objects.filter(get_ay_filter(course), pso_id=pso, course_id=course, is_active=True)
+                val = records.aggregate(Avg('pso_value'))['pso_value__avg']
+                if val is not None:
+                    pso_values.append(val)
+            
+            if not pso_values: continue
+            direct_val = sum(pso_values) / len(pso_values)
+            
+            grad_year = batch.batch_year
+            grad_ay = f"{grad_year}-{(grad_year+1)%100:02d}"
+            
             indirect_val = 0
             if batch_courses.exists():
-                first_course = batch_courses.first()
-                next_year = batch.batch_year + 1
-                next_year_suffix = str(next_year)[-2:]
-                ay = f"{batch.batch_year}-{next_year_suffix}"
-                indirect_psos = AttainmentService._calculate_indirect_pso_attainment(first_course.course_id, ay)
+                indirect_psos = AttainmentService._calculate_indirect_pso_attainment(batch_courses.first().course_id, grad_ay)
                 indirect_val = indirect_psos.get(pso.pso_id, 0)
+                
             normalized_value = (direct_val * 0.8) + (indirect_val * 0.2)
-            target_obj = PSOTarget.objects.filter(pso_id=pso, academic_year=ay, is_active=True).first()
+            
+            target_obj = PSOTarget.objects.filter(pso_id=pso, academic_year__icontains=grad_ay, is_active=True).first()
             if not target_obj:
                 target_obj = PSOTarget.objects.filter(pso_id=pso, is_active=True).order_by('-academic_year').first()
+                
             target_val = target_obj.target_value if (target_obj and target_obj.target_value) else 2.5
             gap = target_val - normalized_value
-            PSOBatchAttainment.objects.update_or_create(pso_id=pso, batch_id=batch, defaults={'direct_value': direct_val, 'indirect_value': indirect_val, 'normalized_value': normalized_value, 'gap': gap})
+            
+            PSOBatchAttainment.objects.update_or_create(
+                pso_id=pso, 
+                batch_id=batch, 
+                defaults={
+                    'direct_value': direct_val, 
+                    'indirect_value': indirect_val, 
+                    'normalized_value': normalized_value, 
+                    'gap': gap
+                }
+            )
