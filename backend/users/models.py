@@ -46,7 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         db_column='p_id'
     )
-    username = models.CharField(max_length=100, null=True, blank=True)
+    username = models.CharField(max_length=100, unique=True, null=True, blank=True)
     date_of_joining = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -17,6 +17,14 @@ class UserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True}
         }
 
+    def validate_username(self, value):
+        if value:
+            # Check if another user already has this username
+            user_id = self.instance.user_id if self.instance else None
+            if User.objects.filter(username=value).exclude(user_id=user_id).exists():
+                raise serializers.ValidationError("This username is already taken.")
+        return value
+
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         user = super().create(validated_data)  # create user without password first
