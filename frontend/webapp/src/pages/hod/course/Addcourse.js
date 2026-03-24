@@ -20,6 +20,7 @@ const Addcourse = () => {
     const [isViewMode, setIsViewMode] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearchResults, setShowSearchResults] = useState(false);
+    const [facultyDeptFilter, setFacultyDeptFilter] = useState('');
 
     const [formData, setFormData] = useState({
         courseId: '',
@@ -61,19 +62,6 @@ const Addcourse = () => {
     useEffect(() => {
         // Fetch initialization data
         const fetchData = async () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            const userDept = user?.department || user?.department_id;
-
-            try {
-                // Fetch faculty filtered by department if possible
-                const facParams = { role: 'Faculty' };
-                if (userDept) facParams.department = userDept;
-                const facRes = await api.get('/users/', { params: facParams });
-                setFaculties(facRes.data.results || facRes.data);
-            } catch (err) {
-                console.error("Error fetching faculties:", err);
-            }
-
             try {
                 const courseRes = await api.get('/academics/courses/');
                 setExistingCourses(courseRes.data);
@@ -85,15 +73,22 @@ const Addcourse = () => {
         fetchData();
 
         if (location.state && location.state.initialFilters) {
+            const initialDept = location.state.initialFilters.program_id || selectedDept;
+            setFacultyDeptFilter(initialDept);
             setFormData(prev => ({
                 ...prev,
-                program_id: location.state.initialFilters.program_id || prev.program_id,
+                program_id: initialDept,
                 scheme: location.state.initialFilters.scheme || prev.scheme
             }));
+        } else if (selectedDept) {
+            setFacultyDeptFilter(selectedDept);
         }
 
         if (location.state && location.state.courseData) {
             const data = location.state.courseData;
+            // Set faculty filter to the course's department initially
+            setFacultyDeptFilter(data.program_id);
+            
             const fetchCOs = async () => {
                 try {
                     const coRes = await api.get(`/academics/courses/${data.course_id}/cos/`);
@@ -123,6 +118,23 @@ const Addcourse = () => {
             setIsViewMode(location.state.isViewMode || false);
         }
     }, [location]);
+
+    // Dedicated effect to fetch faculty when department filter changes
+    useEffect(() => {
+        const fetchFaculties = async () => {
+            try {
+                const facParams = { role: 'Faculty' };
+                if (facultyDeptFilter && facultyDeptFilter !== 'All') {
+                    facParams.department = facultyDeptFilter;
+                }
+                const facRes = await api.get('/users/', { params: facParams });
+                setFaculties(facRes.data.results || facRes.data);
+            } catch (err) {
+                console.error("Error fetching faculties:", err);
+            }
+        };
+        fetchFaculties();
+    }, [facultyDeptFilter]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -482,24 +494,40 @@ const Addcourse = () => {
 
                                 <div className="col-md-6">
                                     <label className="form-label fw-bold">Assign Faculty</label>
-                                    <select
-                                        className="form-select"
-                                        name="faculty"
-                                        value={formData.faculty}
-                                        onChange={handleChange}
-                                        disabled={isViewMode ||
-                                            (() => {
-                                                const u = JSON.parse(localStorage.getItem('user'));
-                                                const r = (u?.role || u?.role_name || "").toUpperCase();
-                                                return r === 'FACULTY';
-                                            })()
-                                        }
-                                    >
-                                        <option value="">Select Faculty</option>
-                                        {faculties.map(f => (
-                                            <option key={f.user_id} value={f.user_id}>{f.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="input-group">
+                                        <select
+                                            className="form-select"
+                                            style={{ flex: '0 0 35%', backgroundColor: '#e9ecef' }}
+                                            value={facultyDeptFilter}
+                                            onChange={(e) => setFacultyDeptFilter(e.target.value)}
+                                            disabled={isViewMode}
+                                            title="Filter faculty by department"
+                                        >
+                                            <option value="All">All Depts</option>
+                                            {programs.map(p => (
+                                                <option key={p.program_id} value={p.program_id}>{p.program_name}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            className="form-select"
+                                            name="faculty"
+                                            value={formData.faculty}
+                                            onChange={handleChange}
+                                            disabled={isViewMode ||
+                                                (() => {
+                                                    const u = JSON.parse(localStorage.getItem('user'));
+                                                    const r = (u?.role || u?.role_name || "").toUpperCase();
+                                                    return r === 'FACULTY';
+                                                })()
+                                            }
+                                        >
+                                            <option value="">Select Faculty</option>
+                                            {faculties.map(f => (
+                                                <option key={f.user_id} value={f.user_id}>{f.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <small className="text-muted">You can change the first dropdown to find faculty from other departments.</small>
                                 </div>
                             </div>
 

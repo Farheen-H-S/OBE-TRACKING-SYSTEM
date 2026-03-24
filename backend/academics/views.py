@@ -152,19 +152,7 @@ class ProgramListCreateAPIView(APIView):
         if not show_all:
             queryset = queryset.filter(is_active=True)
             
-        # Role-based filtering
-        if not user.is_anonymous and not user.is_superuser:
-            role_name = user.role_id.role_name.upper()
-            if role_name not in ['ADMIN', 'AUDITOR']:
-                if user.department:
-                    queryset = queryset.filter(program_id=user.department.program_id)
-                else:
-                    # If no department assigned and not admin/auditor, return empty or default?
-                    # For now, return empty to be safe
-                    queryset = queryset.none()
-        
-        serializer = ProgramSerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(ProgramSerializer(queryset, many=True).data, status=status.HTTP_200_OK)
 
     def post(self, request):
         data = request.data.copy()
