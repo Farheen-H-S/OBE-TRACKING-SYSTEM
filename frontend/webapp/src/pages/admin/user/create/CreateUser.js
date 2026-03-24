@@ -195,7 +195,7 @@ const CreateUser = () => {
                                         </option>
                                     ))}
                                 </select>
-                                {deptHasHod && formData.department && (
+                                {deptHasHod && formData.department && (formData.role.toLowerCase() === 'hod' || !formData.role) && (
                                     <small className="text-warning mt-1 d-block">
                                         <i className="bi bi-exclamation-triangle-fill me-1"></i>
                                         This department already has an active HOD. HOD role is unavailable.

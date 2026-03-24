@@ -95,7 +95,12 @@ export default function POPSOAttainment() {
         if (!selectedDept || selectedDept === 'All') return;
         setLoading(true);
         try {
-            const academic_year = selectedYear.replace(/\s/g, '');
+            // When a batch is selected, we want to relate targets and displays to that batch's graduation year.
+            // In this system, selectedBatch (e.g. "2025-26") represents the graduation span.
+            const academic_year = (selectedBatch && selectedBatch !== 'All') 
+                ? selectedBatch.replace(/\s/g, '') 
+                : selectedYear.replace(/\s/g, '');
+            
             const params = { program_id: selectedDept, academic_year };
 
             const [poRes, psoRes, targetsRes] = await Promise.allSettled([
