@@ -9,7 +9,7 @@ class CourseIndirectAttainmentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        log_action(self.request.user, 'CREATE', 'CourseIndirectAttainment', instance.attainment_id, new_value=serializer.data)
+        log_action(self.request.user, 'CREATE', 'CourseIndirectAttainment', instance.attainment_id, new_value=serializer.data, request=self.request)
 
 class ActivityIndirectAttainmentListCreateView(generics.ListCreateAPIView):
     queryset = ActivityIndirectAttainment.objects.all()
@@ -17,4 +17,4 @@ class ActivityIndirectAttainmentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        log_action(self.request.user, 'CREATE', 'ActivityIndirectAttainment', instance.activity_id, new_value=serializer.data)
+        log_action(self.request.user, 'CREATE', 'ActivityIndirectAttainment', instance.activity_id, new_value=serializer.data, request=self.request)

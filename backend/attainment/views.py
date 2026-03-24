@@ -83,7 +83,7 @@ class CalculateAttainmentView(APIView):
             if results:
                 # Log the calculation
                 user = request.user if request.user and not request.user.is_anonymous else None
-                log_action(user, 'CALCULATE', 'Course', course_id, remark=f"Attainment calculated for {academic_year}")
+                log_action(user, 'CALCULATE', 'Course', course_id, remark=f"Attainment calculated for {academic_year}", request=request)
                 
                 return Response({
                     "message": f"Attainment calculation completed for course {course_id}",
@@ -247,7 +247,7 @@ class BatchEvaluationReportView(APIView):
             )
             
             # Log action
-            log_action(user, 'CREATE', 'Report', batch.batch_id, remark=f"Batch evaluation report generated for {academic_year}")
+            log_action(user, 'CREATE', 'Report', batch.batch_id, remark=f"Batch evaluation report generated for {academic_year}", request=request)
 
             excel_data.seek(0)
             response = HttpResponse(
@@ -295,7 +295,7 @@ class IndirectAttainmentReportView(APIView):
             )
             
             # Log action
-            log_action(user, 'CREATE', 'Report', batch.batch_id, remark=f"Indirect attainment report generated for {academic_year}")
+            log_action(user, 'CREATE', 'Report', batch.batch_id, remark=f"Indirect attainment report generated for {academic_year}", request=request)
 
             excel_data.seek(0)
             response = HttpResponse(
@@ -387,7 +387,7 @@ class SubmitATRView(APIView):
                 ).update(atr_status='submitted', action_proposed=action_proposed)
                 
                 report_generated = AttainmentService.check_and_generate_report(course_id, academic_year, user if not user.is_anonymous else None)
-                log_action(user if not user.is_anonymous else None, 'CREATE', 'CourseATR', course_id, remark=f"Consolidated ATR submitted for {academic_year}")
+                log_action(user if not user.is_anonymous else None, 'CREATE', 'CourseATR', course_id, remark=f"Consolidated ATR submitted for {academic_year}", request=request)
                 
                 return Response({
                     "message": "Consolidated ATR submitted successfully",
@@ -411,7 +411,7 @@ class SubmitATRView(APIView):
                 att.save()
                 
                 report_generated = AttainmentService.check_and_generate_report(att.course_id.course_id, academic_year, user if not user.is_anonymous else None)
-                log_action(user if not user.is_anonymous else None, 'UPDATE', 'COAttainment', att.attainment_id, remark=f"ATR submitted for CO {att.co_id.co_number}")
+                log_action(user if not user.is_anonymous else None, 'UPDATE', 'COAttainment', att.attainment_id, remark=f"ATR submitted for CO {att.co_id.co_number}", request=request)
                 
                 return Response({
                     "message": "ATR submitted successfully",

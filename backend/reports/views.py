@@ -70,7 +70,7 @@ class ApproveReportView(APIView):
             
             # Log action
             user = request.user if request.user and not request.user.is_anonymous else None
-            log_action(user, 'APPROVE', 'Report', pk, remark=f"Report approved: {report.report_file.name}")
+            log_action(user, 'APPROVE', 'Report', pk, remark=f"Report approved: {report.report_file.name}", request=request)
             
             return Response({"message": "Report approved successfully"}, status=status.HTTP_200_OK)
         except Report.DoesNotExist:
@@ -87,7 +87,7 @@ class RejectReportView(APIView):
             
             # Log action
             user = request.user if request.user and not request.user.is_anonymous else None
-            log_action(user, 'UPDATE', 'Report', pk, remark=f"Report rejected: {remark}")
+            log_action(user, 'UPDATE', 'Report', pk, remark=f"Report rejected: {remark}", request=request)
             
             return Response({"message": "Report rejected successfully"}, status=status.HTTP_200_OK)
         except Report.DoesNotExist:
@@ -156,7 +156,7 @@ class ApproveDACReportView(APIView):
             
             # Log action
             user = request.user if request.user and not request.user.is_anonymous else None
-            log_action(user, 'APPROVE', 'DACReport', pk, remark=f"DAC Report approved: {report.file.name}")
+            log_action(user, 'APPROVE', 'DACReport', pk, remark=f"DAC Report approved: {report.file.name}", request=request)
             
             return Response({"message": "DAC Report approved successfully"}, status=status.HTTP_200_OK)
         except DACReport.DoesNotExist:
@@ -173,7 +173,7 @@ class RejectDACReportView(APIView):
             
             # Log action
             user = request.user if request.user and not request.user.is_anonymous else None
-            log_action(user, 'UPDATE', 'DACReport', pk, remark=f"DAC Report rejected: {remark}")
+            log_action(user, 'UPDATE', 'DACReport', pk, remark=f"DAC Report rejected: {remark}", request=request)
             
             return Response({"message": "DAC Report rejected successfully"}, status=status.HTTP_200_OK)
         except DACReport.DoesNotExist:
@@ -246,7 +246,7 @@ class DACReportListCreateView(generics.ListCreateAPIView):
         
         # Log the upload action
         if user:
-            log_action(user, 'CREATE', 'DACReport', instance.dac_report_id, remark=f"Uploaded DAC Report: {instance.file.name}")
+            log_action(user, 'CREATE', 'DACReport', instance.dac_report_id, remark=f"Uploaded DAC Report: {instance.file.name}", request=self.request)
 
 class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = DACReport.objects.all()
@@ -256,7 +256,7 @@ class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = self.request.user if self.request.user and not self.request.user.is_anonymous else None
         instance = serializer.save()
         if user:
-            log_action(user, 'UPDATE', 'DACReport', instance.dac_report_id, remark=f"Updated DAC Report: {instance.file.name}")
+            log_action(user, 'UPDATE', 'DACReport', instance.dac_report_id, remark=f"Updated DAC Report: {instance.file.name}", request=self.request)
 
     def get(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -273,7 +273,7 @@ class DACReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         
         # Log the delete action
         if user:
-            log_action(user, 'DELETE', 'DACReport', instance.dac_report_id, remark=f"Deleted DAC Report: {instance.file.name}")
+            log_action(user, 'DELETE', 'DACReport', instance.dac_report_id, remark=f"Deleted DAC Report: {instance.file.name}", request=self.request)
             
         # Delete the file from the disk
         if instance.file and os.path.exists(instance.file.path):

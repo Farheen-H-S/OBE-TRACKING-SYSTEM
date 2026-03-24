@@ -177,7 +177,7 @@ class DirectCISReportView(APIView):
         )
         
         # Log action
-        log_action(user, 'CREATE', 'Report', course_id, remark=f"Direct CIS report generated for {academic_year}")
+        log_action(user, 'CREATE', 'Report', course_id, remark=f"Direct CIS report generated for {academic_year}", request=request)
 
         response.write(output.getvalue())
         

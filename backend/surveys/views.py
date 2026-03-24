@@ -188,7 +188,7 @@ class SubmitSurveyResponseView(APIView):
                     answer_value=ans.get('answer_value')
                 )
         
-        log_action(request.user, 'CREATE', 'SurveyResponse', survey.survey_id, remark=f"Survey submitted for {survey.survey_name}")
+        log_action(request.user, 'CREATE', 'SurveyResponse', survey.survey_id, remark=f"Survey submitted for {survey.survey_name}", request=request)
 
         # Trigger 2: Survey response submitted — recalculate attainment for linked course (CES only)
         if survey.course_id_id and survey.survey_category == 'course_exit':

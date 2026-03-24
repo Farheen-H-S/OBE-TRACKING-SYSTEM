@@ -45,7 +45,8 @@ class AcademicSetupAPIView(APIView):
                 'AcademicSetup', 
                 setup.pk, 
                 old_value=old_value, 
-                new_value=serializer.data
+                new_value=serializer.data,
+                request=request
             )
             
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -60,7 +61,7 @@ class AcademicSetupAPIView(APIView):
         serializer = AcademicSetupSerializer(setup, data=request.data, partial=True)
         if serializer.is_valid():
             setup = serializer.save()
-            log_action(request.user, 'UPDATE', 'AcademicSetup', setup.pk, old_value=old_value, new_value=serializer.data)
+            log_action(request.user, 'UPDATE', 'AcademicSetup', setup.pk, old_value=old_value, new_value=serializer.data, request=request)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -158,7 +159,7 @@ class ProgramListCreateAPIView(APIView):
         serializer = ProgramSerializer(data=data)
         if serializer.is_valid():
             program = serializer.save()
-            log_action(request.user, 'CREATE', 'Program', program.program_id, new_value=serializer.data)
+            log_action(request.user, 'CREATE', 'Program', program.program_id, new_value=serializer.data, request=request)
             return Response({"program_id": program.program_id}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -180,7 +181,7 @@ class ProgramDetailAPIView(APIView):
         serializer = ProgramSerializer(program, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            log_action(request.user, 'UPDATE', 'Program', program.program_id, new_value=serializer.data)
+            log_action(request.user, 'UPDATE', 'Program', program.program_id, new_value=serializer.data, request=request)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -188,7 +189,7 @@ class ProgramDetailAPIView(APIView):
         program = get_object_or_404(Program, pk=pk)
         program.is_active = False
         program.save()
-        log_action(request.user, 'DISABLE', 'Program', program.program_id, remark="Program disabled")
+        log_action(request.user, 'DISABLE', 'Program', program.program_id, remark="Program disabled", request=request)
         return Response({"message": "program disabled"}, status=status.HTTP_200_OK)
 
 # ---------------- COURSE ----------------
@@ -340,7 +341,7 @@ class CourseListCreateAPIView(APIView):
                                 description=co_item.get('text') or co_item.get('description')
                             )
                     
-                    log_action(request.user, 'CREATE', 'Course', course.course_id, new_value=serializer.data)
+                    log_action(request.user, 'CREATE', 'Course', course.course_id, new_value=serializer.data, request=request)
                     return Response({"course_id": course.course_id}, status=status.HTTP_201_CREATED)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -449,7 +450,7 @@ class CourseDetailAPIView(APIView):
                                 try: co_obj.delete()
                                 except Exception: pass
                     
-                    log_action(request.user, 'UPDATE', 'Course', course.course_id, new_value=serializer.data)
+                    log_action(request.user, 'UPDATE', 'Course', course.course_id, new_value=serializer.data, request=request)
                     return Response(serializer.data, status=status.HTTP_200_OK)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -460,7 +461,7 @@ class CourseDetailAPIView(APIView):
         serializer = CourseSerializer(course, data=request.data, partial=True)
         if serializer.is_valid():
             course = serializer.save()
-            log_action(request.user, 'UPDATE', 'Course', course.course_id, new_value=serializer.data)
+            log_action(request.user, 'UPDATE', 'Course', course.course_id, new_value=serializer.data, request=request)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -468,7 +469,7 @@ class CourseDetailAPIView(APIView):
         course = get_object_or_404(Course, pk=pk)
         course.is_active = False
         course.save()
-        log_action(request.user, 'DISABLE', 'Course', course.course_id, remark="Course disabled")
+        log_action(request.user, 'DISABLE', 'Course', course.course_id, remark="Course disabled", request=request)
         return Response({"message": "course disabled"}, status=status.HTTP_200_OK)
 
 class RequestATRAPIView(APIView):
@@ -782,7 +783,7 @@ class TargetSubmitAPIView(APIView):
         target = get_object_or_404(COTarget, pk=pk)
         target.status = 'SUBMITTED'
         target.save()
-        log_action(request.user, 'UPDATE', 'COTarget', target.target_id, remark="Target submitted")
+        log_action(request.user, 'UPDATE', 'COTarget', target.target_id, remark="Target submitted", request=request)
         return Response({"status": "submitted", "target_id": pk})
 
 class TargetApproveAPIView(APIView):
@@ -791,7 +792,7 @@ class TargetApproveAPIView(APIView):
         target.status = 'APPROVED'
         target.remarks = request.data.get('remarks', '')
         target.save()
-        log_action(request.user, 'APPROVE', 'COTarget', target.target_id, remark=target.remarks)
+        log_action(request.user, 'APPROVE', 'COTarget', target.target_id, remark=target.remarks, request=request)
         return Response({"status": "approved", "approved_by": request.user.name if not request.user.is_anonymous else "Admin"})
 
 class TargetRejectAPIView(APIView):
@@ -802,7 +803,7 @@ class TargetRejectAPIView(APIView):
         target.status = 'REJECTED'
         target.remarks = remarks
         target.save()
-        log_action(request.user, 'UPDATE', 'COTarget', target.target_id, remark=f"Target rejected: {remarks}")
+        log_action(request.user, 'UPDATE', 'COTarget', target.target_id, remark=f"Target rejected: {remarks}", request=request)
         return Response({"status": "rejected", "remarks": remarks})
 
 # ---------------- PROGRAM STATEMENTS & PEOs ----------------

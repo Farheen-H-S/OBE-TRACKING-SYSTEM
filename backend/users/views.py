@@ -138,7 +138,7 @@ class UserListCreateAPIView(APIView):
                 'User', 
                 user.user_id, 
                 new_value=serializer.data,
-                ip_address=request.META.get('REMOTE_ADDR')
+                request=request
             )
             return Response({"user_id": user.user_id, "status": "created"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -252,7 +252,7 @@ class UserDetailAPIView(APIView):
                 user.user_id, 
                 old_value=old_data, 
                 new_value=serializer.data,
-                ip_address=request.META.get('REMOTE_ADDR')
+                request=request
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -284,7 +284,7 @@ class UserDetailAPIView(APIView):
             'User', 
             user.user_id, 
             remark="Soft deleted",
-            ip_address=request.META.get('REMOTE_ADDR')
+            request=request
         )
         return Response({"message": "soft delete confirmation", "user_id": pk, "is_active": user.is_active}, status=status.HTTP_200_OK)
 
@@ -345,7 +345,7 @@ class LoginAPIView(APIView):
         academic_setup = AcademicSetup.objects.first()
         academic_year = academic_setup.academic_year if academic_setup else "N/A"
 
-        log_action(user, 'LOGIN', 'User', user.user_id, ip_address=request.META.get('REMOTE_ADDR'))
+        log_action(user, 'LOGIN', 'User', user.user_id, request=request)
 
         return Response({
             "access": str(refresh.access_token),
@@ -377,7 +377,7 @@ class LogoutAPIView(APIView):
                     'LOGOUT', 
                     'User', 
                     user.user_id,
-                    ip_address=request.META.get('REMOTE_ADDR')
+                    request=request
                 )
             
             token.blacklist()  # invalidate the refresh token
@@ -539,7 +539,7 @@ class ForgotPasswordAPIView(APIView):
             send_email=True
         )
 
-        log_action(user, 'UPDATE', 'User', user.user_id, remark="Forgot password requested")
+        log_action(user, 'UPDATE', 'User', user.user_id, remark="Forgot password requested", request=request)
         return Response({"message": success_message}, status=status.HTTP_200_OK)
 
 class ResetPasswordAPIView(APIView):
@@ -568,7 +568,7 @@ class ResetPasswordAPIView(APIView):
         user.set_password(new_password)
         user.save()
         
-        log_action(user, 'UPDATE', 'User', user.user_id, remark="Password successfully reset via token")
+        log_action(user, 'UPDATE', 'User', user.user_id, remark="Password successfully reset via token", request=request)
         
         # Option to send confirmation email
         title = "Password Changed Successfully"

@@ -41,7 +41,7 @@ class AssessmentListCreateAPIView(APIView):
         serializer = AssessmentSerializer(data=data)
         if serializer.is_valid():
             assessment = serializer.save()
-            log_action(request.user, 'CREATE', 'Assessment', assessment.assessment_id, new_value=serializer.data)
+            log_action(request.user, 'CREATE', 'Assessment', assessment.assessment_id, new_value=serializer.data, request=request)
             return Response({"assessment_id": assessment.assessment_id}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -52,7 +52,7 @@ class AssessmentDetailAPIView(APIView):
         serializer = AssessmentSerializer(assessment, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            log_action(request.user, 'UPDATE', 'Assessment', assessment.assessment_id, new_value=serializer.data)
+            log_action(request.user, 'UPDATE', 'Assessment', assessment.assessment_id, new_value=serializer.data, request=request)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -54,7 +54,7 @@ class TeachingPlanListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        log_action(self.request.user, 'CREATE', 'TeachingPlan', instance.teaching_plan_id, new_value=serializer.data)
+        log_action(self.request.user, 'CREATE', 'TeachingPlan', instance.teaching_plan_id, new_value=serializer.data, request=self.request)
 
 class TeachingPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = TeachingPlan.objects.all()
@@ -62,12 +62,12 @@ class TeachingPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        log_action(self.request.user, 'UPDATE', 'TeachingPlan', instance.teaching_plan_id, new_value=serializer.data)
+        log_action(self.request.user, 'UPDATE', 'TeachingPlan', instance.teaching_plan_id, new_value=serializer.data, request=self.request)
     
     def perform_destroy(self, instance):
         log_id = instance.teaching_plan_id
         instance.delete()
-        log_action(self.request.user, 'DELETE', 'TeachingPlan', log_id)
+        log_action(self.request.user, 'DELETE', 'TeachingPlan', log_id, request=self.request)
 
 class BulkUploadTopicsView(APIView):
     """
@@ -136,7 +136,7 @@ class BulkUploadTopicsView(APIView):
                 except Exception as e:
                     errors.append(f"Row {row_num}: {str(e)}")
             
-            log_action(request.user, 'CREATE', 'TeachingPlanLecture', plan.id, remark=f"Bulk uploaded {topics_created} topics")
+            log_action(request.user, 'CREATE', 'TeachingPlanLecture', plan.id, remark=f"Bulk uploaded {topics_created} topics", request=request)
 
             return Response({
                 "message": f"Successfully uploaded {topics_created} topics",
