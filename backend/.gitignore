@@ -3,12 +3,25 @@ db.sqlite3
 __pycache__/
 *.pyc
 
+# Static & media
+staticfiles/
+media/
+
 # Virtual environment
 venv/
 
 # Environment variables
 .env
 
-# Mac
-.DS_Store
+# Data dumps
+data.json
 
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
