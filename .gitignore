@@ -11,3 +11,6 @@ __pycache__/
 
 # Documents
 docs/
+
+# Mac
+.DS_Store
