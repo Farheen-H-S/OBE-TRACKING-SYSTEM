@@ -2,6 +2,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
+from django.urls import re_path
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def react_app(request):
+    return TemplateView.as_view(template_name="index.html")(request)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,6 +25,7 @@ urlpatterns = [
     path('api/audit/', include('audit.urls')),
     path('api/bulk_upload/', include('bulk_upload.urls')),
     path('api/notifications/', include('notifications.urls')),
+    re_path(r'^.*$', react_app),
 ]
 
 if settings.DEBUG:
