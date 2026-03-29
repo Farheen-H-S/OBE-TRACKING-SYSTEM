@@ -7,6 +7,8 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
+    path('admin/', admin.site.urls),
+    path('api/users/', include('users.urls')),
     path('api/academics/', include('academics.urls')),
     path('api/cis_master/', include('cis_master.urls')),
     path('api/assessments/', include('assessments.urls')),
@@ -19,8 +21,7 @@ urlpatterns = [
     path('api/audit/', include('audit.urls')),
     path('api/bulk_upload/', include('bulk_upload.urls')),
     path('api/notifications/', include('notifications.urls')),
-
-    # React catch-all
+    # Catch-all for React routes
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
 ]
 
