@@ -1,5 +1,5 @@
 import { FaCircle, FaSignOutAlt } from "react-icons/fa";
-import { profile } from "../../assets/images";
+import { profile, backpic } from "../../assets/images";
 import "./AuditorSide.css"; // Ensure this CSS file exists or create it
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../services/authService";
@@ -42,7 +42,7 @@ const AuditorSide = ({ isOpen, onClose, user: propUser }) => {
             <div
                 className="user-banner p-3 text-center cursor-pointer"
                 onClick={() => navigate('/profile')}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', backgroundImage: `url(${backpic})` }}
             >
                 <div className="user-banner-img mb-2">
                     <img

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../../utils/axios';
 import './Cwelcome.css';
-import redbg from '../../../assets/images/redbg.jpg';
+import { redbg } from '../../../assets/images';
 
 const Cwelcome = () => {
     const navigate = useNavigate();

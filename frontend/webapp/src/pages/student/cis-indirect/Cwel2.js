@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Cwel2.css';
-import redbg from '../../../assets/images/redbg.jpg';
+import { redbg } from '../../../assets/images';
 
 const Cwel2k = () => {
     const navigate = useNavigate();

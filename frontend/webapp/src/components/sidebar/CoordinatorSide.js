@@ -1,5 +1,5 @@
 import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
-import { profile } from "../../assets/images";
+import { profile, backpic } from "../../assets/images";
 import "./CoordinatorSide.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -136,7 +136,7 @@ const CoordinatorSide = ({ isOpen, onClose, user: propUser }) => {
             <div
                 className="user-banner p-3 text-center cursor-pointer"
                 onClick={() => navigate('/profile')}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', backgroundImage: `url(${backpic})` }}
             >
                 <div className="user-banner-img mb-2">
                     <img

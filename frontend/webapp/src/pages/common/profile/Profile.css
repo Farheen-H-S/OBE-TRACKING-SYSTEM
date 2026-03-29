@@ -125,7 +125,9 @@
 .user-banner {
   padding: 20px;
   text-align: center;
-  background: url("../../assets/images/back-pic.png") no-repeat center center/cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
 }
 
 .user-banner-img img {

@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Welcome.css';
-import { brain } from '../../../../assets/images';
+import { brain, bubble } from '../../../../assets/images';
 import { useNavigate } from 'react-router-dom';
 
 const Welcome = () => {
@@ -13,7 +13,7 @@ const Welcome = () => {
     };
 
     return (
-        <div className="container-fluid welcome-container min-vh-100 d-flex flex-column align-items-center justify-content-center">
+        <div className="container-fluid welcome-container min-vh-100 d-flex flex-column align-items-center justify-content-center" style={{ backgroundImage: `url(${bubble})` }}>
             <div className="text-center mb-4">
                 <h1 className="welcome-title mb-0">Welcome</h1>
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../../utils/axios';
 import './OITWelcome.css';
-import redbg from '../../../assets/images/redbg.jpg';
+import { redbg } from '../../../assets/images';
 
 const TOOL_LABELS = {
     'co-curricular': 'Co-curricular / Extra Curricular Activity Feedback',
