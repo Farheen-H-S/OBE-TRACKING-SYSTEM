@@ -5,19 +5,16 @@ import dj_database_url
 import dotenv
 dotenv.load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend_build")  # React build folder
 
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend_build")
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("DJANGO_SECRET_KEY is not set")
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
-
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
 # Custom User Model
@@ -63,10 +60,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'core.urls'
 
+# Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [FRONTEND_DIR],
+        'DIRS': [FRONTEND_DIR],  # index.html is here
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -91,11 +89,16 @@ DATABASES = {
     )
 }
 
+# Static & media
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(FRONTEND_DIR, 'static'),  # JS, CSS, images here
+]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = "whitenoise.storage.StaticFilesStorage"
-STATICFILES_DIRS = [
-    os.path.join(FRONTEND_DIR, 'static'),
-]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -154,21 +157,20 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+# CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
-
-FRONTEND_URL = os.getenv("FRONTEND_URL", None)
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 if FRONTEND_URL:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
-
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
 ]
-
 if FRONTEND_URL:
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
+
 
 # Email Configuration (Google SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
