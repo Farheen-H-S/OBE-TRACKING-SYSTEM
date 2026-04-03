@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,13 +19,19 @@ urlpatterns = [
     path('api/audit/', include('audit.urls')),
     path('api/bulk_upload/', include('bulk_upload.urls')),
     path('api/notifications/', include('notifications.urls')),
-
-    # ✅ FIXED catch-all (added images + manifest + favicon)
-    re_path(
-        r'^(?!static/|media/|api/|images/|manifest\.json|favicon\.ico).*$',
-        TemplateView.as_view(template_name='index.html')
-    ),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# ✅ Serve static files
+urlpatterns += [
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+]
+
+# ✅ Serve public files (manifest, logo, etc)
+urlpatterns += [
+    re_path(r'^(manifest\.json|favicon\.ico|logo.*\.png)$', serve, {'document_root': settings.FRONTEND_DIR}),
+]
+
+# ✅ React catch-all (LAST)
+urlpatterns += [
+    re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
+]
