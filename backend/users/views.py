@@ -336,6 +336,9 @@ class LoginAPIView(APIView):
             return Response({"error": "Students cannot login"}, status=403)
 
         if not check_password(password, user.password):
+            print("RAW:", password)
+            print("DB:", user.password)
+            print("CHECK:", check_password(password, user.password))
             return Response({"error": "Invalid credentials"}, status=401)
 
         # Generate JWT tokens
@@ -360,6 +363,7 @@ class LoginAPIView(APIView):
                 "academic_year": academic_year
             }
         }, status=status.HTTP_200_OK)
+
 
 
 class LogoutAPIView(APIView):
