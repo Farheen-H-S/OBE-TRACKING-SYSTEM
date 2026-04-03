@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaStar } from 'react-icons/fa';
 import './Question.css';
-import { brain } from '../../../../assets/images';
+const brain = '/images/brain.png';
 
 const Question = ({ questions, onSubmit, title = "Teacher Feedback" }) => {
     const [currentIndex, setCurrentIndex] = useState(0);

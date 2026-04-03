@@ -1,7 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../stress/instruction/Instruction.css';
-import { note } from '../../../../assets/images';
 import { useNavigate, useLocation } from 'react-router-dom';
+
+const note = '/images/note.png';
 
 const Instruction = () => {
     const navigate = useNavigate();

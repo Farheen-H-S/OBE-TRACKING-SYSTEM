@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../../api';
 import '../login/Login.css';
-import { logo } from '../../../assets/images';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+
+const logo = '/images/logo.png';
 
 function ResetPassword() {
     const { uidb64, token } = useParams();

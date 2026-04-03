@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './OITLogin.css';
-import { sflogo2 } from '../../../assets/images';
 import api from '../../../utils/axios';
 import { FaArrowRight } from 'react-icons/fa';
+
+const sflogo2 = '/images/sflogo.jpg';
 
 const TOOL_LABELS = {
     'co-curricular': 'Co-curricular / Extra Curricular Activity Feedback',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Question.css';
-import { brain } from '../../../../assets/images'; // replace with your actual image import
+const brain = '/images/brain.png';
 
 const Question = ({ questions, onSubmit }) => {
     const [currentIndex, setCurrentIndex] = useState(0);

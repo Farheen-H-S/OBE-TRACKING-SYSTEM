@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../../api';
 import '../login/Login.css'; // Reusable styles from Login.css
-import { logo } from '../../../assets/images';
+const logo = '/images/logo.png';
 
 function ForgotPassword() {
     const [email, setEmail] = useState("");

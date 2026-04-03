@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./Header.css";
-import { logowhite } from "../../assets/images";
 import { FaBell, FaSearch, FaBars, FaTimes, FaDownload } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { getLoggedInUser } from "../../utils/auth";
 import { useFilters } from "../../context/FilterContext";
 import api from "../../utils/axios";
 
+const logowhite = '/images/logo-white.png';
 
 const Header = ({ onToggleSidebar }) => {
   const navigate = useNavigate();

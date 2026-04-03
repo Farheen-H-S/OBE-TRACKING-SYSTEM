@@ -1,9 +1,10 @@
 import './Login.css';
-import { logo } from "../../../assets/images";
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { login } from "../../../services/authService";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+
+const logo = '/images/logo.png';
 
 function Login() {
   const navigate = useNavigate();

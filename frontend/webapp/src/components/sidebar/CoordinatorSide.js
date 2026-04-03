@@ -1,10 +1,12 @@
 import { FaCircle, FaMinus, FaPlus, FaSignOutAlt } from "react-icons/fa";
-import { profile, backpic } from "../../assets/images";
 import "./CoordinatorSide.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../services/authService";
 import { getLoggedInUser } from "../../utils/auth";
+
+const profile = '/images/profile.jpeg';
+const backpic = '/images/back-pic.png';
 
 const CoordinatorSide = ({ isOpen, onClose, user: propUser }) => {
     const [openMenu, setOpenMenu] = useState(null);

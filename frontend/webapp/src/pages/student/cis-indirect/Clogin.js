@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Clogin.css';
-import { sflogo2 } from '../../../assets/images';
-
 import api from '../../../utils/axios';
 import { FaBook, FaUserGraduate, FaArrowRight } from 'react-icons/fa';
+
+const sflogo2 = '/images/sflogo.jpg';
 
 const Clogin = () => {
     const [enrollment, setEnrollment] = useState('');

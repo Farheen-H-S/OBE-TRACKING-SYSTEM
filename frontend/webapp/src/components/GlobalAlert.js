@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { celebImg } from '../assets/images';
+const celebImg = '/images/celeb.jpg';
 
 const GlobalAlert = () => {
     const [alertData, setAlertData] = useState({ show: false, message: '', type: 'info' });

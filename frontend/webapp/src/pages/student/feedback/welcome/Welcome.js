@@ -1,7 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../stress/welcome/Welcome.css'; // Re-use stress welcome styles
-import { brain } from '../../../../assets/images';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
+const brain = '/images/brain.png';
 
 const Welcome = () => {
     const navigate = useNavigate();

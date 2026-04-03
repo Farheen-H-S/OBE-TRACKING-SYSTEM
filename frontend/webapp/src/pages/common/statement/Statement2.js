@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../../utils/axios';
 import { getLoggedInUser } from '../../../utils/auth';
 import './Statement2.css';
-import { sflogo2, splogo } from '../../../assets/images';
+const sflogo2 = '/images/sflogo.jpg';
+const splogo = '/images/splogo.jpg';
 
 const Statement2 = () => {
     const navigate = useNavigate();

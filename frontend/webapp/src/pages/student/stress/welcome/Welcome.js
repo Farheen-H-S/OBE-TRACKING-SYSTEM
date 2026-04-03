@@ -1,7 +1,9 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Welcome.css';
-import { brain, bubble } from '../../../../assets/images';
 import { useNavigate } from 'react-router-dom';
+
+const brain = '/images/brain.png';
+const bubble = '/images/bubble.png';
 
 const Welcome = () => {
     const navigate = useNavigate();
