@@ -21,9 +21,9 @@ urlpatterns = [
     path('api/bulk_upload/', include('bulk_upload.urls')),
     path('api/notifications/', include('notifications.urls')),
 
-    # ✅ FIXED catch-all (DO NOT TOUCH AFTER THIS)
+    # ✅ FIXED catch-all
     re_path(
-        r'^(?!api/|static/|media/|images/|favicon\.ico|manifest\.json|.*\.(png|jpg|jpeg|gif|svg|webp|ico|css|js)$).*$',
+        r'^(?!api/|static/|media/|images/|.*\.(png|jpg|jpeg|gif|svg|webp|ico|json)$).*$',
         TemplateView.as_view(template_name='index.html')
     ),
 ]
