@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/",
+    baseURL: "https://obe-tracking-system.onrender.com/api/",
     headers: {
         "Content-Type": "application/json",
     },
@@ -48,9 +48,9 @@ api.interceptors.response.use(
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes("/users/login")) {
-            
+
             if (isRefreshing) {
-                return new Promise(function(resolve, reject) {
+                return new Promise(function (resolve, reject) {
                     failedQueue.push({ resolve, reject });
                 }).then(token => {
                     originalRequest.headers.Authorization = 'Bearer ' + token;
@@ -75,12 +75,12 @@ api.interceptors.response.use(
 
             try {
                 // Call token refresh endpoint directly using pure axios to avoid interceptor loop
-                const res = await axios.post("http://127.0.0.1:8000/api/users/token/refresh/", {
+                const res = await axios.post("https://obe-tracking-system.onrender.com/api/users/token/refresh/", {
                     refresh: refreshToken
                 });
 
                 const newAccessToken = res.data.access;
-                
+
                 // Update storage where the refresh token was originally found
                 if (localStorage.getItem("refresh")) {
                     localStorage.setItem("access", newAccessToken);
