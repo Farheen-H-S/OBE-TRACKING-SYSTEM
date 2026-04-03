@@ -3,6 +3,7 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.views.generic import TemplateView
 from django.views.static import serve
+import os
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -21,17 +22,31 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
 ]
 
-# ✅ Serve static files
+# ✅ STATIC (React build static files)
 urlpatterns += [
-    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    re_path(r'^static/(?P<path>.*)$', serve, {
+        'document_root': settings.STATIC_ROOT
+    }),
 ]
 
-# ✅ Serve public files (manifest, logo, etc)
+# ✅ IMAGES (THIS is the missing piece)
 urlpatterns += [
-    re_path(r'^(manifest\.json|favicon\.ico|logo.*\.png)$', serve, {'document_root': settings.FRONTEND_DIR}),
+    re_path(r'^images/(?P<path>.*)$', serve, {
+        'document_root': os.path.join(settings.FRONTEND_DIR, 'images')
+    }),
 ]
 
-# ✅ React catch-all (LAST)
+# ✅ ROOT FILES (manifest, logos)
+urlpatterns += [
+    re_path(r'^(?P<path>manifest\.json)$', serve, {
+        'document_root': settings.FRONTEND_DIR
+    }),
+    re_path(r'^(?P<path>logo.*\.png)$', serve, {
+        'document_root': settings.FRONTEND_DIR
+    }),
+]
+
+# ✅ React catch-all (ALWAYS LAST)
 urlpatterns += [
     re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
 ]
