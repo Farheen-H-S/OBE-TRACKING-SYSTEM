@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkwebapp=self.webpackChunkwebapp||[]).push([[6482],{6482:(e,s,r)=>{r.r(s),r.d(s,{default:()=>u});var t=r(5043),a=r(5685),c=r(579);const u=()=>{const e=(0,a.Zp)();return(0,t.useEffect)(()=>{const s=JSON.parse(localStorage.getItem("user")||sessionStorage.getItem("user")||"null");s&&s.user_id?e("/view-user2?id=".concat(s.user_id),{replace:!0}):e("/view-user2",{replace:!0})},[e]),(0,c.jsx)("div",{className:"text-center py-5",children:"Loading profile..."})}}}]);
+//# sourceMappingURL=6482.2d7de804.chunk.js.map
