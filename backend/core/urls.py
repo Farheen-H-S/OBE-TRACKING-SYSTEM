@@ -21,8 +21,11 @@ urlpatterns = [
     path('api/bulk_upload/', include('bulk_upload.urls')),
     path('api/notifications/', include('notifications.urls')),
 
-    # ✅ ONLY ONE catch-all (correct one)
-    re_path(r'^(?!static/|media/|api/).*$', TemplateView.as_view(template_name='index.html')),
+    # ✅ FIXED catch-all (DO NOT TOUCH AFTER THIS)
+    re_path(
+        r'^(?!api/|static/|media/|images/|favicon\.ico|manifest\.json|.*\.(png|jpg|jpeg|gif|svg|webp|ico|css|js)$).*$',
+        TemplateView.as_view(template_name='index.html')
+    ),
 ]
 
 if settings.DEBUG:
