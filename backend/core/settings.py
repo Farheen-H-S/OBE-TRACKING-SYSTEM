@@ -7,7 +7,7 @@ dotenv.load_dotenv()
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend_build")  # React build folder
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend/webapp/build")  # React build folder
 
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
