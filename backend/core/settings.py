@@ -8,7 +8,7 @@ dotenv.load_dotenv()
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend/webapp/build")  # ✅ FIXED
+FRONTEND_DIR = os.path.join(BASE_DIR.parent, "frontend/webapp/build")  # ✅ FIXED
 
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
