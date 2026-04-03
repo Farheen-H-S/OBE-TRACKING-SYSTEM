@@ -29,6 +29,19 @@ export const FilterProvider = ({ children }) => {
                 if (parsed.selectedIntroYear === '2025-26') {
                     parsed.selectedIntroYear = '';
                 }
+                // For role-constrained users (HOD/Faculty/Coordinator), always start
+                // with a blank dept so fetchFilters can set it from the server.
+                // This prevents a stale dept from a previous user bleeding through.
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                if (storedUser) {
+                    try {
+                        const u = JSON.parse(storedUser);
+                        const role = (u.role || u.role_name || '').toUpperCase();
+                        if (['HOD', 'FACULTY', 'COORDINATOR'].includes(role)) {
+                            parsed.selectedDept = '';
+                        }
+                    } catch (_) { /* ignore */ }
+                }
                 return { ...defaults, ...parsed };
             } catch (e) {
                 console.error("Error parsing saved context:", e);
@@ -170,7 +183,13 @@ export const FilterProvider = ({ children }) => {
         }
     }, [selectedDept, selectedScheme, selectedYear]);
 
-    // Initial load and re-fetch on navigation if data is missing
+    // Initial load: always fetch on first mount to enforce user-specific dept.
+    // Also re-fetch on navigation if departments are still missing.
+    useEffect(() => {
+        fetchFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     useEffect(() => {
         if (departments.length === 0) {
             fetchFilters();

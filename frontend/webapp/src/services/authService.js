@@ -19,10 +19,11 @@ export const login = async (email, password) => {
 export const logout = async (refreshToken) => {
     try {
         const response = await api.post("users/logout/", { refresh: refreshToken });
-        // Clear localStorage/sessionStorage
+        // Clear localStorage/sessionStorage (including cached filter context)
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
         localStorage.removeItem("user");
+        localStorage.removeItem("obe_academic_context");
         sessionStorage.removeItem("access");
         sessionStorage.removeItem("refresh");
         sessionStorage.removeItem("user");

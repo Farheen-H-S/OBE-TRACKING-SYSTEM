@@ -21,6 +21,10 @@ function Login() {
     try {
       const data = await login(email, password);
 
+      // Always clear the previous user's cached filter context so the new
+      // user's department is applied correctly by FilterContext on mount.
+      localStorage.removeItem("obe_academic_context");
+
       if (rememberMe) {
         localStorage.setItem("access", data.access);
         localStorage.setItem("refresh", data.refresh);
