@@ -745,7 +745,7 @@ const Cescreate = () => {
                                                             accept=".xlsx,.xls"
                                                             onChange={(e) => handleBulkUpload(e, surveyStates[course.course_id].survey_id, course.course_id)}
                                                         />
-                                                        {/* <button 
+                                                        <button
                                                             className="btn btn-sm text-dark bg-warning border border-dark rounded-0 fw-bold px-2 mx-1"
                                                             style={{ boxShadow: '2px 2px 0px black' }}
                                                             onClick={() => {
@@ -763,7 +763,7 @@ const Cescreate = () => {
                                                             onClick={() => window.open(`${api.defaults.baseURL}bulk_upload/surveys/template/?survey_id=${surveyStates[course.course_id].survey_id}`, '_blank')}
                                                         >
                                                             [DEV] TEMPLATE
-                                                        </button> */}
+                                                        </button>
                                                     </>
                                                 )}
                                             </div>
