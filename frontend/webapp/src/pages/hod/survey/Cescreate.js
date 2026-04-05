@@ -168,7 +168,7 @@ const Cescreate = () => {
 
     useEffect(() => {
         fetchCourses();
-    }, [selectedProgram, selectedScheme, selectedClass, selectedSemester, selectedYear, selectedDivision]);
+    }, [selectedProgram, selectedScheme, selectedBatch, selectedClass, selectedSemester, selectedYear, selectedDivision]);
 
     const fetchCourses = async () => {
         setCoursesLoading(true);
@@ -176,6 +176,7 @@ const Cescreate = () => {
             const params = {
                 program_id: selectedProgram === 'All' ? '' : selectedProgram,
                 scheme_id: selectedScheme === 'All' ? '' : selectedScheme,
+                batch_id: selectedBatch === 'All' ? '' : selectedBatch,
                 class_year: selectedClass === 'All' ? '' : selectedClass,
                 semester: selectedSemester === 'All' ? '' : selectedSemester,
                 academic_year: selectedYear
