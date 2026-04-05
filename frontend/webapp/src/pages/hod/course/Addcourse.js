@@ -18,6 +18,7 @@ const Addcourse = () => {
     } = useFilters();
 
     const [isViewMode, setIsViewMode] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [facultyDeptFilter, setFacultyDeptFilter] = useState('');
@@ -226,7 +227,9 @@ const Addcourse = () => {
 
     const handleSave = async (e, requestedStatus = 'PENDING') => {
         if (e) e.preventDefault();
+        if (isSaving) return;
         try {
+            setIsSaving(true);
             // Validate required fields for basic save
             const requiredFields = ['courseCode', 'course_name_suffix', 'faculty'];
             for (let field of requiredFields) {
@@ -279,6 +282,7 @@ const Addcourse = () => {
                 navigate('/course-management');
             }
         } catch (err) {
+            setIsSaving(false);
             console.error("Error saving course:", err);
 
             // Check for uniqueness constraint violation (e.g. concurrent course creation)
@@ -299,6 +303,8 @@ const Addcourse = () => {
             }
 
             alert(err.response?.data?.detail || err.response?.data?.error || "Failed to save course. Check console for details.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -649,15 +655,17 @@ const Addcourse = () => {
                                         type="button"
                                         className="btn btn-outline-secondary btn-lg px-4 shadow-sm fw-bold"
                                         onClick={(e) => handleSave(e, 'PENDING')}
+                                        disabled={isSaving}
                                     >
-                                        {formData.courseId ? "Update Draft" : "Save as Draft"}
+                                        {isSaving ? 'Saving…' : (formData.courseId ? "Update Draft" : "Save as Draft")}
                                     </button>
                                     <button
                                         type="button"
                                         className="btn btn-outline-primary btn-lg px-4 shadow-sm fw-bold"
                                         onClick={(e) => handleSave(e, 'COMPLETED')}
+                                        disabled={isSaving}
                                     >
-                                        {formData.courseId ? "Update & Mark Complete" : "Save & Mark Complete"}
+                                        {isSaving ? 'Saving…' : (formData.courseId ? "Update & Mark Complete" : "Save & Mark Complete")}
                                     </button>
                                 </div>
                             )}

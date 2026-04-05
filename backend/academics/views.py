@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from users.permissions import IsAdmin, IsHOD, IsFaculty, IsCoordinator, IsAuditor
 from audit.utils import log_action
 import time
+import threading
 
 from .models import (
     Program, Scheme, Course, CO, PO, PSO,
@@ -349,14 +350,19 @@ class CourseListCreateAPIView(APIView):
                 else:
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-            # Fire notification OUTSIDE transaction
+            # Fire notification in a background thread — response returns immediately
             if notification_data:
                 try:
                     from notifications.utils import send_obe_notification
-                    send_obe_notification(**notification_data)
+                    t = threading.Thread(
+                        target=send_obe_notification,
+                        kwargs=notification_data,
+                        daemon=True
+                    )
+                    t.start()
                 except Exception as n_err:
-                    print(f"DEBUG: Background notification failed: {n_err}")
-            
+                    print(f"DEBUG: Failed to start notification thread: {n_err}")
+
             return response
 
         except Exception as e:
@@ -479,14 +485,19 @@ class CourseDetailAPIView(APIView):
                 else:
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-            # Fire notification OUTSIDE transaction
+            # Fire notification in a background thread — response returns immediately
             if notification_data:
                 try:
                     from notifications.utils import send_obe_notification
-                    send_obe_notification(**notification_data)
+                    t = threading.Thread(
+                        target=send_obe_notification,
+                        kwargs=notification_data,
+                        daemon=True
+                    )
+                    t.start()
                 except Exception as n_err:
-                    print(f"DEBUG: Background notification failed: {n_err}")
-            
+                    print(f"DEBUG: Failed to start notification thread: {n_err}")
+
             return response
 
         except Exception as e:

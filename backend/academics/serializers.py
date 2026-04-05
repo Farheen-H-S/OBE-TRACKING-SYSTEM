@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import string
 from .models import (
     Program, Scheme, Course, CO, PO, PSO,
     COPOMapping, COPSOMapping, Batch, COTarget, POTarget, PSOTarget,
@@ -65,6 +66,12 @@ class CourseSerializer(serializers.ModelSerializer):
             'course_atr', 'atr_status', 'introduction_year', 'is_active', 'batches', 'created_at', 'updated_at'
         ]
         read_only_fields = ['batches']
+
+    def validate_course_title(self, value):
+        """Enforce Title Case on course_title. course_name is left as-is."""
+        if value:
+            return string.capwords(value.strip())
+        return value
 
     def get_faculty_assigned(self, obj):
         from users.models import FacultyCourseAssignment
