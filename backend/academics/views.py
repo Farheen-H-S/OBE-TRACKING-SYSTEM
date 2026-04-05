@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from users.permissions import IsAdmin, IsHOD, IsFaculty, IsCoordinator, IsAuditor
 from audit.utils import log_action
+import time
 
 from .models import (
     Program, Scheme, Course, CO, PO, PSO,
@@ -255,6 +256,7 @@ class CourseListCreateAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        start_time = time.time()
         if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator"]:
             return Response({"error": "Only Admins, HODs, and Coordinators can create courses."}, status=status.HTTP_403_FORBIDDEN)
         
@@ -267,6 +269,7 @@ class CourseListCreateAPIView(APIView):
 
         if 'semester' not in data: data['semester'] = 1
 
+        notification_data = None
         try:
             with transaction.atomic():
                 serializer = CourseSerializer(data=data)
@@ -274,37 +277,33 @@ class CourseListCreateAPIView(APIView):
                     course = serializer.save()
                     
                     batch_years = data.get('batches', [])
-                    if batch_years is not None:
+                    if batch_years:
                         batch_objs = []
+                        # Optimization: Fetch all potentially relevant batches in one query
+                        existing_batches = {b.batch_id: b for b in Batch.objects.filter(pk__in=[by for by in batch_years if str(by).isdigit()])}
+                        
                         for by in batch_years:
                             try:
-                                # Handle case where 'by' might be a full batch string or an ID
                                 if isinstance(by, (int, str)) and str(by).isdigit():
-                                    batch = Batch.objects.filter(pk=int(by)).first()
+                                    batch = existing_batches.get(int(by))
                                     if batch: batch_objs.append(batch)
                                 else:
-                                    # Parse year from string like "2023-24"
                                     year_val_str = str(by).split('-')[0].strip()
                                     if not year_val_str.isdigit(): continue
                                     year_val = int(year_val_str)
                                     batch, _ = Batch.objects.get_or_create(
                                         batch_year=year_val, 
                                         scheme_id=course.scheme_id,
-                                        # Treat year_val as graduation academic year start (e.g. 2025-26)
-                                        # Admission (start) = year_val - 2 = 2023
-                                        # Graduation (end) = year_val + 1 = 2026
                                         defaults={'start_year': year_val - 2, 'end_year': year_val + 1}
                                     )
                                     batch_objs.append(batch)
                             except (ValueError, IndexError): continue
-                        # Always call set() to handle deselection/empty lists correctly
                         course.batches.set(batch_objs)
 
                     faculty_id = data.get('faculty_assigned')
                     if faculty_id:
                         try:
                             from users.models import User, FacultyCourseAssignment
-                            from notifications.utils import send_obe_notification
                             setup = AcademicSetup.objects.first()
                             academic_year = setup.academic_year if setup else "2025-26"
                             faculty_user = User.objects.get(pk=faculty_id)
@@ -320,33 +319,48 @@ class CourseListCreateAPIView(APIView):
                             )
 
                             if old_faculty != faculty_user:
-                                title = f"Course Assigned: {course.course_code}"
-                                message = f"Dear {faculty_user.name},\n\nYou have been newly assigned to teach {course.course_name} ({course.course_code}) for the academic year {academic_year}."
-                                send_obe_notification(
-                                    recipient=faculty_user,
-                                    title=title,
-                                    message=message,
-                                    notification_type='INFO',
-                                    module='COURSE',
-                                    priority='NORMAL',
-                                    send_email=True
-                                )
-                        except Exception as fa_err: print(f"DEBUG: Error saving faculty assignment: {fa_err}")
+                                notification_data = {
+                                    'recipient': faculty_user,
+                                    'title': f"Course Assigned: {course.course_code}",
+                                    'message': f"Dear {faculty_user.name},\n\nYou have been newly assigned to teach {course.course_name} ({course.course_code}) for the academic year {academic_year}.",
+                                    'notification_type': 'INFO',
+                                    'module': 'COURSE',
+                                    'priority': 'NORMAL',
+                                    'send_email': True
+                                }
+                        except Exception as fa_err: print(f"DEBUG: Error preparing faculty assignment: {fa_err}")
 
                     cos_data = data.get('cos', [])
                     if cos_data:
                         from .models import CO
+                        co_objs = []
                         for co_item in cos_data:
-                            CO.objects.create(
-                                course_id=course,
-                                co_number=co_item.get('no') or co_item.get('co_number'),
-                                description=co_item.get('text') or co_item.get('description')
-                            )
+                            num = co_item.get('no') or co_item.get('co_number')
+                            desc = co_item.get('text') or co_item.get('description')
+                            if not num: continue
+                            co_objs.append(CO(course_id=course, co_number=num, description=desc))
+                        if co_objs:
+                            CO.objects.bulk_create(co_objs)
                     
                     log_action(request.user, 'CREATE', 'Course', course.course_id, new_value=serializer.data, request=request)
-                    return Response({"course_id": course.course_id}, status=status.HTTP_201_CREATED)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    print(f"DEBUG: Course creation logic took {time.time() - start_time:.4f}s")
+                    
+                    response = Response({"course_id": course.course_id}, status=status.HTTP_201_CREATED)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Fire notification OUTSIDE transaction
+            if notification_data:
+                try:
+                    from notifications.utils import send_obe_notification
+                    send_obe_notification(**notification_data)
+                except Exception as n_err:
+                    print(f"DEBUG: Background notification failed: {n_err}")
+            
+            return response
+
         except Exception as e:
+            print(f"DEBUG: Course POST error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class CourseDetailAPIView(APIView):
@@ -358,6 +372,7 @@ class CourseDetailAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
+        start_time = time.time()
         if request.user.role_id.role_name not in ["Admin", "HOD", "Coordinator", "Faculty"]:
             return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
         
@@ -366,6 +381,7 @@ class CourseDetailAPIView(APIView):
         if 'name' in data: data['course_name'] = data['name']
         if 'status' in data: data['is_active'] = data['status'].lower() == 'active'
 
+        notification_data = None
         try:
             with transaction.atomic():
                 serializer = CourseSerializer(course, data=data)
@@ -373,12 +389,16 @@ class CourseDetailAPIView(APIView):
                     course = serializer.save()
                     
                     if 'batches' in data:
-                        batch_years = data.get('batches', [])
+                        batch_ids = data.get('batches', [])
                         batch_objs = []
-                        for by in batch_years:
+                        # Optimization: Fetch all potential batches at once
+                        clean_ids = [bid for bid in batch_ids if str(bid).isdigit()]
+                        existing_batches = {b.batch_id: b for b in Batch.objects.filter(pk__in=clean_ids)} if clean_ids else {}
+                        
+                        for by in batch_ids:
                             try:
                                 if isinstance(by, (int, str)) and str(by).isdigit():
-                                    batch = Batch.objects.filter(pk=int(by)).first()
+                                    batch = existing_batches.get(int(by))
                                     if batch: batch_objs.append(batch)
                                 else:
                                     year_val_str = str(by).split('-')[0].strip()
@@ -393,14 +413,12 @@ class CourseDetailAPIView(APIView):
                         course.batches.set(batch_objs)
 
                     faculty_id = data.get('faculty_assigned')
-                    # RBAC: Prevent faculty from changing assigned faculty
                     if faculty_id and request.user.role_id.role_name.upper() == 'FACULTY':
                         faculty_id = None
                         
                     if faculty_id:
                         try:
                             from users.models import User, FacultyCourseAssignment
-                            from notifications.utils import send_obe_notification
                             setup = AcademicSetup.objects.first()
                             academic_year = setup.academic_year if setup else "2025-26"
                             faculty_user = User.objects.get(pk=faculty_id)
@@ -416,46 +434,63 @@ class CourseDetailAPIView(APIView):
                             )
 
                             if old_faculty != faculty_user:
-                                title = f"Course Assigned: {course.course_code}"
-                                message = f"Dear {faculty_user.name},\n\nYou have been assigned to teach {course.course_name} ({course.course_code}) for the academic year {academic_year}."
-                                send_obe_notification(
-                                    recipient=faculty_user,
-                                    title=title,
-                                    message=message,
-                                    notification_type='INFO',
-                                    module='COURSE',
-                                    priority='NORMAL',
-                                    send_email=True
-                                )
-                        except Exception as fa_err: print(f"DEBUG: Error updating faculty assignment: {fa_err}")
+                                notification_data = {
+                                    'recipient': faculty_user,
+                                    'title': f"Course Assigned: {course.course_code}",
+                                    'message': f"Dear {faculty_user.name},\n\nYou have been assigned to teach {course.course_name} ({course.course_code}) for the academic year {academic_year}.",
+                                    'notification_type': 'INFO',
+                                    'module': 'COURSE',
+                                    'priority': 'NORMAL',
+                                    'send_email': True
+                                }
+                        except Exception as fa_err: print(f"DEBUG: Error preparing faculty assignment: {fa_err}")
 
                     if 'cos' in data:
                         cos_data = data.get('cos', [])
                         from .models import CO
                         existing_cos = {c.co_number: c for c in CO.objects.filter(course_id=course)}
                         processed_numbers = set()
+                        new_cos = []
+                        
                         for co_item in cos_data:
                             num = co_item.get('no') or co_item.get('co_number')
                             desc = co_item.get('text') or co_item.get('description')
                             if not num: continue
                             processed_numbers.add(num)
+                            
                             if num in existing_cos:
                                 co_obj = existing_cos[num]
                                 if co_obj.description != desc:
                                     co_obj.description = desc
                                     co_obj.save()
                             else:
-                                CO.objects.create(course_id=course, co_number=num, description=desc)
+                                new_cos.append(CO(course_id=course, co_number=num, description=desc))
                         
-                        for num, co_obj in existing_cos.items():
-                            if num not in processed_numbers:
-                                try: co_obj.delete()
-                                except Exception: pass
+                        if new_cos:
+                            CO.objects.bulk_create(new_cos)
+                            
+                        # Efficient deletion
+                        CO.objects.filter(course_id=course).exclude(co_number__in=processed_numbers).delete()
                     
                     log_action(request.user, 'UPDATE', 'Course', course.course_id, new_value=serializer.data, request=request)
-                    return Response(serializer.data, status=status.HTTP_200_OK)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    print(f"DEBUG: Course update logic took {time.time() - start_time:.4f}s")
+                    
+                    response = Response(serializer.data, status=status.HTTP_200_OK)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Fire notification OUTSIDE transaction
+            if notification_data:
+                try:
+                    from notifications.utils import send_obe_notification
+                    send_obe_notification(**notification_data)
+                except Exception as n_err:
+                    print(f"DEBUG: Background notification failed: {n_err}")
+            
+            return response
+
         except Exception as e:
+            print(f"DEBUG: Course PUT error: {e}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
