@@ -292,10 +292,10 @@ class CourseListCreateAPIView(APIView):
                                     year_val_str = str(by).split('-')[0].strip()
                                     if not year_val_str.isdigit(): continue
                                     year_val = int(year_val_str)
+                                    # Look up by batch_year only — do not restrict by scheme_id
                                     batch, _ = Batch.objects.get_or_create(
-                                        batch_year=year_val, 
-                                        scheme_id=course.scheme_id,
-                                        defaults={'start_year': year_val - 2, 'end_year': year_val + 1}
+                                        batch_year=year_val,
+                                        defaults={'start_year': year_val - 2, 'end_year': year_val + 1, 'scheme_id': course.scheme_id}
                                     )
                                     batch_objs.append(batch)
                             except (ValueError, IndexError): continue
@@ -397,7 +397,6 @@ class CourseDetailAPIView(APIView):
                     if 'batches' in data:
                         batch_ids = data.get('batches', [])
                         batch_objs = []
-                        # Optimization: Fetch all potential batches at once
                         clean_ids = [bid for bid in batch_ids if str(bid).isdigit()]
                         existing_batches = {b.batch_id: b for b in Batch.objects.filter(pk__in=clean_ids)} if clean_ids else {}
                         
@@ -410,9 +409,11 @@ class CourseDetailAPIView(APIView):
                                     year_val_str = str(by).split('-')[0].strip()
                                     if not year_val_str.isdigit(): continue
                                     year_val = int(year_val_str)
+                                    # Look up by batch_year only — do not restrict by scheme_id
+                                    # so all courses across schemes share the same batch pool.
                                     batch, _ = Batch.objects.get_or_create(
-                                        batch_year=year_val, scheme_id=course.scheme_id,
-                                        defaults={'start_year': year_val, 'end_year': year_val + 4}
+                                        batch_year=year_val,
+                                        defaults={'start_year': year_val, 'end_year': year_val + 4, 'scheme_id': course.scheme_id}
                                     )
                                     batch_objs.append(batch)
                             except (ValueError, IndexError): continue

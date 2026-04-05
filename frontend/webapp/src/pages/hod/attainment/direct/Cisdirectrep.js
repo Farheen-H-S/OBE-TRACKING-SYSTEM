@@ -76,6 +76,7 @@ export default function Cisdirectrep() {
             const params = {
                 program_id: selectedDept !== 'All' ? selectedDept : undefined,
                 scheme_id: selectedScheme !== 'All' ? selectedScheme : undefined,
+                batch_id: selectedBatch !== 'All' ? selectedBatch : undefined,
                 semester: selectedSem !== 'All' ? selectedSem : undefined,
                 intro_year: selectedIntroYear !== 'All' ? selectedIntroYear : undefined,
                 class_year: (selectedClass && selectedClass !== 'All') ? selectedClass : undefined
