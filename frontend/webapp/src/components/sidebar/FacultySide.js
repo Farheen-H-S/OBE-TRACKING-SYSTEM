@@ -6,6 +6,7 @@ import { logout } from "../../services/authService";
 import { getLoggedInUser } from "../../utils/auth";
 
 const profile = '/images/profile.jpeg';
+const backpic = '/images/back-pic.png';
 
 const FacultySide = ({ isOpen, onClose, user: propUser }) => {
     const [openMenu, setOpenMenu] = useState(null);
@@ -38,7 +39,7 @@ const FacultySide = ({ isOpen, onClose, user: propUser }) => {
             <div
                 className="user-banner p-3 text-center cursor-pointer"
                 onClick={() => navigate('/profile')}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', backgroundImage: `url(${backpic})` }}
             >
                 <div className="user-banner-img mb-2">
                     <img
