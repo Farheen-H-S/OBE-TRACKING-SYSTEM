@@ -42,6 +42,9 @@ const Assigntarget = () => {
   const [atrText, setAtrText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [savingAtr, setSavingAtr] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const isFetchingRef = useRef(false);
 
   useEffect(() => {
