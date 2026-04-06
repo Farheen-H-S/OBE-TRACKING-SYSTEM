@@ -40,9 +40,8 @@ const Assigntarget = () => {
   const [showAtrModal, setShowAtrModal] = useState(false);
   const [selectedCourseAtr, setSelectedCourseAtr] = useState(null);
   const [atrText, setAtrText] = useState('');
-  const [savingAtr, setSavingAtr] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [isSaving, setIsSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const isFetchingRef = useRef(false);
 
   useEffect(() => {
@@ -214,6 +213,38 @@ const Assigntarget = () => {
     }
   };
 
+  const handleSyncBatch = async () => {
+    if (!selectedDept || !selectedYear || !selectedBatch || selectedBatch === 'All') {
+      alert("Please select a specific Batch to sync.");
+      return;
+    }
+    
+    try {
+      setSyncing(true);
+      // We trigger sync by calling calculate for the first course in the filtered list
+      // This will trigger the background batch aggregation in the service.
+      const firstCourse = courses[0];
+      if (!firstCourse) {
+        alert("No courses found in this batch to trigger sync.");
+        setSyncing(false);
+        return;
+      }
+
+      await api.post('/attainment/calculate/', {
+        course_id: firstCourse.id,
+        academic_year: selectedYear.replace(/\s/g, '')
+      });
+      
+      alert("Sync started in background. Statistics will update in a few moments. Refreshing view...");
+      setTimeout(() => fetchData(), 2000); 
+    } catch (err) {
+      console.error("Sync failed:", err);
+      alert("Failed to start sync.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const filteredCourses = courses.filter(course => {
     const matchesSearch = (course.name || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       (course.code || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
@@ -367,6 +398,27 @@ const Assigntarget = () => {
                   Program
                 </button>
               </div>
+
+              {viewMode === 'program' && (
+                <button 
+                  className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+                  onClick={handleSyncBatch}
+                  disabled={syncing || !selectedBatch || selectedBatch === 'All'}
+                  style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: '500' }}
+                >
+                  {syncing ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-arrow-repeat"></i>
+                      Sync Batch Stats
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
