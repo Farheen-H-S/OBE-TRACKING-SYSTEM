@@ -172,19 +172,20 @@ class AttainmentService:
         course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
         
         # Step 15: Batch Level Aggregation (Background Thread for performance)
-        def run_batch_aggregation():
+        def run_batch_aggregation(c_id):
             try:
-                course_obj = Course.objects.filter(pk=course_id).first()
+                from academics.models import Course
+                course_obj = Course.objects.filter(pk=c_id).first()
                 if course_obj:
-                    batches = course_obj.batches.all()
+                    # Refresh batch objects in this thread's connection
+                    batches = list(course_obj.batches.all())
+                    program_id = course_obj.program_id_id
                     for batch in batches:
-                        AttainmentService._aggregate_batch_po_pso_attainment(batch.batch_id, course_obj.program_id_id)
+                        AttainmentService._aggregate_batch_po_pso_attainment(batch.batch_id, program_id)
             except Exception as e:
-                print(f"[Attainment] Background batch aggregation failed: {e}")
-            finally:
-                db.connections.close_all()
+                print(f"[Attainment] Background batch aggregation failed for course {c_id}: {e}")
 
-        threading.Thread(target=run_batch_aggregation, daemon=True).start()
+        threading.Thread(target=run_batch_aggregation, args=(course_id,), daemon=True).start()
 
         return {
             "course_id": course_id,
@@ -880,12 +881,22 @@ class AttainmentService:
             indirect_pos = AttainmentService._calculate_indirect_po_attainment(first_course_id, grad_ay)
             indirect_psos = AttainmentService._calculate_indirect_pso_attainment(first_course_id, grad_ay)
 
-        # Batch Targets - Bulk fetch
-        po_targets = {t.po_id: t.target_value for t in POTarget.objects.filter(po_id__in=pos, academic_year__icontains=grad_ay, is_active=True)}
-        pso_targets = {t.pso_id: t.target_value for t in PSOTarget.objects.filter(pso_id__in=psos, academic_year__icontains=grad_ay, is_active=True)}
+        # Batch Targets - Bulk fetch (using _id suffix for raw integer ID)
+        po_targets = {t.po_id_id: t.target_value for t in POTarget.objects.filter(po_id__in=pos, academic_year__icontains=grad_ay, is_active=True)}
+        pso_targets = {t.pso_id_id: t.target_value for t in PSOTarget.objects.filter(pso_id__in=psos, academic_year__icontains=grad_ay, is_active=True)}
         
-        fallback_po_targets = {t.po_id: t.target_value for t in POTarget.objects.filter(po_id__in=pos, is_active=True).order_by('po_id', '-academic_year').distinct('po_id')}
-        fallback_pso_targets = {t.pso_id: t.target_value for t in PSOTarget.objects.filter(pso_id__in=psos, is_active=True).order_by('pso_id', '-academic_year').distinct('pso_id')}
+        # Fallback Targets (More portable way to get latest targets than PostgreSQL .distinct('po_id'))
+        all_po_fallback = POTarget.objects.filter(po_id__in=pos, is_active=True).order_by('po_id', '-academic_year')
+        fallback_po_targets = {}
+        for t in all_po_fallback:
+            if t.po_id_id not in fallback_po_targets:
+                fallback_po_targets[t.po_id_id] = t.target_value
+                
+        all_pso_fallback = PSOTarget.objects.filter(pso_id__in=psos, is_active=True).order_by('pso_id', '-academic_year')
+        fallback_pso_targets = {}
+        for t in all_pso_fallback:
+            if t.pso_id_id not in fallback_pso_targets:
+                fallback_pso_targets[t.pso_id_id] = t.target_value
 
         for po in pos:
             po_values = po_attainment_lists.get(po.po_id, [])

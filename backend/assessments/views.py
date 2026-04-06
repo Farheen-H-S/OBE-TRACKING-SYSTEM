@@ -237,7 +237,11 @@ class SaveAssessmentMarksView(APIView):
                 MarksEntry.objects.bulk_create(new_entries)
 
         # Trigger attainment recalculation (invalidates cache to ensure freshness)
-        results = AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
+        try:
+            results = AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
+        except Exception as e:
+            print(f"[Attainment] Immediate recalculation failed: {e}")
+            results = {"error": "Recalculation failed, but marks were saved."}
 
         return Response({
             "message": "Marks saved and recalculated successfully", 

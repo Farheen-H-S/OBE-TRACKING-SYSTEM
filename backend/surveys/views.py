@@ -65,29 +65,30 @@ class SurveyMasterDetailView(generics.RetrieveUpdateDestroyAPIView):
         survey = serializer.save()
         # Trigger 1: Survey approved — recalculate attainment for linked course(s)
         if survey.status == 'APPROVED' and old_status != 'APPROVED':
-            def run_attainment_sync():
+            def run_attainment_sync(s_id, ay, c_id, p_id):
                 try:
                     from attainment.attainment_service import AttainmentService
                     from academics.models import Course
-                    academic_year = survey.academic_year
-                    if survey.course_id_id:
-                        AttainmentService.calculate_attainment(survey.course_id_id, academic_year)
-                    elif survey.program_id_id:
+                    if c_id:
+                        AttainmentService.calculate_attainment(c_id, ay)
+                    elif p_id:
                         # OIT survey — recalculate all courses that belong to this program
-                        course_ids = Course.objects.filter(
-                            program_id=survey.program_id_id, is_active=True
-                        ).values_list('course_id', flat=True)
+                        course_ids = list(Course.objects.filter(
+                            program_id=p_id, is_active=True
+                        ).values_list('course_id', flat=True))
                         for cid in course_ids:
                             try:
-                                AttainmentService.calculate_attainment(cid, academic_year)
+                                AttainmentService.calculate_attainment(cid, ay)
                             except Exception:
                                 pass
                 except Exception as e:
-                    print(f"[Attainment] Survey approval background thread failed: {e}")
-                finally:
-                    db.connections.close_all()
+                    print(f"[Attainment] Survey approval background thread failed for survey {s_id}: {e}")
 
-            threading.Thread(target=run_attainment_sync, daemon=True).start()
+            threading.Thread(
+                target=run_attainment_sync, 
+                args=(survey.survey_id, survey.academic_year, survey.course_id_id, survey.program_id_id),
+                daemon=True
+            ).start()
 
 class SubmitSurveyResponseView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -199,16 +200,18 @@ class SubmitSurveyResponseView(APIView):
 
         # Trigger 2: Survey response submitted — recalculate attainment (Background thread)
         if survey.course_id_id and survey.survey_category == 'course_exit':
-            def run_response_sync():
+            def run_response_sync(c_id, ay):
                 try:
                     from attainment.attainment_service import AttainmentService
-                    AttainmentService.calculate_attainment(survey.course_id_id, survey.academic_year)
+                    AttainmentService.calculate_attainment(c_id, ay)
                 except Exception as e:
-                    print(f"[Attainment] Response sync background thread failed: {e}")
-                finally:
-                    db.connections.close_all()
+                    print(f"[Attainment] Response sync background thread failed for course {c_id}: {e}")
 
-            threading.Thread(target=run_response_sync, daemon=True).start()
+            threading.Thread(
+                target=run_response_sync, 
+                args=(survey.course_id_id, survey.academic_year),
+                daemon=True
+            ).start()
 
         return Response({"message": "Survey submitted successfully"}, status=status.HTTP_201_CREATED)
 
