@@ -47,6 +47,7 @@ const StudentManagement = () => {
         setLoading(true);
         try {
             const params = {
+                program_id: selectedProgram,
                 batch_id: selectedBatch,
                 class_year: selectedClass,
                 division: selectedDivision,
