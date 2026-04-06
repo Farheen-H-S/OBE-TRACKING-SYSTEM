@@ -60,7 +60,7 @@ wise distribution, and role-based user statistics.
 ### CO-PO Mapping
 This interface allows mapping of course outcomes with program outcomes and program
 specific outcomes along with assigned weightages.
-![Mapping](screenshots/4.mapping.png)
+![Mapping](screenshots/3.mapping.png)
 
 ### Direct Attainment Report (Summary)
 This report shows calculated CO attainment values based on student performance in
