@@ -79,7 +79,7 @@ class CalculateAttainmentView(APIView):
             return Response({"error": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
-            results = AttainmentService.calculate_attainment(course_id, academic_year)
+            results = AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
             if results:
                 # Log the calculation
                 user = request.user if request.user and not request.user.is_anonymous else None

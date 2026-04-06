@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * TARGET MANAGEMENT COMPONENT
@@ -43,17 +43,19 @@ const Assigntarget = () => {
   const [savingAtr, setSavingAtr] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    if (selectedDept && selectedYear) {
+    if (selectedDept && selectedYear && !isFetchingRef.current) {
       fetchData();
     }
-  }, [selectedDept, selectedScheme, selectedYear]);
+  }, [selectedDept, selectedScheme, selectedYear, selectedBatch]);
 
 
   const fetchData = async () => {
-    if (!selectedDept || !selectedYear) return;
+    if (!selectedDept || !selectedYear || isFetchingRef.current) return;
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       const academic_year = selectedYear.replace(/\s/g, '');
       const params = {
@@ -204,9 +206,11 @@ const Assigntarget = () => {
       }));
 
       setLoading(false);
+      isFetchingRef.current = false;
     } catch (err) {
       console.error("Error fetching target data:", err);
       setLoading(false);
+      isFetchingRef.current = false;
     }
   };
 

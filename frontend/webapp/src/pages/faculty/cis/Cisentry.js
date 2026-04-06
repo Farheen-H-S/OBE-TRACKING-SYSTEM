@@ -58,6 +58,8 @@ const Cisentry = () => {
   const [showAtrModal, setShowAtrModal] = useState(false);
   const [pendingAtrCos, setPendingAtrCos] = useState([]);
   const [atrSubmitLoading, setAtrSubmitLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isFetchingRef = useRef(false);
 
 
   // Selection state
@@ -350,8 +352,9 @@ const Cisentry = () => {
 
   // Consolidate initial data fetching to avoid race conditions
   useEffect(() => {
-    if (selectedProgram) {
+    if (selectedProgram && !isFetchingRef.current) {
       const loadInitialData = async () => {
+        isFetchingRef.current = true;
         setStudentsLoading(true);
         try {
           // Fetch courses and students in parallel
@@ -363,6 +366,7 @@ const Cisentry = () => {
           console.error("Initial load error:", error);
         } finally {
           setStudentsLoading(false);
+          isFetchingRef.current = false;
         }
       };
       loadInitialData();
@@ -1045,9 +1049,15 @@ const Cisentry = () => {
   };
 
   const handleSave = async () => {
-    const success = await saveData(true);
-    if (success) {
-      setViewMode('view');
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const success = await saveData(true);
+      if (success) {
+        setViewMode('view');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1598,8 +1608,18 @@ const Cisentry = () => {
         </div>
 
         <div className="d-flex justify-content-center mt-4 pb-4">
-          <button className="btn btn-outline-success px-5 py-2 fs-5 fw-bold shadow-sm" style={{ borderRadius: '8px' }} onClick={handleSave}>
-            Save Data
+          <button 
+            className="btn btn-outline-success px-5 py-2 fs-5 fw-bold shadow-sm d-flex align-items-center gap-2" 
+            style={{ borderRadius: '8px' }} 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Saving...
+              </>
+            ) : 'Save Data'}
           </button>
         </div>
       </>

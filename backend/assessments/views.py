@@ -236,8 +236,8 @@ class SaveAssessmentMarksView(APIView):
             if new_entries:
                 MarksEntry.objects.bulk_create(new_entries)
 
-        # Trigger attainment recalculation
-        results = AttainmentService.calculate_attainment(course_id, academic_year)
+        # Trigger attainment recalculation (invalidates cache to ensure freshness)
+        results = AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
         
         # Check and generate report if no gaps
         # (This automates the workflow requested: Save -> Attainment -> (ATR?) -> Report)

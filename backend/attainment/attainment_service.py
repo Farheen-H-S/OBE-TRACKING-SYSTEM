@@ -13,6 +13,8 @@ from django.db.models import Avg, Count
 from django.db import models
 import re
 import numpy as np
+from django.core.cache import cache
+import json
 
 class AttainmentService:
     """
@@ -20,10 +22,21 @@ class AttainmentService:
     Coordinates between Direct (Assessments) and Indirect (Surveys) data sources.
     """
     @staticmethod
-    def calculate_attainment(course_id, academic_year):
+    def calculate_attainment(course_id, academic_year, invalidate_cache=False):
         """
         Main entry point for calculating attainment for a course and its program outcomes.
         """
+        # Caching: return cached results if they exist
+        cache_key = f"attainment_{course_id}_{academic_year.replace(' ', '')}"
+        
+        if invalidate_cache:
+            cache.delete(cache_key)
+        else:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                # We refresh the cache on every SAVE, so this is safe for GETs
+                return cached_result
+
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
@@ -177,6 +190,10 @@ class AttainmentService:
             'pending_cos': [att.co_id.co_number for att in COAttainment.objects.filter(course_id=course_id, academic_year=academic_year, atr_status='pending')] if not course_atr else [],
             'course_atr': course_atr.action_proposed if course_atr else None
         }
+
+        # Cache the results for 30 minutes (or until next save)
+        cache.set(cache_key, results, 1800)
+        return results
 
     @staticmethod
     def check_and_generate_report(course_id, academic_year, user=None):
@@ -364,7 +381,7 @@ class AttainmentService:
         assessments = Assessment.objects.filter(
             ay_query,
             course_id=course_id
-        )
+        ).select_related('course_id').prefetch_related('assessmentcomapping_set', 'assessmentcomapping_set__co_id')
         tool_co_results = {} # {co_id: {tool_type: level}}
         
         for tool in assessments:
@@ -402,14 +419,14 @@ class AttainmentService:
             else: tool_key = tool.assessment_type.upper().replace('-', '_')
 
             tool_key = f"{tool_category.upper()}_{tool_key}"
-            mappings = AssessmentCOMapping.objects.filter(assessment_id=tool)
+            mappings = list(tool.assessmentcomapping_set.all())
             
             is_summative = any(x in tool_key for x in ['SA_TH', 'SA_PR']) or any(x in tool_name_norm for x in ['ESE', 'FINAL', 'SUMMATIVE'])
             
             if is_summative:
                 course_cos = CO.objects.filter(course_id=tool.course_id, is_active=True)
                 mappings = [type('obj', (object,), {'co_id_id': co.co_id, 'co_id': co})() for co in course_cos]
-            elif not mappings.exists() and not (marks_data and user_cos):
+            elif not mappings and not (marks_data and user_cos):
                 continue
             
             if marks_data and user_cos:
