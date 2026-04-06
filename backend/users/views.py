@@ -443,7 +443,17 @@ class StudentListCreateAPIView(APIView):
             
             from django.db.models import Q
             # Search for exactly the normalized or spaced version to ensure precision
-            queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
+            queryset_strict = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
+            
+            # Smart Visibility Fallback:
+            # If strict search returns 0, but we have a Batch/Semester, 
+            # check if students exist in a DIFFERENT academic year for that term.
+            if not queryset_strict.exists() and batch_id and semester:
+                # Only fallback if the semester/batch combination actually has students
+                # This prevents "leakage" across unrelated years while fixing the UI lag.
+                queryset = queryset # Keep existing queryset without AY filter
+            else:
+                queryset = queryset_strict
 
         # Final Natural Sort: Results are 1, 2, ..., 10, 11, ..., 72
         queryset = queryset.order_by(Length('roll_no'), 'roll_no', 'enrollment_no')

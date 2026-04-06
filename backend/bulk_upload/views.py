@@ -627,33 +627,62 @@ class PromoteStudentsView(APIView):
 
         created_count = 0
         skipped_count = 0
+        errors = []
 
         with transaction.atomic():
             for student in students:
-                # Check if this student already has a record in the target semester/year
-                exists = Student.objects.filter(
-                    enrollment_no=student.enrollment_no,
-                    semester=target_sem,
-                    academic_year=target_ay
-                ).exists()
+                try:
+                    # Check if this enrollment_no is already taken in the target semester/year
+                    exists_enroll = Student.objects.filter(
+                        enrollment_no=student.enrollment_no,
+                        semester=target_sem,
+                        academic_year=target_ay
+                    ).exists()
 
-                if exists:
-                    skipped_count += 1
-                    continue
+                    if exists_enroll:
+                        skipped_count += 1
+                        continue
 
-                # Clone the student record to the new semester
-                # We create a new instance by clearing the PK
-                student.pk = None 
-                student.semester = target_sem
-                student.class_year = target_class
-                student.academic_year = target_ay
-                student.save()
-                created_count += 1
+                    # Check if this roll_no is already taken in the target semester for this batch
+                    exists_roll = Student.objects.filter(
+                        batch_id=batch,
+                        roll_no=student.roll_no,
+                        semester=target_sem
+                    ).exists()
+
+                    if exists_roll:
+                        errors.append(f"Student '{student.name}' (Roll {student.roll_no}) already has a different entry in Semester {target_sem}.")
+                        continue
+
+                    # Create a NEW explicit record (Copy and Paste)
+                    Student.objects.create(
+                        name=student.name,
+                        roll_no=student.roll_no,
+                        enrollment_no=student.enrollment_no,
+                        program_id=student.program_id,
+                        batch_id=student.batch_id,
+                        class_year=target_class,
+                        division=student.division,
+                        semester=target_sem,
+                        academic_year=target_ay,
+                        user_id=student.user_id,
+                        is_active=True
+                    )
+                    created_count += 1
+                except Exception as e:
+                    errors.append(f"Could not carry forward '{student.name}': {str(e)}")
+
+        if errors and created_count == 0:
+            return Response({
+                "error": "Carry forward failed for all students.",
+                "details": errors[:5]  # Show first 5 errors to avoid flooding
+            }, status=400)
 
         return Response({
             "message": f"Successfully carried forward {created_count} students to Semester {target_sem}.",
             "count": created_count,
-            "skipped": skipped_count
+            "skipped": skipped_count,
+            "errors": errors if errors else None
         }, status=status.HTTP_200_OK)
 
 class BulkCISUploadView(APIView):
