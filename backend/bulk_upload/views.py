@@ -625,17 +625,35 @@ class PromoteStudentsView(APIView):
                 "details": f"To carry forward, students must first be registered in Semester {source_sem}."
             }, status=404)
 
+        created_count = 0
+        skipped_count = 0
+
         with transaction.atomic():
-            # Apply the updates to all students in the matching queryset
-            updated_count = students.update(
-                semester=target_sem,
-                class_year=target_class,
-                academic_year=target_ay
-            )
+            for student in students:
+                # Check if this student already has a record in the target semester/year
+                exists = Student.objects.filter(
+                    enrollment_no=student.enrollment_no,
+                    semester=target_sem,
+                    academic_year=target_ay
+                ).exists()
+
+                if exists:
+                    skipped_count += 1
+                    continue
+
+                # Clone the student record to the new semester
+                # We create a new instance by clearing the PK
+                student.pk = None 
+                student.semester = target_sem
+                student.class_year = target_class
+                student.academic_year = target_ay
+                student.save()
+                created_count += 1
 
         return Response({
-            "message": f"Successfully carried forward {updated_count} students to Semester {target_sem}.",
-            "count": updated_count
+            "message": f"Successfully carried forward {created_count} students to Semester {target_sem}.",
+            "count": created_count,
+            "skipped": skipped_count
         }, status=status.HTTP_200_OK)
 
 class BulkCISUploadView(APIView):

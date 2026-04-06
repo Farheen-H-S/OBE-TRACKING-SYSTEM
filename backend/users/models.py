@@ -68,7 +68,7 @@ class Student(models.Model):
     student_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     roll_no = models.CharField(max_length=20)
-    enrollment_no = models.CharField(max_length=30, unique=True)
+    enrollment_no = models.CharField(max_length=30)
     program_id = models.ForeignKey(
         'academics.Program',
         on_delete=models.PROTECT,
@@ -82,10 +82,10 @@ class Student(models.Model):
     class_year = models.CharField(max_length=20)
     division = models.CharField(max_length=10)
     semester = models.IntegerField()
-    user_id = models.OneToOneField(
+    user_id = models.ForeignKey(
         'User',
         on_delete=models.CASCADE,
-        related_name='student_profile',
+        related_name='student_profiles',
         null=True,
         blank=True,
         db_column='user_id'
@@ -96,10 +96,15 @@ class Student(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('roll_no', 'batch_id')
+        unique_together = (
+            ('roll_no', 'batch_id', 'semester'),
+            ('enrollment_no', 'semester', 'academic_year')
+        )
+        verbose_name = "Student Enrollment"
+        verbose_name_plural = "Student Enrollments"
 
     def __str__(self):
-        return self.roll_no
+        return f"{self.roll_no} - {self.name} (Sem {self.semester})"
 
 
 class FacultyCourseAssignment(models.Model):

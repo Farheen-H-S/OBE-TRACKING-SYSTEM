@@ -397,6 +397,7 @@ class StudentListCreateAPIView(APIView):
 
     def get(self, request):
         def sanitize_param(val):
+            # Treat literal 'null', 'undefined', or blank as None
             if val is None or str(val).lower() in ['null', 'undefined', '']:
                 return None
             return str(val).strip()
@@ -417,10 +418,11 @@ class StudentListCreateAPIView(APIView):
         if program_id:
             queryset = queryset.filter(program_id=program_id)
         if batch_id:
-            # Handle both raw integer IDs and '2025 - 26' string formats
+            # Handle both raw integer IDs and '2025-26' string labels
             if str(batch_id).isdigit():
                 queryset = queryset.filter(batch_id=batch_id)
             else:
+                # String Batch format: e.g. '2025-26' -> use the start year (2025)
                 import re
                 match = re.search(r'\d{4}', str(batch_id))
                 if match:
@@ -433,20 +435,17 @@ class StudentListCreateAPIView(APIView):
         if division:
             queryset = queryset.filter(division__iexact=division)
         if academic_year:
-            # Handle spacing mismatches like '2025-26' vs '2025 - 26'
-            from django.db.models import Q
-            ay_clean = str(academic_year).replace(" ", "")
-            # e.g. "2025-26" -> "2025 - 26"
-            ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else str(academic_year)
+            # Precise Year Match (Space Agnostic)
+            # Normalizes e.g. "2024 - 25" -> "2024-25"
+            ay_clean = academic_year.replace(" ", "")
+            # Generate expected spaced version: "2024 - 25"
+            ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else academic_year
             
-            # If academic_year is just a prefix like "2025", match by icontains
-            if len(ay_clean) == 4:
-                queryset = queryset.filter(academic_year__icontains=ay_clean)
-            else:
-                queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
+            from django.db.models import Q
+            # Search for exactly the normalized or spaced version to ensure precision
+            queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
 
-        # Final robust natural sort: sort by length of roll numbering then by value
-        # This handles numeric ranges (1-72) correctly by returning 1, 2... 10, 11... 72
+        # Final Natural Sort: Results are 1, 2, ..., 10, 11, ..., 72
         queryset = queryset.order_by(Length('roll_no'), 'roll_no', 'enrollment_no')
             
         serializer = StudentSerializer(queryset, many=True)
