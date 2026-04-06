@@ -467,26 +467,19 @@ class BulkStudentUploadView(APIView):
                                 results["skipped"] += 1
                                 continue
 
-                            # Resolution
-                            student = Student.objects.filter(roll_no=roll_no, batch_id=batch).first()
-                            if not student:
-                                student = Student.objects.filter(enrollment_no=enroll_no).first()
+                            # Resolution: Look for THIS student in THIS EXACT semester and year
+                            student = Student.objects.filter(
+                                enrollment_no=enroll_no,
+                                semester=sem,
+                                academic_year=ay_val
+                            ).first()
 
                             if student:
-                                # Overwrite protection for enrollment_no conflicts
-                                other = Student.objects.filter(enrollment_no=enroll_no).exclude(pk=student.pk).first()
-                                if other:
-                                    other.enrollment_no = f"X_{other.enrollment_no}_{other.pk}"
-                                    other.is_active = False
-                                    other.save()
-
+                                # Update existing record for THIS semester (Same term)
                                 student.roll_no = roll_no
-                                student.enrollment_no = enroll_no
                                 student.name = name
                                 student.class_year = c_year
                                 student.division = div
-                                student.semester = sem
-                                student.academic_year = ay_val
                                 student.batch_id = batch
                                 student.program_id = program
                                 student.is_active = is_active
@@ -500,8 +493,9 @@ class BulkStudentUploadView(APIView):
                                     user.save()
                                 results["updated"] += 1
                             else:
-                                # Create new
-                                user_obj, created = User.objects.get_or_create(
+                                # Create NEW enrollment for THIS semester (Historical Tracking)
+                                # First, find or create the User profile (Universal login)
+                                user_obj, user_created = User.objects.get_or_create(
                                     username=enroll_no, 
                                     defaults={
                                         'name': name,
@@ -509,15 +503,37 @@ class BulkStudentUploadView(APIView):
                                         'role_id': student_role
                                     }
                                 )
-                                if created:
+                                if user_created:
                                     user_obj.set_password("Student@123")
                                     user_obj.save()
+                                elif not user_obj.is_active:
+                                    user_obj.is_active = True
+                                    user_obj.save()
                                 
+                                # Check if a student with this ROLL NO already exists in this BATCH/SEM
+                                roll_exists = Student.objects.filter(
+                                    batch_id=batch,
+                                    roll_no=roll_no,
+                                    semester=sem
+                                ).exists()
+                                
+                                if roll_exists:
+                                    results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: Roll No '{roll_no}' already exists in Semester {sem} for this batch.")
+                                    results["skipped"] += 1
+                                    continue
+
                                 Student.objects.create(
-                                    user_id=user_obj, enrollment_no=enroll_no, roll_no=roll_no,
-                                    name=name, program_id=program, batch_id=batch,
-                                    class_year=c_year, semester=sem, division=div,
-                                    academic_year=ay_val, is_active=is_active
+                                    user_id=user_obj, 
+                                    enrollment_no=enroll_no, 
+                                    roll_no=roll_no,
+                                    name=name, 
+                                    program_id=program, 
+                                    batch_id=batch,
+                                    class_year=c_year, 
+                                    semester=sem, 
+                                    division=div,
+                                    academic_year=ay_val, 
+                                    is_active=is_active
                                 )
                                 results["success"] += 1
 
@@ -527,7 +543,7 @@ class BulkStudentUploadView(APIView):
                     except Exception as e:
                         results["errors"].append(f"Sheet '{sheet_name}', Row {row_num}: {str(e)}")
                         results["skipped"] += 1
-
+                
             return Response(results, status=status.HTTP_200_OK)
 
         except Exception as e:
