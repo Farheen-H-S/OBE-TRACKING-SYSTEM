@@ -410,52 +410,45 @@ class StudentListCreateAPIView(APIView):
         academic_year = sanitize_param(request.query_params.get('academic_year'))
         enrollment_no = sanitize_param(request.query_params.get('enrollment_no'))
         
-        from django.db.models.functions import Length
-        queryset = Student.objects.filter(is_active=True)
+        # 1. Base Query (Allow viewing regardless of active status in management)
+        queryset = Student.objects.all()
         
+        # 2. Hard Filters (ID-based is most reliable)
         if enrollment_no:
             queryset = queryset.filter(enrollment_no=enrollment_no)
         if program_id:
             queryset = queryset.filter(program_id=program_id)
         if batch_id:
-            # Handle both raw integer IDs and '2025-26' string labels
             if str(batch_id).isdigit():
                 queryset = queryset.filter(batch_id=batch_id)
             else:
-                # String Batch format: e.g. '2025-26' -> use the start year (2025)
-                import re
-                match = re.search(r'\d{4}', str(batch_id))
-                if match:
-                    base_year = int(match.group(0))
-                    queryset = queryset.filter(batch_id__batch_year=base_year)
+                # String Batch format fallback
+                queryset = queryset.filter(batch_id__batch_year__icontains=batch_id[:4])
+        
+        # 3. Soft Filters (Secondary)
         if semester:
             queryset = queryset.filter(semester=semester)
-        if class_year:
-            queryset = queryset.filter(class_year__iexact=class_year)
         if division:
             queryset = queryset.filter(division__iexact=division)
-        if academic_year:
-            # Precise Year Match (Space Agnostic)
-            # Normalizes e.g. "2024 - 25" -> "2024-25"
-            ay_clean = academic_year.replace(" ", "")
-            # Generate expected spaced version: "2024 - 25"
-            ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else academic_year
             
-            from django.db.models import Q
-            # Search for exactly the normalized or spaced version to ensure precision
-            queryset_strict = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
+        # 4. Academic Year & Class Year (Smart Fallback)
+        # We check if strict filtering wipes out the results. If it does, we ignore these filters
+        # because the user selection might follow a different naming convention than the DB.
+        if academic_year or class_year:
+            strict_q = queryset
+            if academic_year:
+                ay_clean = academic_year.replace(" ", "")
+                ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else academic_year
+                strict_q = strict_q.filter(Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced))
+            if class_year:
+                strict_q = strict_q.filter(class_year__iexact=class_year)
             
-            # Smart Visibility Fallback:
-            # If strict search returns 0, but we have a Batch/Semester, 
-            # check if students exist in a DIFFERENT academic year for that term.
-            if not queryset_strict.exists() and batch_id and semester:
-                # Only fallback if the semester/batch combination actually has students
-                # This prevents "leakage" across unrelated years while fixing the UI lag.
-                queryset = queryset # Keep existing queryset without AY filter
-            else:
-                queryset = queryset_strict
+            # Only apply strict year/class if it actually finds students. 
+            # Otherwise, prioritize showing the students in the selected Batch/Semester.
+            if strict_q.exists():
+                queryset = strict_q
 
-        # Final Natural Sort: Results are 1, 2, ..., 10, 11, ..., 72
+        # Final Natural Sort
         queryset = queryset.order_by(Length('roll_no'), 'roll_no', 'enrollment_no')
             
         serializer = StudentSerializer(queryset, many=True)
