@@ -15,6 +15,7 @@ from notifications.utils import send_obe_notification
 from .tokens import custom_token_generator
 
 from django.db.models import Q, Case, When, Value, IntegerField
+from django.db.models.functions import Length
 from rest_framework.pagination import PageNumberPagination
 from academics.models import AcademicSetup
 from reports.models import AuditPeriod
@@ -422,8 +423,12 @@ class StudentListCreateAPIView(APIView):
             if str(batch_id).isdigit():
                 queryset = queryset.filter(batch_id=batch_id)
             else:
-                # String Batch format fallback
-                queryset = queryset.filter(batch_id__batch_year__icontains=batch_id[:4])
+                # String Batch format fallback: Check year and label
+                # This ensures "2025-26" correctly matches even if the internal year is 2024 (e.g. SY students)
+                queryset = queryset.filter(
+                    Q(batch_id__batch_year__icontains=batch_id[:4]) | 
+                    Q(batch_id__batch_year__icontains=batch_id[-2:])
+                )
         
         # 3. Soft Filters (Secondary)
         if semester:
