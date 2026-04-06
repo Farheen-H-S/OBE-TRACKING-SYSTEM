@@ -396,16 +396,21 @@ class StudentListCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        program_id = request.query_params.get('program_id')
-        batch_id = request.query_params.get('batch_id')
-        semester = request.query_params.get('semester')
-        class_year = request.query_params.get('class_year')
-        division = request.query_params.get('division')
-        academic_year = request.query_params.get('academic_year')
-        enrollment_no = request.query_params.get('enrollment_no')
+        def sanitize_param(val):
+            if val is None or str(val).lower() in ['null', 'undefined', '']:
+                return None
+            return str(val).strip()
+
+        program_id = sanitize_param(request.query_params.get('program_id'))
+        batch_id = sanitize_param(request.query_params.get('batch_id'))
+        semester = sanitize_param(request.query_params.get('semester'))
+        class_year = sanitize_param(request.query_params.get('class_year'))
+        division = sanitize_param(request.query_params.get('division'))
+        academic_year = sanitize_param(request.query_params.get('academic_year'))
+        enrollment_no = sanitize_param(request.query_params.get('enrollment_no'))
         
         from django.db.models.functions import Length
-        queryset = Student.objects.filter(is_active=True).order_by(Length('roll_no'), 'roll_no')
+        queryset = Student.objects.filter(is_active=True)
         
         if enrollment_no:
             queryset = queryset.filter(enrollment_no=enrollment_no)
