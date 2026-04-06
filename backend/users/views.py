@@ -440,17 +440,9 @@ class StudentListCreateAPIView(APIView):
             else:
                 queryset = queryset.filter(Q(academic_year=ay_clean) | Q(academic_year=ay_spaced))
 
-            # Fallback: If no students match the exact year, but we have a batch_id, 
-            # allow fetching by batch_id as long as it's active.
-            if not queryset.exists() and batch_id:
-                if str(batch_id).isdigit():
-                    queryset = Student.objects.filter(batch_id=batch_id, is_active=True)
-                else:
-                    import re
-                    match = re.search(r'\d{4}', str(batch_id))
-                    if match:
-                        base_year = int(match.group(0))
-                        queryset = Student.objects.filter(batch_id__batch_year=base_year, is_active=True)
+        # Final robust natural sort: sort by length of roll numbering then by value
+        # This handles numeric ranges (1-72) correctly by returning 1, 2... 10, 11... 72
+        queryset = queryset.order_by(Length('roll_no'), 'roll_no', 'enrollment_no')
             
         serializer = StudentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
