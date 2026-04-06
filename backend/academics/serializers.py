@@ -1,5 +1,4 @@
 from rest_framework import serializers
-import string
 from .models import (
     Program, Scheme, Course, CO, PO, PSO,
     COPOMapping, COPSOMapping, Batch, COTarget, POTarget, PSOTarget,
@@ -68,9 +67,10 @@ class CourseSerializer(serializers.ModelSerializer):
         read_only_fields = ['batches']
 
     def validate_course_title(self, value):
-        """Enforce Title Case on course_title. course_name is left as-is."""
+        """Store course_title in ALL CAPS so abbreviations like UI/UX, JAVA, etc.
+        are always saved as uppercase constants."""
         if value:
-            return string.capwords(value.strip())
+            return value.strip().upper()
         return value
 
     def get_faculty_assigned(self, obj):
