@@ -424,9 +424,9 @@ class StudentListCreateAPIView(APIView):
         if semester:
             queryset = queryset.filter(semester=semester)
         if class_year:
-            queryset = queryset.filter(class_year=class_year)
+            queryset = queryset.filter(class_year__iexact=class_year)
         if division:
-            queryset = queryset.filter(division=division)
+            queryset = queryset.filter(division__iexact=division)
         if academic_year:
             # Handle spacing mismatches like '2025-26' vs '2025 - 26'
             from django.db.models import Q
