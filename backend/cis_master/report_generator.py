@@ -5,7 +5,7 @@ from openpyxl.drawing.image import Image
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 from django.db import models
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from academics.models import Course, CO, COPOMapping, COPSOMapping, PO, PSO, AcademicSetup, COTarget
 from attainment.models import COAttainment, POAttainment
 from attainment.attainment_service import AttainmentService
@@ -155,7 +155,7 @@ def create_cis_analysis_sheet(wb, course, academic_year, faculty_name, index=0):
     # Robust AY Matching
     ay_clean = academic_year.replace(' ', '') if academic_year else ""
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
     
     total_attainment = 0
     total_target = 0
@@ -273,7 +273,7 @@ def create_all_combine_sheet(wb, course, academic_year, faculty_name, index=1):
     # Robust AY Matching
     ay_clean = academic_year.replace(' ', '') if academic_year else ""
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
     
     cos = CO.objects.filter(course_id=course, is_active=True).order_by('co_number')
     row = current_row + 1
@@ -427,7 +427,7 @@ def create_marks_sheet(wb, title, assessment_type, course, academic_year, studen
     # Flexible assessment lookup
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
     
     # Try multiple naming patterns
     assessment = Assessment.objects.filter(
@@ -435,9 +435,9 @@ def create_marks_sheet(wb, title, assessment_type, course, academic_year, studen
         course_id=course, 
         assessment_type=assessment_type
     ).filter(
-        models.Q(assessment_name__iexact=title) | 
-        models.Q(assessment_name__icontains=title) |
-        models.Q(assessment_name__icontains=assessment_type.replace('_', '-'))
+        Q(assessment_name__iexact=title) | 
+        Q(assessment_name__icontains=title) |
+        Q(assessment_name__icontains=assessment_type.replace('_', '-'))
     ).first()
     
     for student in students:
@@ -514,7 +514,7 @@ def create_fa_pr_sheet(wb, course, academic_year, students, faculty_name, index=
     # Flexible assessment lookup
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
     
     assessment = Assessment.objects.filter(
         ay_query,
@@ -751,16 +751,16 @@ def create_ct_sheet(wb, ct_num, course, academic_year, students, faculty_name, i
     
     ay_clean = academic_year.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
     
     assessment = Assessment.objects.filter(
         ay_query,
         course_id=course, 
         assessment_type='FA_TH'
     ).filter(
-        models.Q(assessment_name__icontains=f"CT{ct_num}") | 
-        models.Q(assessment_name__icontains=f"Test {ct_num}") |
-        models.Q(assessment_name__icontains=f"Class Test {ct_num}")
+        Q(assessment_name__icontains=f"CT{ct_num}") | 
+        Q(assessment_name__icontains=f"Test {ct_num}") |
+        Q(assessment_name__icontains=f"Class Test {ct_num}")
     ).first()
 
     config = assessment.configuration if assessment and assessment.configuration else {}

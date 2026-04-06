@@ -1,7 +1,7 @@
 import io
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.db import models
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyAnswer
 from academics.models import Program, PO, PSO, Batch
@@ -130,7 +130,7 @@ class IndirectReportService:
         all_surveys = SurveyMaster.objects.filter(
             academic_year__in=batch_years
         ).filter(
-            models.Q(program_id=program) | models.Q(program_id__isnull=True)
+            Q(program_id=program) | Q(program_id__isnull=True)
         ).filter(
             survey_category__in=['indirect']
         ).exclude(status='DRAFT').order_by('-academic_year', '-survey_id')
@@ -346,7 +346,7 @@ class IndirectReportService:
         all_surveys = SurveyMaster.objects.filter(
             academic_year__in=batch_years
         ).filter(
-            models.Q(program_id=program) | models.Q(program_id__isnull=True)
+            Q(program_id=program) | Q(program_id__isnull=True)
         ).filter(survey_category__in=['indirect', 'feedback', 'course_exit']).order_by('-academic_year')
 
         category_map = {}

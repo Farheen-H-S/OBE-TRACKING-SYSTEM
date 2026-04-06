@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.db import models, transaction
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -744,14 +745,20 @@ class MappingListCreateAPIView(APIView):
             if mapping_status_val: Course.objects.filter(course_id=course_id).update(mapping_status=mapping_status_val)
         # Trigger 3: CO-PO/PSO mapping changed — recalculate attainment so PO/PSO values stay fresh
         try:
-            from attainment.attainment_service import AttainmentService
             from academics.models import AcademicSetup
             setup = AcademicSetup.objects.first()
             academic_year = setup.academic_year if setup else None
             if academic_year:
-                AttainmentService.calculate_attainment(course_id, academic_year)
+                # Trigger attainment calculation in background to prevent timeout
+                def bg_calc():
+                    try:
+                        from attainment.attainment_service import AttainmentService
+                        AttainmentService.calculate_attainment(course_id, academic_year)
+                    except Exception as e:
+                        print(f"Background attainment error: {e}")
+                threading.Thread(target=bg_calc, daemon=True).start()
         except Exception as e:
-            print(f"[Attainment] Mapping save trigger failed: {e}")
+            print(f"Mapping save trigger failed: {e}")
         return Response({"message": "mapping saved"}, status=201)
 
 # ---------------- CO TARGETS ----------------
@@ -764,7 +771,7 @@ class TargetListCreateAPIView(APIView):
         if academic_year:
             ay_clean = academic_year.replace(' ', '')
             ay_spaced = ay_clean.replace('-', ' - ')
-            ay_query = models.Q(academic_year=academic_year) | models.Q(academic_year=ay_clean) | models.Q(academic_year=ay_spaced)
+            ay_query = Q(academic_year=academic_year) | Q(academic_year=ay_clean) | Q(academic_year=ay_spaced)
             targets = targets.filter(ay_query)
         response_data = {"co_targets": COTargetSerializer(targets, many=True).data}
         if academic_year:
@@ -795,7 +802,7 @@ class TargetListCreateAPIView(APIView):
                     except: continue
                     ay_clean = academic_year.replace(' ', '')
                     ay_spaced = ay_clean.replace('-', ' - ')
-                    ay_query_del = models.Q(academic_year=academic_year) | models.Q(academic_year=ay_clean) | models.Q(academic_year=ay_spaced)
+                    ay_query_del = Q(academic_year=academic_year) | Q(academic_year=ay_clean) | Q(academic_year=ay_spaced)
                     COTarget.objects.filter(ay_query_del, course_id_id=c_id).delete()
                     cos = CO.objects.filter(course_id=c_id, is_active=True)
                     if cos.exists():

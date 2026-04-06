@@ -10,7 +10,7 @@ from .serializers import (
     PSOAttainmentSerializer, AttainmentSnapshotSerializer,
     POBatchAttainmentSerializer, PSOBatchAttainmentSerializer
 )
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.http import HttpResponse
 
 # from academics.models import Course, Program

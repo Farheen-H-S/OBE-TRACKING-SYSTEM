@@ -1,6 +1,8 @@
 import re
 import os
+import threading
 from django.db import models
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -196,9 +198,9 @@ class SaveAssessmentMarksView(APIView):
                             co_obj = CO.objects.filter(
                                 course_id=course
                             ).filter(
-                                models.Q(co_number__iendswith=idx) | 
-                                models.Q(co_number__icontains=f".{idx}") |
-                                models.Q(co_number__icontains=f" {idx}")
+                                Q(co_number__iendswith=idx) | 
+                                Q(co_number__icontains=f".{idx}") |
+                                Q(co_number__icontains=f" {idx}")
                             ).first()
 
                 if co_obj:
@@ -236,17 +238,20 @@ class SaveAssessmentMarksView(APIView):
             if new_entries:
                 MarksEntry.objects.bulk_create(new_entries)
 
-        # Trigger attainment recalculation (invalidates cache to ensure freshness)
-        try:
-            results = AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
-        except Exception as e:
-            print(f"[Attainment] Immediate recalculation failed: {e}")
-            results = {"error": "Recalculation failed, but marks were saved."}
+        # Trigger attainment recalculation in background to prevent request timeout
+        def run_calculation():
+            try:
+                from attainment.attainment_service import AttainmentService
+                AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
+                print(f"[Attainment] Background recalculation successful for course {course_id}")
+            except Exception as e:
+                print(f"[Attainment] Background recalculation failed: {e}")
+
+        threading.Thread(target=run_calculation, daemon=True).start()
 
         return Response({
-            "message": "Marks saved and recalculated successfully", 
-            "assessment_id": assessment.assessment_id,
-            "attainment_results": results
+            "message": "Marks saved. Attainment recalculation started in background.", 
+            "assessment_id": assessment.assessment_id
         }, status=status.HTTP_201_CREATED)
 
 

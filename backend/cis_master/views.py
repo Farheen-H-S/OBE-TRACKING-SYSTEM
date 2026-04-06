@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny
 from audit.utils import log_action
 from reports.utils import save_generated_report
 from academics.models import Course
+from django.db.models import Q
+import threading
 
 class DirectCISPreviewView(APIView):
     permission_classes = [AllowAny]
@@ -37,7 +39,7 @@ class DirectCISPreviewView(APIView):
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
         
         atr_obj = CourseATR.objects.filter(ay_query, course_id_id=course_id).first()
         if atr_obj and (atr_obj.action_proposed or atr_obj.atr_status == 'submitted'):
@@ -69,7 +71,7 @@ class SubmitATRView(APIView):
         # Ensure we handle AY spacing consistently
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
         
         # Update Course model (Legacy fallback)
         Course.objects.filter(pk=course_id).update(course_atr=course_atr)
@@ -95,11 +97,15 @@ class SubmitATRView(APIView):
             action_proposed=course_atr
         )
 
-        # Trigger 4: ATR submitted — auto-generate the direct attainment report
+        # Trigger attainment calculation in background
         try:
-            from attainment.attainment_service import AttainmentService
-            user = request.user if request.user and not request.user.is_anonymous else None
-            AttainmentService.check_and_generate_report(course_id, academic_year, user)
+            def bg_calc():
+                try:
+                    from attainment.attainment_service import AttainmentService
+                    AttainmentService.check_and_generate_report(course_id, academic_year, user)
+                except Exception as e:
+                    print(f"Background ATR report error: {e}")
+            threading.Thread(target=bg_calc, daemon=True).start()
         except Exception as e:
             print(f"[Attainment] ATR submission report trigger failed: {e}")
 
