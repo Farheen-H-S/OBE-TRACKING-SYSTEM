@@ -9,7 +9,7 @@ from assessments.models import Assessment, MarksEntry, AssessmentCOMapping
 from indirect_attainment.models import CourseIndirectAttainment, ActivityIndirectAttainment
 from surveys.models import SurveyMaster, SurveyQuestion, SurveyResponse
 from .models import COAttainment, POAttainment, PSOAttainment, POBatchAttainment, PSOBatchAttainment
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 import re
 import numpy as np
 import threading
@@ -41,7 +41,7 @@ class AttainmentService:
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
         
         # Check for consolidated CourseATR first to influence ATR status
         from .models import CourseATR
@@ -240,7 +240,7 @@ class AttainmentService:
         """
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
 
         all_atts = COAttainment.objects.filter(ay_query, course_id=course_id)
         if not all_atts.exists():
@@ -279,7 +279,7 @@ class AttainmentService:
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
         
         all_cos = CO.objects.filter(course_id=course_id, is_active=True).order_by('co_number')
         if not all_cos.exists():
@@ -383,7 +383,7 @@ class AttainmentService:
         # Robust AY Matching
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
 
         assessments = Assessment.objects.filter(
             ay_query,
