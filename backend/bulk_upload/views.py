@@ -673,9 +673,11 @@ class PromoteStudentsView(APIView):
                     errors.append(f"Could not carry forward '{student.name}': {str(e)}")
 
         if errors and created_count == 0:
+            # Combine the main error and specific details so they show up in the frontend alert()
+            full_error = "Carry forward failed for all students. Reasons: " + " | ".join(errors[:3])
             return Response({
-                "error": "Carry forward failed for all students.",
-                "details": errors[:10]  # Show more errors for diagnosis
+                "error": full_error,
+                "details": errors
             }, status=400)
 
         return Response({
