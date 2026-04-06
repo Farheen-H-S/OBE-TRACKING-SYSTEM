@@ -675,7 +675,7 @@ class PromoteStudentsView(APIView):
         if errors and created_count == 0:
             return Response({
                 "error": "Carry forward failed for all students.",
-                "details": errors[:5]  # Show first 5 errors to avoid flooding
+                "details": errors[:10]  # Show more errors for diagnosis
             }, status=400)
 
         return Response({
