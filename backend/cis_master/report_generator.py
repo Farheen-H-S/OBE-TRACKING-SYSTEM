@@ -1235,10 +1235,10 @@ def create_ces_sheet(wb, course, academic_year, students, faculty_name, index=8)
         ay_short = ay_clean[:5] + ay_clean[7:] # 2025-26
         
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | \
-               models.Q(academic_year__icontains=ay_clean) | \
-               models.Q(academic_year__icontains=ay_short) | \
-               models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | \
+               Q(academic_year__icontains=ay_clean) | \
+               Q(academic_year__icontains=ay_short) | \
+               Q(academic_year__icontains=ay_spaced)
     
     # Find approved CES survey for this course, prioritized by number of responses
     # (This reliably finds the 'actual' survey among test surveys)
@@ -1420,7 +1420,7 @@ def create_mapping_sheet(wb, course, academic_year, faculty_name, index=9):
     # Robust AY Matching
     ay_clean = academic_year.replace(' ', '') if academic_year else ""
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
 
     # 2. Matrix Headers
     matrix_start_row = next_row + 2
@@ -1636,7 +1636,7 @@ def generate_cis_report(course_id, academic_year=None, batch_id=None):
     ay_val = academic_year or (AcademicSetup.objects.first().academic_year if AcademicSetup.objects.exists() else "2024-25")
     ay_clean = ay_val.replace(' ', '')
     ay_spaced = ay_clean.replace('-', ' - ')
-    ay_query = models.Q(academic_year__icontains=ay_val) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced)
+    ay_query = Q(academic_year__icontains=ay_val) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced)
 
     assignment = FacultyCourseAssignment.objects.filter(
         ay_query,
@@ -1655,7 +1655,7 @@ def generate_cis_report(course_id, academic_year=None, batch_id=None):
     
     # Use the robust ay_query for assessment matching to find students
     # We prefix the query with assessment_id__ to filter MarksEntry based on Assessment's AY
-    ay_query_marks = models.Q(assessment_id__academic_year=ay_val) | models.Q(assessment_id__academic_year=ay_clean) | models.Q(assessment_id__academic_year=ay_spaced)
+    ay_query_marks = Q(assessment_id__academic_year=ay_val) | Q(assessment_id__academic_year=ay_clean) | Q(assessment_id__academic_year=ay_spaced)
     
     marks_students = MarksEntry.objects.filter(
         assessment_id__course_id=course

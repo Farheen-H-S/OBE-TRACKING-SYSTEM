@@ -701,7 +701,7 @@ class AttainmentService:
         ay_short = ay_clean
         if len(ay_clean) == 9 and ay_clean[4] == '-': ay_short = ay_clean[:5] + ay_clean[7:]
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_short) | models.Q(academic_year__icontains=ay_spaced)
+        ay_query = Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_short) | Q(academic_year__icontains=ay_spaced)
         best_survey = SurveyMaster.objects.filter(course_id=course_id, survey_category='course_exit', status='APPROVED').annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
         if not best_survey: best_survey = SurveyMaster.objects.filter(course_id=course_id, survey_category='course_exit').annotate(resp_count=Count('responses')).order_by('-resp_count', '-survey_id').first()
         ces_surveys = [best_survey] if best_survey else []
@@ -775,7 +775,7 @@ class AttainmentService:
         except Course.DoesNotExist: return {}
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = (models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced))
+        ay_query = (Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced))
         indirect_surveys = SurveyMaster.objects.filter(ay_query, survey_category='indirect', program_id=program_id, is_active=True)
         po_survey_avgs = {}
         for survey in indirect_surveys:
@@ -800,7 +800,7 @@ class AttainmentService:
         except Course.DoesNotExist: return {}
         ay_clean = academic_year.replace(' ', '') if academic_year else ""
         ay_spaced = ay_clean.replace('-', ' - ')
-        ay_query = (models.Q(academic_year__icontains=academic_year) | models.Q(academic_year__icontains=ay_clean) | models.Q(academic_year__icontains=ay_spaced))
+        ay_query = (Q(academic_year__icontains=academic_year) | Q(academic_year__icontains=ay_clean) | Q(academic_year__icontains=ay_spaced))
         indirect_surveys = SurveyMaster.objects.filter(ay_query, survey_category='indirect', program_id=program_id, is_active=True)
         pso_survey_avgs = {}
         for survey in indirect_surveys:
