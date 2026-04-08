@@ -6,12 +6,10 @@ from .views import (
     SurveyStatsView, 
     SurveyLookupView, 
     SurveyExportView,
-    CheckSurveyParticipationView,
-    EmergencyCleanupView
+    CheckSurveyParticipationView
 )
 
 urlpatterns = [
-    path('emergency-cleanup/', EmergencyCleanupView.as_view(), name='emergency-cleanup'),
     path('', SurveyMasterListCreateView.as_view(), name='survey-list'),
     path('lookup/', SurveyLookupView.as_view(), name='survey-lookup'),
     path('check-participation/', CheckSurveyParticipationView.as_view(), name='check-participation'),

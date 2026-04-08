@@ -10,33 +10,6 @@ from .report_generator import SurveyExcelReportGenerator
 from django.http import HttpResponse
 import threading
 from django import db
-from django.db import transaction
-
-class EmergencyCleanupView(APIView):
-    permission_classes = [permissions.AllowAny] # Or Restrict to Admin
-    
-    def post(self, request):
-        # Strictly target course_exit and indirect survey duplicates spawned by the fallback text matching
-        orphans = SurveyQuestion.objects.filter(
-            survey_id__survey_category__in=['course_exit', 'indirect'],
-            co_id__isnull=True,
-            po_id__isnull=True,
-            pso_id__isnull=True,
-            question_text__startswith="Evaluation for"
-        )
-        
-        count = orphans.count()
-        if count == 0:
-            return Response({"message": "No orphaned duplicate questions found. DB clean."})
-            
-        answers_count = SurveyAnswer.objects.filter(question_id__in=orphans).count()
-        
-        with transaction.atomic():
-            if answers_count > 0:
-                SurveyAnswer.objects.filter(question_id__in=orphans).delete()
-            orphans.delete()
-            
-        return Response({"message": f"Successfully cleaned up {count} duplicate columns and {answers_count} orphaned answers. You can safely re-upload your Excel now."})
 
 class CheckSurveyParticipationView(APIView):
     permission_classes = [permissions.AllowAny]
