@@ -765,6 +765,23 @@ const Cescreate = () => {
                                                         >
                                                             [DEV] TEMPLATE
                                                         </button>
+                                                        <button
+                                                            className="btn btn-sm text-white bg-danger border border-dark rounded-0 fw-bold px-2 mx-1"
+                                                            style={{ boxShadow: '2px 2px 0px black' }}
+                                                            onClick={async () => {
+                                                                if (window.confirm("EMERGENCY CLEANUP: Delete duplicate/orphaned columns?")) {
+                                                                    try {
+                                                                        const res = await api.post('surveys/emergency-cleanup/');
+                                                                        alert(res.data.message);
+                                                                    } catch(err) {
+                                                                        alert("Cleanup failed.");
+                                                                    }
+                                                                }
+                                                            }}
+                                                            title="Fix Duplicates"
+                                                        >
+                                                            1-Click DB Fix
+                                                        </button>
                                                     </>
                                                 )}
                                             </div>
