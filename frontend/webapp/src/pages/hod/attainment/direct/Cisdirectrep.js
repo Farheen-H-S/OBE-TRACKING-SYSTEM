@@ -10,9 +10,13 @@ import { getDefaultSemester, getCachedSemesterType, getSemesterOptions } from '.
 
 import { useFilters } from '../../../../context/FilterContext';
 import { useDebounce } from '../../../../utils/useDebounce';
+import { getLoggedInUser } from '../../../../utils/auth';
 
 export default function Cisdirectrep() {
     const navigate = useNavigate();
+    const user = getLoggedInUser();
+    const userRole = (user?.role || user?.role_name || "").toUpperCase();
+    const isFaculty = userRole === 'FACULTY';
     const {
         selectedDept, setSelectedDept,
         selectedScheme, setSelectedScheme,
@@ -284,7 +288,7 @@ export default function Cisdirectrep() {
                                                                 >
                                                                     {courseStatus[c.course_id]?.atr_status === 'submitted' ? 'Submitted' : 'No ATR Submitted'}
                                                                 </span>
-                                                                {courseStatus[c.course_id]?.atr_status !== 'submitted' && (
+                                                                {courseStatus[c.course_id]?.atr_status !== 'submitted' && !isFaculty && (
                                                                     <button
                                                                         className="btn btn-sm btn-link text-decoration-none p-0 fw-bold"
                                                                         onClick={() => handleRequestATR(c.course_id)}
