@@ -34,7 +34,7 @@ class UserListCreateAPIView(APIView):
     """
     def get_permissions(self):
         if self.request.method == 'GET':
-            return [IsAuthenticated()]
+            return [AllowAny()]
         return [IsAuthenticated(), IsAdmin()]
 
     def get(self, request):

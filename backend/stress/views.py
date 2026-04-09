@@ -28,13 +28,18 @@ class StressMasterListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = StressMaster.objects.all().order_by('-survey_id')
         year_param = self.request.query_params.get('year')
-        if year_param:
+        
+        if year_param and str(year_param).lower() != 'all' and str(year_param).strip() != '':
             try:
-                # academic year like "2025-26" → filter surveys where year = 2025 or 2026
-                parts = year_param.replace(' ', '').split('-')
-                start_year = int(parts[0])
-                end_year = start_year + 1
-                queryset = queryset.filter(year__in=[start_year, end_year])
+                # Handle academic year format "2024-25" or "2024 - 25"
+                if '-' in year_param:
+                    parts = year_param.replace(' ', '').split('-')
+                    start_year = int(parts[0])
+                    # An academic year like 2024-25 usually covers surveys from 2024 and 2025
+                    queryset = queryset.filter(year__in=[start_year, start_year + 1])
+                else:
+                    # Handle single year "2025"
+                    queryset = queryset.filter(year=int(year_param))
             except (ValueError, IndexError):
                 pass
         return queryset

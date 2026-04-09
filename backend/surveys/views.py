@@ -166,7 +166,7 @@ class SubmitSurveyResponseView(APIView):
                 enrollment_no = enrollment_no_from_payload
 
         # 4b. Check for duplicate/overwrite submission
-        if enrollment_no and not survey.is_anonymous:
+        if enrollment_no and not survey.is_anonymous and enrollment_no != "N/A":
             # For Resource Person, we allow overwriting (delete previous)
             if str(enrollment_no).startswith("RP_"):
                  SurveyResponse.objects.filter(survey_id=survey, enrollment_no=enrollment_no).delete()
