@@ -274,18 +274,26 @@ def _parse_and_save_sheet(df, config, course, ay, sem, students_map, user):
                     s_marks[col_idx] = m_val
                     # Logic for CT usually best of 5, but for storage we just need marksData
                 
-                # Calculate CT total (Best 5 of 7) using only non-absent marks
-                def get_best_5(marks_dict, start_idx, end_idx):
-                    vals = []
-                    for i in range(start_idx, end_idx + 1):
-                        v = marks_dict.get(i)
-                        if v is not None:
-                            vals.append(v)
-                    vals.sort(reverse=True)
-                    return sum(vals[:5])
+                # Smart Choice detection: If sum of weights <= max marks, it's MCQ/Mandatory
+                # We need max_m which is calculated later, but we can calculate it here too
+                weight_sum_total = sum(weights)
+                # Attempt to find max_marks from config or default to something sensible
+                tool_config = course.assessment_tools.get(tool_name, {}) if course.assessment_tools else {}
+                max_marks_limit = float(tool_config.get('maxMarks', 30.0))
                 
+                has_choice = weight_sum_total > (max_marks_limit + 0.1)
+
                 total = 0
-                if len(questions) >= 14:
+                if has_choice:
+                    def get_best_5(marks_dict, start_idx, end_idx):
+                        vals = []
+                        for i in range(start_idx, end_idx + 1):
+                            v = marks_dict.get(i)
+                            if v is not None:
+                                vals.append(v)
+                        vals.sort(reverse=True)
+                        return sum(vals[:5])
+                    
                     total = get_best_5(s_marks, 0, 6) + get_best_5(s_marks, 7, 13)
                 else:
                     total = sum(v for v in s_marks.values() if v is not None)

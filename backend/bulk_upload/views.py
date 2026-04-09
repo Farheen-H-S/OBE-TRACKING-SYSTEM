@@ -808,13 +808,32 @@ class BulkCISUploadView(APIView):
                         if pd.isna(m): m = 0
                     except: m = 0
                     q_marks[str(i)] = m
-                    total_m += m
                 
                 tool_base = tool_name.split('-')[0]
-                is_avg_tool = tool_base == "FA" and "PR" in tool_name or tool_base == "SLA"
+                tp_norm = tool_name.upper().replace('-', '').replace('_', '').replace(' ', '')
+                is_fa_th = any(x in tp_norm for x in ['FATH', 'CT', 'TEST'])
+                is_avg_tool = (tool_base == "FA" and "PR" in tool_name) or tool_base == "SLA"
                 
-                if is_avg_tool and len(custom_questions) > 0:
-                    total_m = round(total_m / len(custom_questions), 2)
+                # Smart Choice detection for Bulk Upload
+                total_weight_sum = sum(float(w) for w in custom_weights)
+                has_internal_choice = is_fa_th and total_weight_sum > (max_m + 0.1)
+
+                if has_internal_choice:
+                    def get_best_5_sum(start_idx, end_idx):
+                        vals = []
+                        for i in range(start_idx, end_idx + 1):
+                            val = q_marks.get(str(i), 0)
+                            vals.append(val)
+                        vals.sort(reverse=True)
+                        return sum(vals[:5])
+                    
+                    # Apply Best 5 of 7 for Q1 (0-6) and Q2 (7-13)
+                    total_m = get_best_5_sum(0, 6) + get_best_5_sum(7, 13)
+                elif is_avg_tool and len(custom_questions) > 0:
+                    sum_all = sum(q_marks.values())
+                    total_m = round(sum_all / len(custom_questions), 2)
+                else:
+                    total_m = sum(q_marks.values())
                     
                 q_marks['total'] = total_m
                 

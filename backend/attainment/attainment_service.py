@@ -459,19 +459,20 @@ class AttainmentService:
                 # If the sum of weights of all questions is <= max_marks, it's an MCQ/Mandatory test.
                 custom_weights = config.get('customWeights', [])
                 total_weight_sum = 0.0
-                for idx, co_val in enumerate(user_cos):
-                    if co_val:
-                        q_max = 2.0 # Default
-                        if idx < len(custom_weights) and custom_weights[idx] not in [None, '']:
-                            try: q_max = float(custom_weights[idx])
-                            except: pass
-                        else:
-                            # Use system defaults based on max_marks
-                            if tool.max_marks == 30: q_max = 2.0 if (idx % 14 < 7) else 4.0
-                            elif tool.max_marks == 15: q_max = 1.5
-                            elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm: q_max = tool.max_marks
-                            else: q_max = (tool.max_marks / 10.0) if tool.max_marks else 2.0
-                        total_weight_sum += q_max
+                column_count = config.get('columnCount', len(user_cos))
+                
+                for idx in range(column_count):
+                    q_max = 2.0 # Default
+                    if idx < len(custom_weights) and custom_weights[idx] not in [None, '']:
+                        try: q_max = float(custom_weights[idx])
+                        except: pass
+                    else:
+                        # Use system defaults based on max_marks
+                        if tool.max_marks == 30: q_max = 2.0 if (idx % 14 < 7) else 4.0
+                        elif tool.max_marks == 15: q_max = 1.5
+                        elif is_summative or 'PR' in tool_name_norm or 'SLA' in tool_name_norm: q_max = tool.max_marks
+                        else: q_max = (tool.max_marks / 10.0) if tool.max_marks else 2.0
+                    total_weight_sum += q_max
                 
                 # If sum of weights is <= max_marks, there is NO internal choice (e.g. MCQ)
                 has_internal_choice = total_weight_sum > (tool.max_marks + 0.1)

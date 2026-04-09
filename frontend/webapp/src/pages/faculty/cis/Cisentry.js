@@ -126,6 +126,11 @@ const Cisentry = () => {
     const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
     if (!isTheoryTest) return false;
 
+    // Smart Heuristic: If sum of weights <= max marks, no choice rule applies (e.g. MCQ)
+    const weightSum = weights.reduce((acc, w) => acc + (parseFloat(w) || 0), 0);
+    const hasChoice = weightSum > (totalMaxMarks + 0.1);
+    if (!hasChoice) return false;
+
     // Every group of 7 indices is a separate question (Q1: 0-6, Q2: 7-13, Q3: 14-20, etc.)
     const groupIndex = Math.floor(colIndex / 7);
     const start = groupIndex * 7;
@@ -611,7 +616,10 @@ const Cisentry = () => {
               const studentMarks = parsedData[enroll];
               let total = 0;
               
-              if (isTheoryTest) {
+              const weightSum = weights.reduce((acc, w) => acc + (parseFloat(w) || 0), 0);
+              const hasChoice = weightSum > (totalMaxMarks + 0.1);
+
+              if (isTheoryTest && hasChoice) {
                 const getBest5Sum = (start, end) => {
                   const vals = [];
                   for (let i = start; i <= end; i++) {
@@ -763,7 +771,11 @@ const Cisentry = () => {
       // Calculate row total
       let total = 0;
       const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
-      if (isTheoryTest) {
+      
+      const weightSum = weights.reduce((acc, w) => acc + (parseFloat(w) || 0), 0);
+      const hasChoice = weightSum > (totalMaxMarks + 0.1);
+
+      if (isTheoryTest && hasChoice) {
         // Best 5 of 7 Logic for Q1 (0-6) and Q2 (7-13)
         const getBest5Sum = (start, end) => {
           const vals = [];
@@ -789,7 +801,7 @@ const Cisentry = () => {
         // Round to 2 decimal places
         total = Math.round(total * 100) / 100;
       } else {
-        // Standard Sum
+        // Standard Sum (for MCQ or any other tool)
         for (let i = 0; i < columnCount; i++) {
           const mark = studentMarks[i];
           if (mark && !isNaN(parseFloat(mark))) {
