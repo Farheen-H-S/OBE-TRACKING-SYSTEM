@@ -15,6 +15,7 @@ class SurveyQuestionSerializer(serializers.ModelSerializer):
 
 class SurveyMasterSerializer(serializers.ModelSerializer):
     questions = SurveyQuestionSerializer(many=True, read_only=True)
+    response_count = serializers.IntegerField(read_only=True)
     
     class Meta:
         model = SurveyMaster

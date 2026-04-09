@@ -131,7 +131,8 @@ const Cescreate = () => {
                             status: s.status,
                             duration: '7',
                             expires_at: s.expires_at,
-                            survey_id: s.survey_id
+                            survey_id: s.survey_id,
+                            response_count: s.response_count || 0
                         };
                     }
                 });
@@ -238,6 +239,10 @@ const Cescreate = () => {
             }
 
             setSurveyStatsData(prev => ({ ...prev, [courseId]: res.data }));
+            setSurveyStates(prev => ({
+                ...prev,
+                [courseId]: { ...prev[courseId], response_count: res.data.total_responses }
+            }));
         } catch (err) {
             console.error('Failed to fetch responses:', err);
         }
@@ -665,7 +670,20 @@ const Cescreate = () => {
                                                         <p className="mb-0 small fw-bold">Faculty: <span className="text-dark fw-semibold ms-1">{course.faculty_assigned_name || 'Not Assigned'}</span></p>
                                                     </div>
                                                 </div>
-                                                <div className="course-header-right">
+                                                <div className="course-header-right d-flex align-items-center gap-3">
+                                                    {(surveyStates[course.course_id]?.status === 'APPROVED' || surveyStates[course.course_id]?.status === 'CLOSED') && (
+                                                        <button
+                                                            className="btn btn-sm btn-info text-white shadow-sm fw-bold"
+                                                            onClick={() => {
+                                                                const isShowing = !showStats[course.course_id];
+                                                                setShowStats(prev => ({ ...prev, [course.course_id]: isShowing }));
+                                                                if (isShowing) fetchResponses(course.course_id, surveyStates[course.course_id].survey_id);
+                                                            }}
+                                                            title="View Survey Analytics and Responses"
+                                                        >
+                                                            {showStats[course.course_id] ? 'Hide Statistics' : 'Show Statistics'} <span className="badge bg-light text-dark ms-1">{surveyStates[course.course_id]?.response_count || 0}</span>
+                                                        </button>
+                                                    )}
                                                     <span className={`status-badge-compact ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'approved' : surveyStates[course.course_id]?.status === 'CLOSED' ? 'closed' : 'draft'}`}>
                                                         {surveyStates[course.course_id]?.status === 'APPROVED' ? <FaCheckCircle className="me-1" /> : <FaExclamationCircle className="me-1" />}
                                                         {surveyStates[course.course_id]?.status || 'DRAFT'}
@@ -701,18 +719,6 @@ const Cescreate = () => {
                                             )}
 
                                             <div className="action-row mt-4 d-flex align-items-center gap-3">
-                                                {(surveyStates[course.course_id]?.status === 'APPROVED' || surveyStates[course.course_id]?.status === 'CLOSED') && (
-                                                    <button
-                                                        className="btn btn-sm btn-info text-white"
-                                                        onClick={() => {
-                                                            const isShowing = !showStats[course.course_id];
-                                                            setShowStats(prev => ({ ...prev, [course.course_id]: isShowing }));
-                                                            if (isShowing) fetchResponses(course.course_id, surveyStates[course.course_id].survey_id);
-                                                        }}
-                                                    >
-                                                        {showStats[course.course_id] ? 'Show Questions' : 'Show Statistics'}
-                                                    </button>
-                                                )}
                                                 <button
                                                     className={`btn btn-outline-primary btn-sm px-4 ${surveyStates[course.course_id]?.status === 'APPROVED' ? 'disabled' : ''}`}
                                                     onClick={() => handleEditToggle(course.course_id, courseCos[course.course_id])}

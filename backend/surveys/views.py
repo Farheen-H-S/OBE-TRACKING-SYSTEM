@@ -1,5 +1,5 @@
 from rest_framework import generics, status, permissions
-from django.db.models import Q
+from django.db.models import Q, Count
 from audit.utils import log_action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -67,7 +67,7 @@ class SurveyMasterListCreateView(generics.ListCreateAPIView):
     serializer_class = SurveyMasterSerializer
 
     def get_queryset(self):
-        queryset = SurveyMaster.objects.all().order_by('-survey_id')
+        queryset = SurveyMaster.objects.annotate(response_count=Count('responses', distinct=True)).order_by('-survey_id')
         category = self.request.query_params.get('survey_category')
         program_id = self.request.query_params.get('program_id')
         academic_year = self.request.query_params.get('academic_year')
