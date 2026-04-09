@@ -604,6 +604,8 @@ const Cisentry = () => {
         if (config.minPassingMarks !== undefined) setMinPassingMarks(config.minPassingMarks);
         else setMinPassingMarks(0);
 
+        if (config.marksData) {
+            const parsedData = { ...config.marksData };
             const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
             const currentMaxFactor = (selectedTool === 'FA-PR') ? 25 : (selectedTool.startsWith('SLA') ? 20 : (selectedTool.startsWith('SA') ? 100 : 30));
             const currentMaxMarks = configMax || currentMaxFactor;
@@ -653,18 +655,18 @@ const Cisentry = () => {
             });
 
             setMarksData(parsedData);
-
-          // Populate uploaded files from backend
-          if (res.data.evidence) {
-            setUploadedFiles(prev => ({
-              ...prev,
-              [selectedTool]: res.data.evidence
-            }));
-          }
-
-          setViewMode('view');
-          return; // Exit early as we have backend data
         }
+
+        // Populate uploaded files from backend
+        if (res.data.evidence) {
+          setUploadedFiles(prev => ({
+            ...prev,
+            [selectedTool]: res.data.evidence
+          }));
+        }
+
+        setViewMode('view');
+        return; // Exit early as we have backend data
       }
     } catch (err) {
       console.error("Backend fetch error:", err);
