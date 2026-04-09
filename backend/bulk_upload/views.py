@@ -1362,6 +1362,7 @@ class BulkSurveyUploadView(APIView):
             
             # Map columns to question IDs
             survey_questions = {} # idx (int) -> question_id
+            existing_questions = list(SurveyQuestion.objects.filter(survey_id=survey))
             
             for c in range(q_start_col, len(df.columns)):
                 col_name = str(header_row[c]).strip().upper()
@@ -1369,61 +1370,77 @@ class BulkSurveyUploadView(APIView):
                 
                 # Resolve the column to an existing question, or create it
                 question = None
+                col_clean = col_name.replace(" ", "")
                 
                 if survey.survey_category == 'course_exit':
-                    # Expecting COs
-                    digits = "".join([char for char in col_name if char.isdigit()])
-                    co_number = f"CO{digits}" if digits else col_name
                     target_co = None
                     if survey.course_id:
                         cos = CO.objects.filter(course_id=survey.course_id, is_active=True)
                         for co in cos:
-                            if str(co.co_number).upper().endswith(digits) or str(co.co_number).upper() == co_number:
+                            c_num = str(co.co_number).upper().replace(" ", "")
+                            if c_num == col_clean or c_num.endswith(col_clean) or col_clean.endswith(c_num):
                                 target_co = co
                                 break
-                    
                     if target_co:
-                        question, _ = SurveyQuestion.objects.get_or_create(
-                            survey_id=survey,
-                            co_id_id=target_co.co_id,
-                            defaults={'question_text': f"Evaluation for {target_co.co_number}"}
-                        )
+                        question = next((q for q in existing_questions if q.co_id_id == target_co.co_id), None)
+                        if not question:
+                            question = SurveyQuestion.objects.create(
+                                survey_id=survey, co_id=target_co,
+                                question_text=f"Evaluation for {target_co.co_number}"
+                            )
+                            existing_questions.append(question)
+                
                 elif survey.survey_category == 'indirect':
-                    # Expecting POs and PSOs
                     from academics.models import PO, PSO
                     target_obj = None
-                    digits = "".join([char for char in col_name if char.isdigit()])
-                    val_number = f"PO{digits}" if "PO" in col_name and "PSO" not in col_name else (f"PSO{digits}" if "PSO" in col_name else col_name)
-
                     if survey.program_id:
-                        if "PSO" in col_name:
-                             for p in PSO.objects.filter(program_id=survey.program_id, is_active=True):
-                                 if str(p.pso_number).upper().endswith(digits) or str(p.pso_number).upper() == val_number:
-                                     target_obj = p
-                                     break
-                             if target_obj:
-                                 question, _ = SurveyQuestion.objects.get_or_create(
-                                     survey_id=survey, pso_id=target_obj,
-                                     defaults={'question_text': f"Evaluation for {target_obj.pso_number}"}
-                                 )
+                        if "PSO" in col_clean:
+                            psos = PSO.objects.filter(program_id=survey.program_id, is_active=True)
+                            for p in psos:
+                                p_num = str(p.pso_number).upper().replace(" ", "")
+                                if p_num == col_clean or p_num.endswith(col_clean) or col_clean.endswith(p_num):
+                                    target_obj = p
+                                    break
+                            if target_obj:
+                                question = next((q for q in existing_questions if q.pso_id_id == target_obj.pso_id), None)
+                                if not question:
+                                    question = SurveyQuestion.objects.create(
+                                        survey_id=survey, pso_id=target_obj,
+                                        question_text=f"Evaluation for {target_obj.pso_number}"
+                                    )
+                                    existing_questions.append(question)
                         else:
-                             for p in PO.objects.filter(program_id=survey.program_id, is_active=True):
-                                 if str(p.po_number).upper().endswith(digits) or str(p.po_number).upper() == val_number:
-                                     target_obj = p
-                                     break
-                             if target_obj:
-                                 question, _ = SurveyQuestion.objects.get_or_create(
-                                     survey_id=survey, po_id=target_obj,
-                                     defaults={'question_text': f"Evaluation for {target_obj.po_number}"}
-                                 )
+                            pos = PO.objects.filter(program_id=survey.program_id, is_active=True)
+                            for p in pos:
+                                p_num = str(p.po_number).upper().replace(" ", "")
+                                if p_num == col_clean or p_num.endswith(col_clean) or col_clean.endswith(p_num):
+                                    target_obj = p
+                                    break
+                            if target_obj:
+                                question = next((q for q in existing_questions if q.po_id_id == target_obj.po_id), None)
+                                if not question:
+                                    question = SurveyQuestion.objects.create(
+                                        survey_id=survey, po_id=target_obj,
+                                        question_text=f"Evaluation for {target_obj.po_number}"
+                                    )
+                                    existing_questions.append(question)
                 
+                # Loose text matching fallback BEFORE creating an orphan
+                if not question:
+                    for eq in existing_questions:
+                        eq_text = (eq.question_text or "").upper().replace(" ", "")
+                        # Often eq_text is "EVALUATIONFORCO202.1"
+                        if col_clean in eq_text or eq_text in col_clean:
+                            question = eq
+                            break
+                            
                 # Generic fallback if no mapping found
                 if not question:
-                    question, _ = SurveyQuestion.objects.get_or_create(
+                    question = SurveyQuestion.objects.create(
                         survey_id=survey,
-                        question_text__iexact=f"Evaluation for {col_name}",
-                        defaults={'question_text': f"Evaluation for {col_name}"}
+                        question_text=f"Evaluation for {col_name}"
                     )
+                    existing_questions.append(question)
                 
                 survey_questions[c] = question.question_id
                 
