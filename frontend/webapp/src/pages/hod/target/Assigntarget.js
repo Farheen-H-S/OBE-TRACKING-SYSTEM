@@ -307,8 +307,9 @@ const Assigntarget = () => {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     try {
-      setLoading(true);
+      setIsSaving(true);
       const ay = selectedYear.replace(/\s/g, '');
 
       const targetsToSave = courses
@@ -341,7 +342,8 @@ const Assigntarget = () => {
       console.error("Error saving metrics:", err);
       const errorMsg = err.response?.data?.error || err.message || "Unknown error";
       alert(`Failed to save metrics: ${errorMsg}`);
-      setLoading(false);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -701,11 +703,19 @@ const Assigntarget = () => {
               </button>
             ) : (
               <>
-                <button className="btn btn-outline-secondary px-5 py-2 fw-bold shadow-sm" onClick={() => setIsEditing(false)}>
+                <button 
+                  className="btn btn-outline-secondary px-5 py-2 fw-bold shadow-sm" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={isSaving}
+                >
                   Cancel
                 </button>
-                <button className="btn btn-outline-primary px-5 py-2 fw-bold shadow-sm" onClick={handleSave}>
-                  Save All Metrics
+                <button 
+                  className="btn btn-outline-primary px-5 py-2 fw-bold shadow-sm" 
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save All Metrics'}
                 </button>
               </>
             )}

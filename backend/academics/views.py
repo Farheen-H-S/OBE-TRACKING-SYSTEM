@@ -788,42 +788,106 @@ class TargetListCreateAPIView(APIView):
     def post(self, request):
         try:
             academic_year = request.data.get('academic_year')
-            targets_list, po_targets, pso_targets = request.data.get('targets', []), request.data.get('po_targets', []), request.data.get('pso_targets', [])
+            targets_list = request.data.get('targets', [])
+            po_targets = request.data.get('po_targets', [])
+            pso_targets = request.data.get('pso_targets', [])
+            
             if not targets_list and not po_targets and not pso_targets:
                 course_id, t_val = request.data.get('course_id'), request.data.get('target_value')
                 if course_id and t_val: targets_list = [{'course_id': course_id, 'target_value': t_val}]
+                
             if (not targets_list and not po_targets and not pso_targets) or not academic_year:
                 return Response({"error": "Missing fields"}, status=400)
+                
             set_by = request.user if not request.user.is_anonymous else None
+            
+            ay_clean = academic_year.replace(' ', '')
+            ay_spaced = ay_clean.replace('-', ' - ')
+            ay_query_del = Q(academic_year=academic_year) | Q(academic_year=ay_clean) | Q(academic_year=ay_spaced)
+
             with transaction.atomic():
-                for item in targets_list:
-                    c_id, t_val = item.get('course_id'), item.get('target_value')
-                    try: t_val = float(t_val)
-                    except: continue
-                    ay_clean = academic_year.replace(' ', '')
-                    ay_spaced = ay_clean.replace('-', ' - ')
-                    ay_query_del = Q(academic_year=academic_year) | Q(academic_year=ay_clean) | Q(academic_year=ay_spaced)
-                    COTarget.objects.filter(ay_query_del, course_id_id=c_id).delete()
-                    cos = CO.objects.filter(course_id=c_id, is_active=True)
-                    if cos.exists():
-                        for co in cos: COTarget.objects.create(co_id=co, course_id=co.course_id, academic_year=academic_year, target_value=t_val, set_by=set_by, status='PENDING')
-                    else: COTarget.objects.create(co_id=None, course_id_id=c_id, academic_year=academic_year, target_value=t_val, set_by=set_by, status='PENDING')
-                for item in po_targets:
-                    p_id, t_val = item.get('po_id'), item.get('target_value')
-                    if p_id:
-                        try: t_val = float(t_val)
-                        except: t_val = 0.0
-                        POTarget.objects.filter(po_id_id=p_id, academic_year=academic_year).delete()
-                        POTarget.objects.create(po_id_id=p_id, academic_year=academic_year, target_value=t_val, set_by=set_by, status='PENDING')
-                for item in pso_targets:
-                    p_id, t_val = item.get('pso_id'), item.get('target_value')
-                    if p_id:
-                        try: t_val = float(t_val)
-                        except: t_val = 0.0
-                        PSOTarget.objects.filter(pso_id_id=p_id, academic_year=academic_year).delete()
-                        PSOTarget.objects.create(pso_id_id=p_id, academic_year=academic_year, target_value=t_val, set_by=set_by, status='PENDING')
+                # Process CO Targets
+                if targets_list:
+                    valid_targets = []
+                    for item in targets_list:
+                        c_id, t_val = item.get('course_id'), item.get('target_value')
+                        try:
+                            t_val = float(t_val)
+                            valid_targets.append({'course_id': c_id, 'target_value': t_val})
+                        except:
+                            pass
+                    
+                    if valid_targets:
+                        course_ids = [t['course_id'] for t in valid_targets]
+                        
+                        # Bulk delete
+                        COTarget.objects.filter(ay_query_del, course_id_id__in=course_ids).delete()
+                        
+                        # Load all COs in one query
+                        all_cos = CO.objects.filter(course_id__in=course_ids, is_active=True)
+                        cos_by_course = {}
+                        for co in all_cos:
+                            cos_by_course.setdefault(co.course_id_id, []).append(co)
+                            
+                        co_target_objs = []
+                        for t in valid_targets:
+                            c_id = t['course_id']
+                            t_val = t['target_value']
+                            cos = cos_by_course.get(c_id, [])
+                            if cos:
+                                for co in cos:
+                                    co_target_objs.append(COTarget(co_id=co, course_id_id=c_id, academic_year=academic_year, target_value=t_val, set_by=set_by, status='PENDING'))
+                            else:
+                                co_target_objs.append(COTarget(co_id=None, course_id_id=c_id, academic_year=academic_year, target_value=t_val, set_by=set_by, status='PENDING'))
+                                
+                        if co_target_objs:
+                            COTarget.objects.bulk_create(co_target_objs)
+
+                # Process PO Targets
+                if po_targets:
+                    valid_po_targets = []
+                    for item in po_targets:
+                        p_id, t_val = item.get('po_id'), item.get('target_value')
+                        if p_id:
+                            try: t_val = float(t_val)
+                            except: t_val = 0.0
+                            valid_po_targets.append({'po_id': p_id, 'target_value': t_val})
+                    
+                    if valid_po_targets:
+                        po_ids = [t['po_id'] for t in valid_po_targets]
+                        POTarget.objects.filter(ay_query_del, po_id_id__in=po_ids).delete()
+                        
+                        po_target_objs = [
+                            POTarget(po_id_id=t['po_id'], academic_year=academic_year, target_value=t['target_value'], set_by=set_by, status='PENDING')
+                            for t in valid_po_targets
+                        ]
+                        if po_target_objs:
+                            POTarget.objects.bulk_create(po_target_objs)
+
+                # Process PSO Targets
+                if pso_targets:
+                    valid_pso_targets = []
+                    for item in pso_targets:
+                        p_id, t_val = item.get('pso_id'), item.get('target_value')
+                        if p_id:
+                            try: t_val = float(t_val)
+                            except: t_val = 0.0
+                            valid_pso_targets.append({'pso_id': p_id, 'target_value': t_val})
+                            
+                    if valid_pso_targets:
+                        pso_ids = [t['pso_id'] for t in valid_pso_targets]
+                        PSOTarget.objects.filter(ay_query_del, pso_id_id__in=pso_ids).delete()
+                        
+                        pso_target_objs = [
+                            PSOTarget(pso_id_id=t['pso_id'], academic_year=academic_year, target_value=t['target_value'], set_by=set_by, status='PENDING')
+                            for t in valid_pso_targets
+                        ]
+                        if pso_target_objs:
+                            PSOTarget.objects.bulk_create(pso_target_objs)
+
             return Response({"message": "targets assigned successfully"}, status=201)
-        except Exception as e: return Response({"error": str(e)}, status=500)
+        except Exception as e: 
+            return Response({"error": str(e)}, status=500)
 
 class TargetDetailAPIView(APIView):
     def put(self, request, pk):
