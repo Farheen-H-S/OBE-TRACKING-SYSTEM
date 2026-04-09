@@ -102,9 +102,13 @@ class SubmitATRView(APIView):
             def bg_calc():
                 try:
                     from attainment.attainment_service import AttainmentService
+                    from django.db import connection
                     AttainmentService.check_and_generate_report(course_id, academic_year, user)
                 except Exception as e:
                     print(f"Background ATR report error: {e}")
+                finally:
+                    from django.db import connection
+                    connection.close()
             threading.Thread(target=bg_calc, daemon=True).start()
         except Exception as e:
             print(f"[Attainment] ATR submission report trigger failed: {e}")

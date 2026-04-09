@@ -242,10 +242,14 @@ class SaveAssessmentMarksView(APIView):
         def run_calculation():
             try:
                 from attainment.attainment_service import AttainmentService
+                from django.db import connection
                 AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
                 print(f"[Attainment] Background recalculation successful for course {course_id}")
             except Exception as e:
                 print(f"[Attainment] Background recalculation failed: {e}")
+            finally:
+                from django.db import connection
+                connection.close()
 
         threading.Thread(target=run_calculation, daemon=True).start()
 

@@ -171,10 +171,10 @@ class AttainmentService:
         from .models import CourseATR
         course_atr = CourseATR.objects.filter(course_id=course_id, academic_year=academic_year).first()
         
-        # Step 15: Batch Level Aggregation (Background Thread for performance)
         def run_batch_aggregation(c_id):
             try:
                 from academics.models import Course
+                from django.db import connection
                 course_obj = Course.objects.filter(pk=c_id).first()
                 if course_obj:
                     # Refresh batch objects in this thread's connection
@@ -184,6 +184,9 @@ class AttainmentService:
                         AttainmentService._aggregate_batch_po_pso_attainment(batch.batch_id, program_id)
             except Exception as e:
                 print(f"[Attainment] Background batch aggregation failed for course {c_id}: {e}")
+            finally:
+                from django.db import connection
+                connection.close()
 
         threading.Thread(target=run_batch_aggregation, args=(course_id,), daemon=True).start()
 

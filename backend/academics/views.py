@@ -354,10 +354,18 @@ class CourseListCreateAPIView(APIView):
             # Fire notification in a background thread — response returns immediately
             if notification_data:
                 try:
-                    from notifications.utils import send_obe_notification
+                    def run_notification():
+                        try:
+                            from notifications.utils import send_obe_notification
+                            send_obe_notification(**notification_data)
+                        except Exception as n_err:
+                            print(f"DEBUG: Failed in notification thread: {n_err}")
+                        finally:
+                            from django.db import connection
+                            connection.close()
+                            
                     t = threading.Thread(
-                        target=send_obe_notification,
-                        kwargs=notification_data,
+                        target=run_notification,
                         daemon=True
                     )
                     t.start()
@@ -493,10 +501,18 @@ class CourseDetailAPIView(APIView):
             # Fire notification in a background thread — response returns immediately
             if notification_data:
                 try:
-                    from notifications.utils import send_obe_notification
+                    def run_notification():
+                        try:
+                            from notifications.utils import send_obe_notification
+                            send_obe_notification(**notification_data)
+                        except Exception as n_err:
+                            print(f"DEBUG: Failed in notification thread: {n_err}")
+                        finally:
+                            from django.db import connection
+                            connection.close()
+
                     t = threading.Thread(
-                        target=send_obe_notification,
-                        kwargs=notification_data,
+                        target=run_notification,
                         daemon=True
                     )
                     t.start()
@@ -756,9 +772,13 @@ class MappingListCreateAPIView(APIView):
                 def bg_calc():
                     try:
                         from attainment.attainment_service import AttainmentService
+                        from django.db import connection
                         AttainmentService.calculate_attainment(course_id, academic_year)
                     except Exception as e:
                         print(f"Background attainment error: {e}")
+                    finally:
+                        from django.db import connection
+                        connection.close()
                 threading.Thread(target=bg_calc, daemon=True).start()
         except Exception as e:
             print(f"Mapping save trigger failed: {e}")

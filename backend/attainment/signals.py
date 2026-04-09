@@ -9,28 +9,28 @@ from users.models import Student
 def run_attainment_calc(course_id, academic_year):
     try:
         from .attainment_service import AttainmentService
+        from django.db import connection
         AttainmentService.calculate_attainment(course_id, academic_year, invalidate_cache=True)
     except Exception as e:
         print(f"[Attainment Signal] Background calculation failed: {e}")
+    finally:
+        from django.db import connection
+        connection.close()
 
 def run_batch_aggregation(batch_id, program_id):
     try:
         from .attainment_service import AttainmentService
+        from django.db import connection
         AttainmentService._aggregate_batch_po_pso_attainment(batch_id, program_id)
     except Exception as e:
         print(f"[Attainment Signal] Background aggregation failed: {e}")
+    finally:
+        from django.db import connection
+        connection.close()
 
-@receiver(post_save, sender=MarksEntry)
-@receiver(post_delete, sender=MarksEntry)
-def trigger_attainment_on_marks(sender, instance, **kwargs):
-    """Triggered when marks are entered or deleted."""
-    try:
-        assessment = instance.assessment_id
-        course_id = assessment.course_id_id
-        academic_year = assessment.academic_year
-        threading.Thread(target=run_attainment_calc, args=(course_id, academic_year), daemon=True).start()
-    except Exception:
-        pass
+# Removed trigger_attainment_on_marks to prevent thread explosion during bulk uploads.
+# Attainment recalculation is explicitly triggered in the views (SaveAssessmentMarksView, etc.)
+
 
 @receiver(post_save, sender=COTarget)
 def trigger_attainment_on_co_target(sender, instance, **kwargs):

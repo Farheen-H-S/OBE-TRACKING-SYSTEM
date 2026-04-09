@@ -110,6 +110,9 @@ class SurveyMasterDetailView(generics.RetrieveUpdateDestroyAPIView):
                                 pass
                 except Exception as e:
                     print(f"[Attainment] Survey approval background thread failed for survey {s_id}: {e}")
+                finally:
+                    from django.db import connection
+                    connection.close()
 
             threading.Thread(
                 target=run_attainment_sync, 
@@ -233,6 +236,9 @@ class SubmitSurveyResponseView(APIView):
                     AttainmentService.calculate_attainment(c_id, ay)
                 except Exception as e:
                     print(f"[Attainment] Response sync background thread failed for course {c_id}: {e}")
+                finally:
+                    from django.db import connection
+                    connection.close()
 
             threading.Thread(
                 target=run_response_sync, 
