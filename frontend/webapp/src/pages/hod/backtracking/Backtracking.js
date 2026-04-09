@@ -53,33 +53,45 @@ const Backtracking = ({ isDashboard = false }) => {
         api.get('/academics/targets/', { params: { academic_year } }),
       ]);
 
-      const poAtt = poRes.data['PO attainment'] || [];
-      const psoAtt = psoRes.data['PSO attainment'] || [];
+      const rawPoAtt = poRes.data['PO attainment'] || [];
+      const rawPsoAtt = psoRes.data['PSO attainment'] || [];
+
+      // Group and average multiple course contributions per PO/PSO
+      const poGrouped = Object.values(rawPoAtt.reduce((acc, curr) => {
+        if (!acc[curr.po_id]) acc[curr.po_id] = { ...curr, sum: 0, count: 0 };
+        acc[curr.po_id].sum += curr.normalized_value;
+        acc[curr.po_id].count += 1;
+        return acc;
+      }, {})).map(p => ({ ...p, normalized_value: p.sum / p.count })).sort((a, b) => a.po_id - b.po_id);
+
+      const psoGrouped = Object.values(rawPsoAtt.reduce((acc, curr) => {
+        if (!acc[curr.pso_id]) acc[curr.pso_id] = { ...curr, sum: 0, count: 0 };
+        acc[curr.pso_id].sum += curr.normalized_value;
+        acc[curr.pso_id].count += 1;
+        return acc;
+      }, {})).map(p => ({ ...p, normalized_value: p.sum / p.count })).sort((a, b) => a.pso_id - b.pso_id);
+
       const poTMap = {};
       const psoTMap = {};
       (targetsRes.data?.po_targets || []).forEach(t => poTMap[String(t.po_id)] = t.target_value);
       (targetsRes.data?.pso_targets || []).forEach(t => psoTMap[String(t.pso_id)] = t.target_value);
 
       const combined = [
-        ...poAtt.map(a => ({
+        ...poGrouped.map(a => ({
           sr: `PO ${a.po_number || a.po_id}`,
           id: a.po_id,
           type: 'po',
           level: a.normalized_value.toFixed(2),
           target: poTMap[String(a.po_id)] || 2.5,
-          gap: a.gap
-            ? a.gap.toFixed(2)
-            : (parseFloat(poTMap[String(a.po_id)] || 2.5) - a.normalized_value).toFixed(2),
+          gap: (parseFloat(poTMap[String(a.po_id)] || 2.5) - a.normalized_value).toFixed(2),
         })),
-        ...psoAtt.map(a => ({
+        ...psoGrouped.map(a => ({
           sr: `PSO ${a.pso_number || a.pso_id}`,
           id: a.pso_id,
           type: 'pso',
           level: a.normalized_value.toFixed(2),
           target: psoTMap[String(a.pso_id)] || 2.5,
-          gap: a.gap
-            ? a.gap.toFixed(2)
-            : (parseFloat(psoTMap[String(a.pso_id)] || 2.5) - a.normalized_value).toFixed(2),
+          gap: (parseFloat(psoTMap[String(a.pso_id)] || 2.5) - a.normalized_value).toFixed(2),
         })),
       ];
 
