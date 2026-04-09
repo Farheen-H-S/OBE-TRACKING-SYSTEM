@@ -394,7 +394,10 @@ from .models import Student
 from .serializers import StudentSerializer
 
 class StudentListCreateAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get(self, request):
         def sanitize_param(val):
