@@ -118,7 +118,8 @@ class AdminDashboardAPIView(APIView):
             for i in range(5, -1, -1):
                 date = now - timedelta(days=i*30)
                 month_name = date.strftime('%b')
-                count = User.objects.filter(created_at__year=date.year, created_at__month=date.month).count()
+                # Use user_base to exclude Students and only count relevant users
+                count = user_base.filter(created_at__year=date.year, created_at__month=date.month).count()
                 monthly_additions.append([month_name, count])
  
         data = {
