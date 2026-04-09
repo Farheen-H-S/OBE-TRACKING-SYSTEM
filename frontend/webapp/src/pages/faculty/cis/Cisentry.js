@@ -604,20 +604,25 @@ const Cisentry = () => {
         if (config.minPassingMarks !== undefined) setMinPassingMarks(config.minPassingMarks);
         else setMinPassingMarks(0);
 
-          // Detailed marks breakdown if stored in config
-          if (config.marksData) {
-            const parsedData = { ...config.marksData };
-            
-            // Recalculate totals for all students to ensure choice rule alignment
             const isTheoryTest = selectedTool.startsWith('FA-TH') || selectedTool.includes('CT') || selectedTool.includes('TEST');
-            
+            const currentMaxFactor = (selectedTool === 'FA-PR') ? 25 : (selectedTool.startsWith('SLA') ? 20 : (selectedTool.startsWith('SA') ? 100 : 30));
+            const currentMaxMarks = configMax || currentMaxFactor;
+            const currentWeights = (config.customWeights || new Array(60).fill('')).map((w, i) => {
+              if (w !== undefined && w !== null && w !== '') return w;
+              // Fallback to same default logic as the 'weights' derived variable
+              if (selectedTool === 'FA-PR' || selectedTool.startsWith('SLA')) return currentMaxMarks.toString();
+              if (selectedTool === 'SA-TH' || selectedTool === 'SA-PR') return currentMaxMarks.toString();
+              if (parseInt(currentMaxMarks) === 30) return (i % 14 < 7 ? '2' : '4');
+              return (parseInt(currentMaxMarks) / 10).toString();
+            });
+
             Object.keys(parsedData).forEach(enroll => {
               if (enroll === 'total') return;
               const studentMarks = parsedData[enroll];
               let total = 0;
               
-              const weightSum = weights.reduce((acc, w) => acc + (parseFloat(w) || 0), 0);
-              const hasChoice = weightSum > (totalMaxMarks + 0.1);
+              const weightSum = currentWeights.slice(0, config.columnCount || 14).reduce((acc, w) => acc + (parseFloat(w) || 0), 0);
+              const hasChoice = weightSum > (currentMaxMarks + 0.1);
 
               if (isTheoryTest && hasChoice) {
                 const getBest5Sum = (start, end) => {
