@@ -36,7 +36,7 @@ const Welcome = () => {
                 </button>
             </div>
 
-            <div className="fixed-bottom mb-5 d-flex justify-content-center w-100">
+            <div className="mt-auto mb-5 d-flex justify-content-center w-100 text-center px-3">
                 <p className="footer-text mb-0 section-description">
                     Take a quick journey to understand how you’re<br />
                     feeling today !....

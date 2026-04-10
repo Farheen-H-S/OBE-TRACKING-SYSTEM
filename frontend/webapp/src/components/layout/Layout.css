@@ -51,7 +51,27 @@
   }
 }
 
+@media (max-width: 1199px) {
+  .sidebar-container {
+    position: fixed;
+    top: 80px; /* Below the header */
+    left: 0;
+    height: calc(100vh - 80px); /* Subtract header height */
+    z-index: 1050;
+  }
+}
+
 @media (max-width: 1199px) and (min-width: 769px) {
+  .sidebar-container.open {
+    width: 260px;
+  }
+
+  .sidebar-container.closed {
+    width: 0;
+  }
+}
+
+@media (max-width: 768px) {
   .sidebar-container.open {
     width: 260px;
   }

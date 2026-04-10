@@ -39,7 +39,7 @@ const Welcome = () => {
 
             {!surveyId && <p className="text-danger">Invalid Survey Link</p>}
 
-            <div className="fixed-bottom mb-5 d-flex justify-content-center w-100">
+            <div className="mt-auto mb-5 d-flex justify-content-center w-100 text-center px-3">
                 <p className="footer-text mb-0 section-description">
                     Your feedback helps us improve the quality of education.<br />
                     Share your experience today!

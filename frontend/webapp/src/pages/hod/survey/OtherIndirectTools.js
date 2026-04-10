@@ -936,7 +936,7 @@ const OtherIndirectTools = () => {
                                         {surveyState?.status === 'APPROVED' ? 'Close Early' : 'Approve & Generate Link'}
                                     </button>
 
-                                    {surveyState?.status === 'APPROVED' && (
+                                    {/* {surveyState?.status === 'APPROVED' && (
                                         <>
                                             <input
                                                 type="file"
@@ -965,7 +965,7 @@ const OtherIndirectTools = () => {
                                                 [DEV] TEMPLATE
                                             </button>
                                         </>
-                                    )}
+                                    )} */}
                                 </div>
                             </div>
 

@@ -743,7 +743,7 @@ const Cescreate = () => {
                                                     {surveyStates[course.course_id]?.status === 'APPROVED' ? 'Close Early' : 'Approve'}
                                                 </button>
 
-                                                {surveyStates[course.course_id]?.status === 'APPROVED' && (
+                                                {/* {surveyStates[course.course_id]?.status === 'APPROVED' && (
                                                     <>
                                                         <input
                                                             type="file"
@@ -789,7 +789,7 @@ const Cescreate = () => {
                                                             1-Click DB Fix
                                                         </button>
                                                     </>
-                                                )}
+                                                )} */}
                                             </div>
                                         </div>
                                     ))
