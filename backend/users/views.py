@@ -215,9 +215,6 @@ class UserDetailAPIView(APIView):
             except UserRole.DoesNotExist:
                 pass
 
-        if 'email' in data:
-            data['username'] = data['email']
-            
         serializer = UserSerializer(user, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
             user = serializer.save()
@@ -299,6 +296,21 @@ class UserProfileAPIView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            user = serializer.save()
+            log_action(
+                user, 
+                'UPDATE', 
+                'User', 
+                user.user_id, 
+                remark="Updated own profile",
+                request=request
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RoleListAPIView(APIView):

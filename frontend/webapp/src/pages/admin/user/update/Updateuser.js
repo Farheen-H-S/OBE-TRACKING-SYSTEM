@@ -146,10 +146,6 @@ const Updateuser = () => {
       const data = new FormData();
       Object.keys(formData).forEach(key => {
         if (key === 'password' && !formData[key]) return; // Don't send empty password
-        if (key === 'username') {
-          data.append(key, formData.email); // Keep username in sync with email
-          return;
-        }
         if (key === 'user_id') return; // Don't send internal ID
         data.append(key, formData[key]);
       });
@@ -226,6 +222,14 @@ const Updateuser = () => {
                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Email id :</label>
                 <div className="col-sm-6">
                   <input type="email" name="email" className="form-control" value={formData.email} onChange={handleInputChange} required />
+                </div>
+              </div>
+
+              {/* Username */}
+              <div className="row mb-3 align-items-center">
+                <label className="col-sm-3 col-form-label fw-bold text-secondary">Username :</label>
+                <div className="col-sm-6">
+                  <input type="text" name="username" className="form-control" value={formData.username} onChange={handleInputChange} required />
                 </div>
               </div>
 
