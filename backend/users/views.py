@@ -161,9 +161,9 @@ class UserDetailAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        # Only admins can update user details via this endpoint
-        if not request.user.role_id.role_name == "Admin":
-            return Response({"error": "Only admins can update user details here."}, status=status.HTTP_403_FORBIDDEN)
+        # Only admins can update user details via this endpoint, unless it is the user themselves
+        if not (request.user.role_id.role_name == "Admin" or str(pk) == str(request.user.user_id)):
+            return Response({"error": "You do not have permission to update this user."}, status=status.HTTP_403_FORBIDDEN)
             
         user = get_object_or_404(User, pk=pk)
         
@@ -298,7 +298,27 @@ class UserProfileAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
-        serializer = UserSerializer(request.user, data=request.data, partial=True, context={'request': request})
+        data = request.data.copy()
+        if 'role' in data:
+            try:
+                role_obj = UserRole.objects.get(role_name__iexact=data['role'])
+                data['role_id'] = role_obj.role_id
+            except UserRole.DoesNotExist:
+                pass
+
+        if 'department' in data and data['department']:
+            dept_val = data['department']
+            if isinstance(dept_val, str) and dept_val.isdigit():
+                data['department'] = int(dept_val)
+            elif not isinstance(dept_val, int):
+                try:
+                    from academics.models import Program
+                    program_obj = Program.objects.get(program_name__iexact=dept_val)
+                    data['department'] = program_obj.program_id
+                except (Program.DoesNotExist, ImportError):
+                    pass
+
+        serializer = UserSerializer(request.user, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
             user = serializer.save()
             log_action(
@@ -314,7 +334,7 @@ class UserProfileAPIView(APIView):
 
 
 class RoleListAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         roles = UserRole.objects.exclude(role_name__iexact='Student')

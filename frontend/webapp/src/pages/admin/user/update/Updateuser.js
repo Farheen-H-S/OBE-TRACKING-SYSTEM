@@ -156,7 +156,21 @@ const Updateuser = () => {
       // Map 'role' to 'role_id' if needed - backend view handles role name if passed as 'role'
       data.append('role', formData.role);
 
-      const endpoint = userId ? `/users/${userId}/` : `/users/profile/`;
+      let userIdVal = userId;
+      // Access localStorage directly to avoid stale state issues
+      const storedUserRaw = localStorage.getItem("user") || sessionStorage.getItem("user");
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+      const isSelf = String(userIdVal) === String(storedUser?.user_id);
+      
+      console.log("Update Context - userId:", userIdVal, "isSelf:", isSelf, "isAdmin:", isAdmin);
+
+      // If NOT admin AND updating self, force profile endpoint
+      if (!isAdmin && isSelf) {
+        userIdVal = "profile";
+      }
+
+      const endpoint = userIdVal === "profile" ? "/users/profile/" : (userIdVal ? `/users/${userIdVal}/` : "/users/profile/");
+      console.log("Final update endpoint:", endpoint);
       const response = await api.put(endpoint, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -229,7 +243,7 @@ const Updateuser = () => {
               <div className="row mb-3 align-items-center">
                 <label className="col-sm-3 col-form-label fw-bold text-secondary">Username :</label>
                 <div className="col-sm-6">
-                  <input type="text" name="username" className="form-control" value={formData.username} onChange={handleInputChange} required />
+                  <input type="text" name="username" className="form-control" value={formData.username} onChange={handleInputChange} />
                 </div>
               </div>
 
