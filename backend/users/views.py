@@ -459,23 +459,21 @@ class StudentListCreateAPIView(APIView):
                 queryset = queryset.filter(batch_id=batch_id)
             else:
                 # String Batch format fallback: Check year and label
-                # This ensures "2025-26" correctly matches even if the internal year is 2024 (e.g. SY students)
                 queryset = queryset.filter(
                     Q(batch_id__batch_year__icontains=batch_id[:4]) | 
                     Q(batch_id__batch_year__icontains=batch_id[-2:])
                 )
         
-        # 3. Soft Filters (Secondary)
-        if semester:
-            queryset = queryset.filter(semester=semester)
-        if division:
-            queryset = queryset.filter(division__iexact=division)
-            
-        # 4. Academic Year & Class Year (Smart Fallback)
-        # We check if strict filtering wipes out the results. If it does, we ignore these filters
-        # because the user selection might follow a different naming convention than the DB.
-        if academic_year or class_year:
+        # 3. Smart Fallback Logic (Semester, Class, Year, Division)
+        # We try to find the strict match first. If it's empty, we relax filters
+        # to ensure the user sees students in the selected Batch/Class context.
+        if any([semester, class_year, academic_year, division]):
             strict_q = queryset
+            
+            if semester:
+                strict_q = strict_q.filter(semester=semester)
+            if division:
+                strict_q = strict_q.filter(division__iexact=division)
             if academic_year:
                 ay_clean = academic_year.replace(" ", "")
                 ay_spaced = ay_clean[:4] + " - " + ay_clean[-2:] if len(ay_clean) >= 6 else academic_year
@@ -483,10 +481,19 @@ class StudentListCreateAPIView(APIView):
             if class_year:
                 strict_q = strict_q.filter(class_year__iexact=class_year)
             
-            # Only apply strict year/class if it actually finds students. 
-            # Otherwise, prioritize showing the students in the selected Batch/Semester.
+            # Application Logic:
             if strict_q.exists():
                 queryset = strict_q
+            else:
+                # Fallback: Relax semester and division but keep Batch + Class context as requested
+                # This ensures students are visible even if they haven't been promoted yet.
+                fallback_q = queryset
+                if class_year:
+                    fallback_q = fallback_q.filter(class_year__iexact=class_year)
+                
+                if fallback_q.exists():
+                    queryset = fallback_q
+                # Else: keep the original base queryset (Filtered by Program/Batch)
 
         # Final Natural Sort
         queryset = queryset.order_by(Length('roll_no'), 'roll_no', 'enrollment_no')

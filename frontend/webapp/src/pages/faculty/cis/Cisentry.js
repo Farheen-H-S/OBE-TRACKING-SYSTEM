@@ -411,7 +411,7 @@ const Cisentry = () => {
         is_active: true
       };
       let response = await api.get('/users/students/', { params });
-
+      
       // Fallback: If no students found with the strict semester filter, try without it
       if (response.data.length === 0) {
         console.warn(`No students found for Semester ${selectedSemester}. Retrying without semester filter.`);
