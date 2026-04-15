@@ -8,31 +8,61 @@ import threading
 logger = logging.getLogger(__name__)
 
 def _send_email_async(subject, message, recipient_list):
-    """Internal helper to send email in a thread."""
+    """Internal helper to send email in a thread with retry logic."""
     from django.core.mail import send_mail
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=recipient_list,
-            fail_silently=False,
-        )
-    except Exception as e:
-        logger.warning(f"Background email delivery failed for {recipient_list}: {type(e).__name__}: {e}")
+    import time
+    
+    max_retries = 3
+    retry_delay = 5 # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+            logger.info(f"Background email delivered successfully to {recipient_list}")
+            return # Success
+        except Exception as e:
+            logger.warning(
+                f"Attempt {attempt + 1}/{max_retries} failed for {recipient_list}: "
+                f"{type(e).__name__}: {e}"
+            )
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"All {max_retries} attempts failed for {recipient_list}")
 
 def _broadcast_email_async(subject, message, email_list):
-    """Internal helper to send bulk emails in a thread."""
+    """Internal helper to send bulk emails in a thread with retry logic."""
     from django.core.mail import get_connection, EmailMessage
-    try:
-        connection = get_connection()
-        messages = [
-            EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, [email], connection=connection)
-            for email in email_list if email
-        ]
-        connection.send_messages(messages)
-    except Exception as e:
-        logger.warning(f"Background broadcast delivery failed: {type(e).__name__}: {e}")
+    import time
+    
+    max_retries = 2
+    retry_delay = 10 # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            connection = get_connection()
+            messages = [
+                EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, [email], connection=connection)
+                for email in email_list if email
+            ]
+            connection.send_messages(messages)
+            logger.info(f"Background broadcast delivered successfully to {len(email_list)} users.")
+            return # Success
+        except Exception as e:
+            logger.warning(
+                f"Broadcast attempt {attempt + 1}/{max_retries} failed: "
+                f"{type(e).__name__}: {e}"
+            )
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"Broadcasting failed after {max_retries} attempts.")
 
 def send_obe_notification(recipient, title, message, notification_type='INFO', module='GENERAL', priority='NORMAL', action_link=None, send_email=True):
     """
