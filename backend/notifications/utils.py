@@ -3,8 +3,36 @@ from django.conf import settings
 from .models import Notification
 import logging
 import smtplib
+import threading
 
 logger = logging.getLogger(__name__)
+
+def _send_email_async(subject, message, recipient_list):
+    """Internal helper to send email in a thread."""
+    from django.core.mail import send_mail
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipient_list,
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.warning(f"Background email delivery failed for {recipient_list}: {type(e).__name__}: {e}")
+
+def _broadcast_email_async(subject, message, email_list):
+    """Internal helper to send bulk emails in a thread."""
+    from django.core.mail import get_connection, EmailMessage
+    try:
+        connection = get_connection()
+        messages = [
+            EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, [email], connection=connection)
+            for email in email_list if email
+        ]
+        connection.send_messages(messages)
+    except Exception as e:
+        logger.warning(f"Background broadcast delivery failed: {type(e).__name__}: {e}")
 
 def send_obe_notification(recipient, title, message, notification_type='INFO', module='GENERAL', priority='NORMAL', action_link=None, send_email=True):
     """
@@ -33,27 +61,12 @@ def send_obe_notification(recipient, title, message, notification_type='INFO', m
     is_student = (recipient.role_id and recipient.role_id.role_name.lower() == 'student')
     if send_email and recipient.email and not is_student:
         subject = f"[{priority}] {title}" if priority == 'CRITICAL' else title
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[recipient.email],
-                fail_silently=False,
-            )
-        except smtplib.SMTPException as e:
-            # Email delivery failed (bad address, auth error, connection issue, etc.)
-            # Log a warning and continue — the in-app notification was already saved.
-            logger.warning(
-                f"Email delivery failed for {recipient.email} (test/sample address?): "
-                f"{type(e).__name__}: {e}"
-            )
-            return True  # In-app notification succeeded
-        except Exception as e:
-            logger.warning(
-                f"Unexpected error sending email to {recipient.email}: {type(e).__name__}: {e}"
-            )
-            return True  # In-app notification succeeded
+        # Dispatch to background thread to prevent timeout
+        threading.Thread(
+            target=_send_email_async,
+            args=(subject, message, [recipient.email]),
+            daemon=True
+        ).start()
 
     return True
 
@@ -89,26 +102,12 @@ def broadcast_notification(recipients_queryset, title, message, notification_typ
         email_list = list(staff_recipients.values_list('email', flat=True))
 
         if email_list:
-            try:
-                from django.core.mail import get_connection, EmailMessage
-                connection = get_connection()
-                subject = f"[{priority}] {title}" if priority == 'CRITICAL' else title
-                messages = [
-                    EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, [email], connection=connection)
-                    for email in email_list if email
-                ]
-                connection.send_messages(messages)
-            except smtplib.SMTPException as e:
-                # Email delivery failed for the batch (bad addresses, auth, etc.)
-                logger.warning(
-                    f"Broadcast email delivery failed (test/sample addresses?): "
-                    f"{type(e).__name__}: {e}"
-                )
-                return True  # In-app notifications already created
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error during broadcast email: {type(e).__name__}: {e}"
-                )
-                return True  # In-app notifications already created
+            subject = f"[{priority}] {title}" if priority == 'CRITICAL' else title
+            # Dispatch to background thread to prevent timeout
+            threading.Thread(
+                target=_broadcast_email_async,
+                args=(subject, message, email_list),
+                daemon=True
+            ).start()
 
     return True
