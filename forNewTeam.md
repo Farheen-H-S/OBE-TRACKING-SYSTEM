@@ -27,7 +27,7 @@ Our system has been rigorously tested and verified to work **end-to-end correctl
 
 Based on our direct experience, **do not assume that the manual Excel reports or reference sheets provided by faculty members are 100% accurate.** 
 
-* **The Reality of Manual Work**: During development, we analyzed two reference sheets provided for the 3rd and 4th semesters. One sheet contained an outright manual calculation error, and the other consisted entirely of dummy data. 
+* **The Reality of Manual Work**: During development, we analyzed two reference sheets provided for the 3rd and 4th semesters. One sheet contained an outright manual calculation error, and the other consisted some of dummy data. 
 * **The Project's Core Purpose**: This is the exact problem our capstone project was built to solve. Large, manual, complex calculations naturally introduce human error and place an immense cognitive workload on teachers. 
 * **Your Strategy**: When testing your code, do not stress yourself out if your automated engine's output doesn't match a faculty member's manual sheet. Double-check your code logic first—the manual sheet itself might be mathematically flawed (but not always, doubt your code first).
 
