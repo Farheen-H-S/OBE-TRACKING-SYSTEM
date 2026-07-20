@@ -9,8 +9,14 @@ __pycache__/
 # Node / React
 **/node_modules/
 
-# Documents
-docs/
+# Project Documents
+docs/11_audit_logs
+docs/13_black_book
+docs/15_demos
+docs/99_archive
 
-# Mac
+# Global OS Junk Files
 .DS_Store
+Thumbs.db
+desktop.ini
+*.swp
