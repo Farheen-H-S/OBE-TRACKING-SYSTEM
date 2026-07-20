@@ -12,7 +12,7 @@ This repository contains the definitive, final capstone project built by the ori
 # OBE Tracking System
 
 A full-stack web application designed to manage Outcome Based Education (OBE) processes, including CO-PO-PSO mapping, automating attainment calculations, and student stress analysis, aligned with NBA requirements (Criterion 3).
-
+---
 ## Key Features
 
 - Role-Based Access Control (RBAC) for multiple user roles (Admin, HOD, Faculty, Coordinator, Auditor)
@@ -20,14 +20,14 @@ A full-stack web application designed to manage Outcome Based Education (OBE) pr
 - Excel-based bulk data upload and report generation
 - Anonymous student stress survey module
 - Role-specific dashboards and workflows
-
+---
 ## Original Team Members
 
 - **Farheen** – Team Lead, Backend Integration  
 - **Gayatri** – Backend Lead  
 - **Khushi** – Frontend Lead  
 - **Saloni** – Documentation, Testing & QA  
-
+---
 ## System Overview
 
 1. Users log in based on roles (RBAC)
@@ -36,7 +36,7 @@ A full-stack web application designed to manage Outcome Based Education (OBE) pr
 4. System calculates attainment automatically
 5. Reports are generated for analysis and accreditation
 6. Stress survey data is collected and analyzed
-
+---
 ## Tech Stack & Architecture
 
 ### Backend
@@ -48,7 +48,7 @@ A full-stack web application designed to manage Outcome Based Education (OBE) pr
 ### Frontend
 - **Framework**: React.js 
 - **Styling**: Bootstrap & Custom CSS Components
-
+---
 ## Backend Overview
 
 - Built using Django and Django REST Framework
@@ -94,7 +94,9 @@ cd OBE-TRACKING-SYSTEM
    ```bash
    pip install -r requirements.txt
    ```
+
 4. **Environment Variables**: Create a `.env` file inside the `backend/` root directory. Open `.env.example`, copy its keys, paste them into your new `.env` file, and provide your local configurations (including generating your own Google App Password for mailers).
+
 5. Apply database migrations:
    ```bash
    python manage.py migrate
@@ -114,7 +116,9 @@ The backend API will now be listening locally at `http://127.0.0`.
    ```bash
    npm install
    ```
+
 3. **Environment Setup**: Look at `src/utils/axios.js`. As detailed in `DEFECT_REPORT.md (DEF-01)`, the API client base URL points to production. Update your local client instance or set up a frontend `.env` variable pointing to `http://127.0.0` for local development.
+
 4. Launch the local web server:
    ```bash
    npm start
@@ -125,11 +129,11 @@ The frontend portal will automatically open in your browser at `http://localhost
 
 ## Render Deployment Constraints for New Team
 If you attempt to host your fork online using Render:
-* **Build Command (Backend)**: 
+* **Build Command (the one we used)**: 
    ```bash
    cd frontend/webapp && npm install && npm run build && cd ../../backend && pip install -r requirements.txt && python manage.py collectstatic --noinput
    ```
-* **Start Command (Backend)**: 
+* **Start Command (the one we used)**: 
    ```bash
    cd backend && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --timeout 120
    ```
