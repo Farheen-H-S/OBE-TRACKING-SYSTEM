@@ -51,6 +51,11 @@ To prevent your team from making incorrect design assumptions, here is why we bu
 * **Read-Only Enforcements**: The Auditor has **read-only access and remark privileges** across the system. They have zero direct write permissions (verify the exact access grids inside our `rbac/user roles` documentation).
 * **⚠️ Storage Defect Warning**: On the Mark Entry page, faculty can upload supporting documents. Currently, due to development limitations, these files are converted to **Base64 strings and stored inside the browser's LocalStorage**. In a production environment, this is highly insecure and inefficient. **You must modify this logic to stream and store these documents directly into a dedicated database binary field or cloud storage instance.**
 
+### D. The Strict Security Onboarding Workflow (Login & Account Creation)
+* **The "Why"**: You will notice there is intentionally **no "Create Account" or "Sign Up" feature** anywhere on the user interface. This is a critical security measure to protect institutional integrity and prevent unauthorized external users from registering and self-assigning high-clearance academic roles (like HOD or Auditor).
+* **Admin-Driven Provisioning**: The database should be pre-loaded with an initial master Administrator credential. The Admin is solely responsible for manually creating new accounts using official institutional email addresses and securely routing the generated temporary passwords to the respective faculty members. Users can update their profiles only *after* passing this secure authentication checkpoint (Login).
+* **Auditor Lifecycles (Enable/Disable Enforcements)**: The Auditor profile is designed to be a static, permanent account entity. The Administrator is expected to update the Auditor's password at the beginning of an official accreditation cycle. Once the audit concludes, the Admin must **disable the user status** in the database. When a new audit cycle initiates the following year, the Admin simply re-enables the account and refreshes the credentials. **Do not create separate, multiple auditor profiles.**
+
 ---
 
 ## 4. Communication & Debugging Boundaries
